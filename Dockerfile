@@ -73,13 +73,15 @@ ENV SENSE_COLLECTOR_VERSION=${BUILD_VERSION} \
     BUILD_VERSION=${BUILD_VERSION} \
     BUILD_TIMESTAMP=${BUILD_TIMESTAMP} \
     BUILD_COMMIT=${BUILD_COMMIT}
-LABEL version="${BUILD_VERSION}" \
-      build_timestamp="${BUILD_TIMESTAMP}" \
-      commit="${BUILD_COMMIT}" \
-      description="Sense Collector — Sense home energy monitor metrics to InfluxDB" \
-      maintainer="Luxardo Labs" \
+LABEL org.opencontainers.image.title="Sense Collector" \
+      org.opencontainers.image.description="Sense home energy monitor metrics to InfluxDB" \
       org.opencontainers.image.source="https://github.com/luxardolabs/sense-collector" \
-      org.opencontainers.image.licenses="AGPL-3.0-only"
+      org.opencontainers.image.url="https://github.com/luxardolabs/sense-collector" \
+      org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.revision="${BUILD_COMMIT}" \
+      org.opencontainers.image.created="${BUILD_TIMESTAMP}" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.vendor="Luxardo Labs"
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD ["python3", "-m", "app.health.check"]
