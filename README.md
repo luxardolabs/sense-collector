@@ -2,48 +2,47 @@
 
 ![Sense Collector Header](docs/images/sense_collector_header.png)
 
-**Sense Collector** is a Python-based application deployed via Docker that collects data from the [Sense](https://sense.com/) energy monitoring system. It enables real-time energy monitoring through a set of pre-built, configurable Grafana dashboards, giving you powerful insights into your energy consumption patterns.
+**Sense Collector** is a headless Docker service that collects data from the [Sense](https://sense.com/) home energy monitor and stores it in InfluxDB for visualization in Grafana. It authenticates against the Sense cloud, streams the realtime WebSocket feed, resolves your devices via the REST API, and writes energy metrics to InfluxDB — reaching OUT to Sense and OUT to InfluxDB, with no inbound port.
 
 ## Key Features
-- **Data Collection**: Automatically collects energy usage data from Sense energy monitors.
-- **Grafana Dashboards**: Pre-configured dashboards for visualizing device-specific and whole-home energy usage data.
-- **InfluxDB Integration**: Stores data in InfluxDB, offering a flexible and scalable way to manage energy metrics.
-- **Easy Setup**: Deployed quickly using Docker with minimal configuration.
 
-## Quick Start Guide
+- **Realtime collection**: streams whole-home mains (watts, volts, Hz) and per-device wattage from the Sense WebSocket feed.
+- **Device resolution**: names your devices via the Sense API, cached to respect rate limits.
+- **InfluxDB storage**: writes to InfluxDB 2.x for flexible, scalable time-series storage.
+- **Grafana dashboards**: ready-to-import dashboards for device, mains, and monitor views.
+- **Simple deploy**: a single multi-arch container, configured entirely through environment variables.
 
-To get up and running with Sense Collector, you will need to:
-1. Ensure you have **Docker**, **Docker Compose**, **InfluxDB 2.x**, and **Grafana** installed.
-2. Pull the latest Sense Collector Docker image.
-3. Configure your environment variables for Sense API credentials and InfluxDB connection.
+## Quick Start
 
-For complete setup instructions, including all the necessary environment variables and deployment configurations, please visit the [Wiki](https://github.com/luxardolabs/sense-collector/wiki/Getting-Started).
+```bash
+cp .env.example .env.prod          # then edit: Sense credentials + InfluxDB connection
+docker compose -f compose.prod.yml up -d
+docker compose -f compose.prod.yml ps   # HEALTH shows healthy once data is flowing
+```
+
+The image is published at `ghcr.io/luxardolabs/sense-collector:latest`. Full walkthrough: **[docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)**.
+
+## Documentation
+
+- **[Getting Started](docs/GETTING-STARTED.md)** — prerequisites, install, run, and verify.
+- **[Configuration](docs/CONFIGURATION.md)** — every environment variable.
+- **[Grafana](docs/GRAFANA.md)** — data source setup and the dashboards.
+- **[What the Collector Gathers](docs/COLLECTOR-DETAILS.md)** — the measurements and where they come from.
 
 ## Dashboards
 
-Sense Collector includes several Grafana dashboards to help you monitor your energy usage:
-- **Device Overview**: Displays real-time wattage usage for individual devices.
-- **Mains Overview**: Shows household voltage, frequency, and power consumption.
-- **Monitor & Detection**: Visualizes Sense monitor detection status and Wi-Fi signal strength.
+Three Grafana dashboards ship in [`grafana/shared-local/`](grafana/shared-local): **Device Overview**, **Mains Overview**, and **Monitor & Detection**. See [docs/GRAFANA.md](docs/GRAFANA.md) for import and data-source setup.
 
-You can find detailed instructions on setting up and customizing these dashboards in the [Grafana Dashboards section](https://github.com/luxardolabs/sense-collector/wiki/Grafana-Dashboards) of the Wiki.
+## Support
 
-## Configuration
-
-Sense Collector uses a set of environment variables to control its behavior and integrate with the Sense API and InfluxDB. These variables must be configured before deploying the container. For a full list of required and optional variables, visit the [Environment Variables page](https://github.com/luxardolabs/sense-collector/wiki/Environment-Variables).
-
-## Support & Contact
-
-Questions or need support? Please [open an issue](https://github.com/luxardolabs/sense-collector/issues) on the project repository.
-
-Project Link: [https://github.com/luxardolabs/sense-collector](https://github.com/luxardolabs/sense-collector)
+Questions or issues? Please [open an issue](https://github.com/luxardolabs/sense-collector/issues).
 
 ## Acknowledgements
 
 - [Grafana Labs](https://grafana.com/)
 - [InfluxData](https://www.influxdata.com/)
-- [Sense Labs](https://sense.com/)
+- [Sense](https://sense.com/)
 
 ## License
 
-This project is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0-only)](LICENSE).
+Licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0-only)](LICENSE).
