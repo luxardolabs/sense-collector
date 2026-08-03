@@ -1,0 +1,138 @@
+{
+    "authorized": true,
+    "account_id": 100001,
+    "user_id": 100002,
+    "access_token": "t1.v2.FAKE_ACCESS_TOKEN_FOR_FIXTURE_ONLY.not-a-real-jwt",
+    "settings": {
+        "user_id": 100002,
+        "settings": {
+            "timeline": {
+                "show_devices": {
+                    "1603": {
+                        "ff28cd40": true,
+                        "8efea3c9": true,
+                        "f80fc04f": true,
+                        "22c99496": true,
+                        "7007f54f": true,
+                        "cbfa1f24": true,
+                        "ac846389": true,
+                        "04abce95": false,
+                        "2bc8e279": false,
+                        "1641d894": true,
+                        "45abc3dd": true,
+                        "67ffa073": true,
+                        "5fa01f23": true,
+                        "74b6b318": true,
+                        "31b03cd8": true,
+                        "d149e2d2": true
+                    }
+                }
+            },
+            "alerts": {
+                "enabled": {
+                    "1603": {
+                        "ff28cd40": false,
+                        "8efea3c9": false,
+                        "f80fc04f": false,
+                        "22c99496": false,
+                        "7007f54f": false,
+                        "cbfa1f24": false,
+                        "ac846389": true,
+                        "04abce95": false,
+                        "2bc8e279": false,
+                        "1641d894": true,
+                        "45abc3dd": true,
+                        "67ffa073": true,
+                        "5fa01f23": false,
+                        "74b6b318": false,
+                        "31b03cd8": false,
+                        "d149e2d2": false
+                    }
+                }
+            },
+            "notifications": {
+                "1603": {
+                    "new_named_device_push": true,
+                    "new_named_device_email": true,
+                    "monitor_offline_push": true,
+                    "monitor_offline_email": true,
+                    "monitor_monthly_email": true,
+                    "always_on_change_push": true,
+                    "comparison_change_push": true,
+                    "new_peak_push": true,
+                    "new_peak_email": false,
+                    "monthly_change_push": true,
+                    "weekly_change_push": false,
+                    "daily_change_push": false,
+                    "generator_on_push": true,
+                    "generator_off_push": true,
+                    "time_of_use": true,
+                    "grid_outage_push": true,
+                    "grid_restored_push": true,
+                    "relay_update_available_push": true,
+                    "relay_update_installed_push": true,
+                    "new_features_and_offers_push": true
+                }
+            },
+            "labs_enabled": true,
+            "hide_trends_carbon_card": false
+        },
+        "version": 4
+    },
+    "refresh_token": "FAKE_REFRESH_TOKEN_FOR_FIXTURE_ONLY",
+    "monitors": [
+        {
+            "id": 200001,
+            "date_created": "2016-10-19T18:28:55.000Z",
+            "serial_number": "M000000000",
+            "time_zone": "America/Chicago",
+            "solar_connected": false,
+            "solar_configured": false,
+            "online": false,
+            "attributes": {
+                "id": 300001,
+                "name": "Example Home",
+                "state": "MO",
+                "cost": 12.580000000,
+                "sell_back_rate": 12.580000000,
+                "user_set_cost": true,
+                "cycle_start": 23,
+                "basement_type": "",
+                "home_size_type": "",
+                "home_type": "",
+                "number_of_occupants": null,
+                "occupancy_type": "",
+                "year_built_type": "",
+                "basement_type_key": null,
+                "home_size_type_key": null,
+                "home_type_key": null,
+                "occupancy_type_key": null,
+                "year_built_type_key": null,
+                "address": null,
+                "city": null,
+                "postal_code": "00000",
+                "electricity_cost": null,
+                "show_cost": true,
+                "tou_enabled": false,
+                "solar_tou_enabled": false,
+                "power_region": null,
+                "to_grid_threshold": null,
+                "panel": null,
+                "home_info_survey_progress": "LEGACY",
+                "device_survey_progress": "LEGACY",
+                "user_set_sell_back_rate": true
+            },
+            "signal_check_completed_time": "2019-08-04T06:41:14.000Z",
+            "data_sharing": [],
+            "ethernet_supported": false,
+            "power_over_ethernet_supported": false,
+            "aux_ignore": false,
+            "aux_port": "disconnected",
+            "hardware_type": "monitor",
+            "zigbee_supported": false
+        }
+    ],
+    "bridge_server": "wss://mb1.home.sense.com",
+    "date_created": "2016-10-19T18:29:34.000Z",
+    "totp_enabled": false
+}

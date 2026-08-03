@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Fleet secret-scan pre-commit hook. Runs the canonical gitleaks config (org denylist +
+# credential-shape defaults, emitted from the luxlint image) over the STAGED changes, so a
+# secret or internal-infra string is caught before it is committed. Install with `make hooks`
+# (sets core.hooksPath to .githooks). Skips gracefully if LUXLINT_REGISTRY is unset.
+exec make gitleaks-staged

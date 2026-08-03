@@ -1,0 +1,71 @@
+{
+    "alerts": {
+        "allowed": true,
+        "enabled": false
+    },
+    "notes": null,
+    "usage": {
+        "current_month_runs": 0,
+        "current_month_KWH": 0.0,
+        "avg_monthly_runs": 1,
+        "avg_monthly_KWH": 1.7718954164162277,
+        "avg_monthly_pct": 0.0,
+        "avg_watts": 16.7767641247406,
+        "avg_duration": 161563.66666666666,
+        "yearly_KWH": 0.0,
+        "yearly_text": "Based on your usage",
+        "yearly_cost": 0,
+        "current_month_cost": 0,
+        "avg_monthly_cost": 23
+    },
+    "timeline": {
+        "visible": true,
+        "allowed": true
+    },
+    "device": {
+        "id": "ssi-bc222870",
+        "name": "Conservatory Piano Humidifier",
+        "icon": "plug",
+        "monitor_id": 53997,
+        "tags": {
+            "Alertable": "true",
+            "ControlCapabilities": [
+                "OnOff",
+                "StandbyThreshold"
+            ],
+            "DateCreated": "2021-07-27T00:09:39.000Z",
+            "DefaultUserDeviceType": "SmartPlug",
+            "DeviceListAllowed": "true",
+            "DUID": "8006581AA2FB8981B6CD01A09C2598EF1DFFD94502",
+            "IntegratedDeviceType": "IntegratedSmartPlug",
+            "IntegrationType": "TPLink",
+            "name_useredit": "false",
+            "OriginalName": "Conservatory Piano Humidifier",
+            "Revoked": "false",
+            "SmartPlugModel": "TP-Link Kasa HS300",
+            "SmartPlugName": "Conservatory Piano Humidifier (Outlet 3)",
+            "SSIEnabled": "true",
+            "SSIModel": "SelfReporting",
+            "TimelineAllowed": "true",
+            "TimelineDefault": "true",
+            "UserDeletable": "false",
+            "UserEditable": "true",
+            "UserEditableMeta": "true",
+            "UserMergeable": "false",
+            "UserShowBubble": "true",
+            "UserShowInDeviceList": "true",
+            "UserVisibleDeviceId": "8006581AA2FB8981B6CD01A09C2598EF1DFFD94502",
+            "UserDeviceTypeDisplayString": "Smart Plug",
+            "UserDeviceType": "SmartPlug"
+        },
+        "standbyConfig": {
+            "standby_threshold_watt": 8,
+            "standby_hysteresis_sec": 5,
+            "default_standby_threshold_watt": 8,
+            "default_standby_hysteresis_sec": 5
+        },
+        "last_state": "Off",
+        "last_state_time": "2023-08-18T23:16:07.000Z"
+    },
+    "info": null
+}

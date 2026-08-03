@@ -1,0 +1,13 @@
+# luxlint — fleet code-style + type standard (sibling of luxarch/.luxarch.toml).
+# Carries only where to look + what's deferred; the ruff/mypy config lives in the image.
+[source]
+paths = ["app"]
+
+[python]
+# sense-collector runs Python 3.14 — ruff/mypy check against it (the rule set stays
+# fleet-canonical; only the target version is a per-repo fact). Defaults to the py313 floor.
+target = "py314"
+
+[rules.deferred]
+# Owner's ratchet dial — a failing check parked here is XFAIL (needs an evidence line),
+# a passing one is flagged to drop. Empty: reds stay lit and get burned down by ticket.

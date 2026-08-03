@@ -1,0 +1,3339 @@
+{
+  "__elements": {},
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source}"
+        },
+        "enable": false,
+        "iconColor": "#e35431",
+        "name": "Device Status - On",
+        "query": "SELECT body,device_state FROM \"sense_event\" WHERE (\"event_type\" = 'new_timeline' AND \"name\" =~ /^$devices$/) and $timeFilter and device_state='DeviceOn'",
+        "tagsColumn": "device_state",
+        "target": {
+          "fromAnnotations": true,
+          "query": "SELECT body,device_state FROM \"sense_event\" WHERE (\"device_name\" =~ /^$devices$/) and $timeFilter and device_state='DeviceOn'",
+          "rawQuery": true,
+          "refId": "Anno",
+          "tagsColumn": "device_state",
+          "textColumn": "body",
+          "textEditor": true,
+          "timeEndColumn": ""
+        },
+        "textColumn": "body"
+      },
+      {
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source}"
+        },
+        "enable": false,
+        "iconColor": "#707070",
+        "name": "Device Status - Off",
+        "query": "SELECT body,device_state FROM \"sense_event\" WHERE (\"event_type\" = 'new_timeline' AND \"name\" =~ /^$devices$/) and $timeFilter and device_state='DeviceOff'",
+        "tagsColumn": "device_state",
+        "target": {
+          "fromAnnotations": true,
+          "query": "SELECT body,device_state FROM \"sense_event\" WHERE (\"device_name\" =~ /^$devices$/) and $timeFilter and device_state='DeviceOff'",
+          "rawQuery": true,
+          "refId": "Anno",
+          "tagsColumn": "device_state",
+          "textColumn": "body",
+          "textEditor": true,
+          "timeEndColumn": ""
+        },
+        "textColumn": "body"
+      },
+      {
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source}"
+        },
+        "enable": false,
+        "iconColor": "#77d38e",
+        "name": "Device Status - Idle",
+        "query": "SELECT body,device_state FROM \"sense_event\" WHERE (\"event_type\" = 'new_timeline' AND \"name\" =~ /^$devices$/) and $timeFilter and device_state='DeviceIdle'",
+        "tagsColumn": "device_state",
+        "target": {
+          "fromAnnotations": true,
+          "query": "SELECT body,device_state FROM \"sense_event\" WHERE (\"device_name\" =~ /^$devices$/) and $timeFilter and device_state='DeviceIdle'",
+          "rawQuery": true,
+          "refId": "Anno",
+          "tagsColumn": "device_state",
+          "textColumn": "body",
+          "textEditor": true,
+          "timeEndColumn": ""
+        },
+        "textColumn": "body"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [
+        "sense-collector"
+      ],
+      "targetBlank": false,
+      "title": "Sense Collector - Dashboards",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${data_source}"
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "hideTimeOverride": true,
+      "id": 12,
+      "interval": "$interval",
+      "options": {
+        "bgColor": "",
+        "colorSchemeParams": {
+          "colorScheme": "Gradient",
+          "gradientColors": [
+            "#468860",
+            "#e35431"
+          ],
+          "gradientThresholds": "40,80",
+          "groupDepthColors": [
+            "#E0B400",
+            "#5794F2"
+          ],
+          "thresholdColors": [
+            "#C4162A",
+            "#FADE2A",
+            "#1F60C4"
+          ],
+          "thresholds": "33,66"
+        },
+        "decimals": 2,
+        "displayLabel": false,
+        "displayLabels": [
+          "name"
+        ],
+        "groupBy": "Name",
+        "groupLabels": [],
+        "groupSeparator": ",",
+        "showSeriesCount": false,
+        "stat": "current",
+        "text": "",
+        "textanchor": "",
+        "textfont": "",
+        "textshadow": "",
+        "unit": "watt"
+      },
+      "pluginVersion": "2.0.1",
+      "targets": [
+        {
+          "alias": "$tag_device_name",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "device_name::tag"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "sense_devices",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT mean(\"value\") FROM \"devices\" WHERE (\"name\" =~ /^$Device$/) AND $timeFilter GROUP BY time(3s), \"name\" fill(previous)",
+          "rawQuery": false,
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "watts"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "device_name::tag",
+              "operator": "=~",
+              "value": "/^$devices$/"
+            }
+          ]
+        }
+      ],
+      "title": "Current Wattage",
+      "transparent": true,
+      "type": "digrich-bubblechart-panel"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${data_source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "links": [],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "watt"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 9,
+        "x": 6,
+        "y": 0
+      },
+      "id": 9,
+      "interval": "$interval",
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "maxHeight": 600,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "8.0.4",
+      "targets": [
+        {
+          "alias": "$tag_device_name",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "device_name::tag"
+              ],
+              "type": "tag"
+            }
+          ],
+          "measurement": "sense_devices",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT mean(\"value\") FROM \"devices\" WHERE (\"name\" =~ /^$Device$/) AND $timeFilter GROUP BY time(3s), \"name\" fill(previous)",
+          "rawQuery": false,
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "watts"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "mean"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "device_name::tag",
+              "operator": "=~",
+              "value": "/^$devices$/"
+            }
+          ]
+        }
+      ],
+      "title": "Wattage By Device (Stacked)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${data_source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "fillOpacity": 100,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineWidth": 0,
+            "spanNulls": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "DeviceIdle": {
+                  "color": "#77d38e",
+                  "index": 2,
+                  "text": "Idle"
+                },
+                "DeviceOff": {
+                  "color": "#707070",
+                  "index": 1,
+                  "text": "Off"
+                },
+                "DeviceOn": {
+                  "color": "#e35431",
+                  "index": 0,
+                  "text": "On"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 9,
+        "x": 15,
+        "y": 0
+      },
+      "id": 11,
+      "interval": "$interval",
+      "options": {
+        "alignValue": "center",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mergeValues": true,
+        "rowHeight": 0.72,
+        "showValue": "auto",
+        "tooltip": {
+          "maxHeight": 600,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "8.0.4",
+      "targets": [
+        {
+          "alias": "$tag_device_name",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "device_name::tag"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "previous"
+              ],
+              "type": "fill"
+            }
+          ],
+          "hide": false,
+          "measurement": "sense_event",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT last(\"watts\") FROM \"sense_devices\" WHERE $timeFilter GROUP BY time($__interval), \"name\" fill(null)",
+          "rawQuery": false,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "device_state"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "device_name::tag",
+              "operator": "=~",
+              "value": "/^$devices$/"
+            }
+          ]
+        },
+        {
+          "alias": "$tag_device_name",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "device_name::tag"
+              ],
+              "type": "tag"
+            }
+          ],
+          "hide": true,
+          "measurement": "sense_event",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT last(\"device_state\") FROM \"sense_event\" WHERE $timeFilter GROUP BY time($__interval), \"device_name\"::tag",
+          "rawQuery": true,
+          "refId": "C",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "device_state"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "$tag_device_name",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "name"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "previous"
+              ],
+              "type": "fill"
+            }
+          ],
+          "hide": true,
+          "measurement": "sense_event",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT last(\"device_state\") FROM \"sense_event\" WHERE ( \"device_name\" =~ /^$devices$/) AND (time >= ${__from}ms - $expand_from_events AND time <= ${__to}ms) GROUP BY time($__interval), \"device_name\"::tag fill(previous)",
+          "rawQuery": true,
+          "refId": "D",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "device_state"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "event_type",
+              "operator": "=",
+              "value": "new_timeline"
+            },
+            {
+              "condition": "AND",
+              "key": "name",
+              "operator": "=~",
+              "value": "/^$devices$/"
+            }
+          ]
+        }
+      ],
+      "title": "Device Status",
+      "type": "state-timeline"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${data_source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsUSNoDateIfToday"
+              },
+              {
+                "id": "custom.width",
+                "value": 96
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Icon"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": []
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "image"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "ac": {
+                        "index": 0,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04NC43LDUzLjdsLTE0LjgsNGwtNC4yLTIuNGMwLjYtMS43LDAuOS0zLjQsMC45LTUuMnMtMC40LTMuNi0wLjktNS4ybDQuMi0yLjRsMTQuOCw0bDEuNy02LjRsLTguMy0yLjIKCWw4LjItNC43TDgzLDI3LjFsLTguMiw0LjdsMi4yLTguM2wtNi40LTEuN2wtNCwxNC44TDYyLjQsMzljLTIuMy0yLjYtNS41LTQuNi05LjEtNS4zdi00LjhMNjQuMSwxOGwtNC43LTQuN2wtNi4xLDYuMVYxMGgtNi43djkuNAoJbC02LjEtNi4xTDM1LjksMThsMTAuOCwxMC44djQuOGMtMy42LDAuNy02LjcsMi43LTkuMSw1LjNsLTQuMi0yLjRsLTQtMTQuOEwyMywyMy41bDIuMiw4LjNMMTcsMjcuMWwtMy4zLDUuOGw4LjIsNC43bC04LjMsMi4yCglsMS43LDYuNGwxNC44LTRsNC4yLDIuNGMtMC42LDEuNy0wLjksMy40LTAuOSw1LjJzMC40LDMuNiwwLjksNS4yTDMwLDU3LjdsLTE0LjgtNGwtMS43LDYuNGw4LjMsMi4ybC04LjIsNC43bDMuMyw1LjhsOC4yLTQuNwoJTDIzLDc2LjVsNi40LDEuN2w0LTE0LjhsNC4yLTIuNGMyLjMsMi42LDUuNSw0LjYsOS4xLDUuM3Y0LjhMMzUuOSw4Mmw0LjcsNC43bDYuMS02LjFWOTBoNi43di05LjRsNi4xLDYuMWw0LjctNC43TDUzLjMsNzEuMXYtNC44CgljMy42LTAuNyw2LjctMi43LDkuMS01LjNsNC4yLDIuNGw0LDE0LjhsNi40LTEuN2wtMi4yLTguM2w4LjIsNC43bDMuMy01LjhsLTguMi00LjdsOC4zLTIuMkw4NC43LDUzLjd6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "always_on": {
+                        "index": 1,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04My4zLDEwSDE2LjdDMTMsMTAsMTAsMTMsMTAsMTYuN3Y2Ni43YzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjE2LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiBNNzguMyw4MGgtNi43di05LjJDNjYuMiw3Ni40LDU4LjUsODAsNTAsODBjLTE2LjYsMC0zMC0xMy40LTMwLTMwaDYuN2MwLDEyLjksMTAuNCwyMy4zLDIzLjMsMjMuMwoJYzYuNiwwLDEyLjYtMi44LDE2LjktNy4yaC05LjF2LTYuN2wxNy4yLDB2MGMxLjgsMCwzLjMsMS41LDMuMywzLjNWODB6IE03My4zLDUwYzAtMTIuOS0xMC40LTIzLjMtMjMuMy0yMy4zCgljLTYuNiwwLTEyLjYsMi44LTE2LjksNy4yaDkuMnY2LjdsLTE3LjIsMGwwLDBjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM1YyMGg2LjdsMCw5LjJDMzMuOCwyMy42LDQxLjUsMjAsNTAsMjBjMTYuNiwwLDMwLDEzLjQsMzAsMzAKCUg3My4zeiIvPgo8L3N2Zz4K"
+                      },
+                      "car": {
+                        "index": 2,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qxe2ZpbGw6IzQ2ODg2MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04My4zLDU2LjdsLTUuNi0xNi44Yy0wLjYtMS43LTIuNi0zLjItNC40LTMuMkg0Ni43bC0xMy4zLDIwbC0yMC4zLDguN0MxMS40LDY2LjEsMTAsNjguMiwxMCw3MHYxMy4zaDEwLjYKCWMxLjQsMy45LDUsNi43LDkuNCw2LjdzOC0yLjgsOS40LTYuN2gyNC42YzEuNCwzLjksNSw2LjcsOS40LDYuN2M0LjMsMCw4LTIuOCw5LjQtNi43SDkwdi0yMEM5MCw1OS43LDg3LDU2LjcsODMuMyw1Ni43eiBNMzAsODMuMwoJYy0xLjgsMC0zLjMtMS41LTMuMy0zLjNzMS41LTMuMywzLjMtMy4zczMuMywxLjUsMy4zLDMuM1MzMS44LDgzLjMsMzAsODMuM3ogTTU2LjcsNTYuN0g0MS4zbDguOS0xMy4zaDYuNEw1Ni43LDU2LjdMNTYuNyw1Ni43egoJIE02My4zLDU2LjdWNDMuM2g4LjVsNC40LDEzLjNINjMuM3ogTTczLjMsODMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuM2MxLjgsMCwzLjMsMS41LDMuMywzLjNTNzUuMiw4My4zLDczLjMsODMuMwoJeiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODMuMywxMHY4LjNjMCwxLjgtMS41LDMuMy0zLjMsMy4zSDM2Ljd2LTVjMC0zLjctMy02LjctNi43LTYuN0gyMHY1LjhoLTYuN2MtMS44LDAtMy4zLDEuNS0zLjMsMy4zCgljMCwxLjgsMS41LDMuMywzLjMsMy4zSDIwdjVoLTYuN2MtMS44LDAtMy4zLDEuNS0zLjMsMy4zYzAsMS44LDEuNSwzLjMsMy4zLDMuM0gyMFY0MGgxMGMzLjcsMCw2LjctMyw2LjctNi43di01SDgwCgljNS41LDAsMTAtNC41LDEwLTEwVjEwSDgzLjN6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "computer": {
+                        "index": 3,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMy4zLDgzLjNWOTBoMjBWMjMuM0gxNi43Yy0zLjcsMC02LjcsMy02LjcsNi43djQwYzAsMy43LDMsNi43LDYuNyw2LjdoMjB2Ni43SDIzLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik04My4zLDEwSDU2LjdDNTMsMTAsNTAsMTMsNTAsMTYuN3Y2Ni43YzAsMy43LDMsNi43LDYuNyw2LjdoMjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjE2LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiBNNzAsODMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuM3MzLjMsMS41LDMuMywzLjNTNzEuOCw4My4zLDcwLDgzLjN6IE04My4zLDQzLjNINTYuN3YtNi43CgloMjYuN1Y0My4zeiBNODMuMywzMEg1Ni43di02LjdoMjYuN1YzMHoiLz4KPC9zdmc+Cg=="
+                      },
+                      "dishes": {
+                        "index": 4,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMCwzMHY1My4zYzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjMwSDEweiBNNTAsODMuM2MtMTIuOSwwLTIzLjMtMTAuNC0yMy4zLTIzLjMKCVMzNy4xLDM2LjcsNTAsMzYuN2MxMi45LDAsMjMuMywxMC40LDIzLjMsMjMuM1M2Mi45LDgzLjMsNTAsODMuM3oiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTUwLDQzLjNjLTkuMiwwLTE2LjcsNy41LTE2LjcsMTYuN2MwLDkuMiw3LjUsMTYuNywxNi43LDE2LjdjOS4yLDAsMTYuNy03LjUsMTYuNy0xNi43CglDNjYuNyw1MC44LDU5LjIsNDMuMyw1MCw0My4zeiBNNTAsNzBjLTUuNSwwLTEwLTQuNS0xMC0xMGMwLTUuNSw0LjUtMTAsMTAtMTBzMTAsNC41LDEwLDEwQzYwLDY1LjUsNTUuNSw3MCw1MCw3MHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsMTBIMTYuN0MxMywxMCwxMCwxMywxMCwxNi43djYuN2gxMHYtNi43aDIwdjYuN2gyMHYtNi43aDYuN3Y2LjdoNi43di02LjdIODB2Ni43aDEwdi02LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiIvPgo8L3N2Zz4K"
+                      },
+                      "fridge": {
+                        "index": 5,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03My4zLDQzLjN2MjBoLTYuN3YtMjBIMjBWODBjMCw1LjUsNC41LDEwLDEwLDEwaDQwYzUuNSwwLDEwLTQuNSwxMC0xMFY0My4zSDczLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik02Ni43LDM2LjdWMjMuM2g2Ljd2MTMuM0g4MFYyMGMwLTUuNS00LjUtMTAtMTAtMTBIMzBjLTUuNSwwLTEwLDQuNS0xMCwxMHYxNi43SDY2Ljd6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "garage": {
+                        "index": 6,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qxe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qye2ZpbGw6Izc3RDM4RTt9Cjwvc3R5bGU+Cjxwb2x5Z29uIGNsYXNzPSJzdDAiIHBvaW50cz0iMTAsMzYuNyAxMCw5MCAyMCw5MCAyMCw0Ni43IDgwLDQ2LjcgODAsOTAgOTAsOTAgOTAsMzYuNyAiLz4KPHBvbHlnb24gY2xhc3M9InN0MSIgcG9pbnRzPSIyNi43LDUzLjMgMjYuNyw3MCA0Ni43LDcwIDQ2LjcsNjMuMyA1My4zLDYzLjMgNTMuMyw3MCA3My4zLDcwIDczLjMsNTMuMyAiLz4KPHBvbHlnb24gY2xhc3M9InN0MiIgcG9pbnRzPSI1MCwxMCAxMCwzMCA5MCwzMCAiLz4KPC9zdmc+Cg=="
+                      },
+                      "heat": {
+                        "index": 7,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01MCw3NWMtMTIsMC0yNC4yLTIuNS0zMS41LTcuNEMyMy4xLDgwLjYsMzUuNCw5MCw1MCw5MHMyNi45LTkuNCwzMS41LTIyLjRDNzQuMiw3Mi41LDYyLDc1LDUwLDc1eiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNzYuMSw0OC40Yy0xLDQuNC0zLjIsOC41LTYuNCwxMS44bC0xLjUsMS41bC0zNi40LDBsLTEuNS0xLjVjLTMuMy0zLjMtNS41LTcuNC02LjQtMTEuOAoJYy00LjUsMi4zLTcuMiw1LjEtNy4yLDguM0MxNi43LDY0LDMxLjYsNzAsNTAsNzBzMzMuMy02LDMzLjMtMTMuM0M4My4zLDUzLjUsODAuNiw1MC43LDc2LjEsNDguNHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTMzLjksNTYuN2MtNy40LTcuNC03LjQtMTkuMywwLTI2LjdjMCw1LjUsNC41LDEwLDEwLDEwdi01LjZjMC05LjUsMy45LTE4LjEsMTAuMS0yNC40YzAsNC44LDEuOCw5LjYsNS41LDEzLjMKCWw2LjcsNi43YzcuNCw3LjQsNy40LDE5LjMsMCwyNi43TDMzLjksNTYuN3oiLz4KPC9zdmc+Cg=="
+                      },
+                      "modem": {
+                        "index": 8,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMyw0MC42Yy0yLTQuNy0zLTkuOS0zLTE1LjNjMC01LjQsMS4xLTEwLjYsMy0xNS4zbDYuMiwyLjZjLTEuNiwzLjktMi41LDguMi0yLjUsMTIuOGMwLDQuNSwwLjksOC44LDIuNSwxMi44CglMMTMsNDAuNnoiLz4KPHBhdGggY2xhc3M9InN0MCIgZD0iTTgwLjgsMTIuNmMxLjYsMy45LDIuNSw4LjIsMi41LDEyLjhjMCw0LjUtMC45LDguOC0yLjUsMTIuOGw2LjIsMi42YzItNC43LDMtOS45LDMtMTUuM2MwLTUuNC0xLjEtMTAuNi0zLTE1LjMKCUw4MC44LDEyLjZ6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik02NS40LDE4LjljMC44LDIsMS4zLDQuMSwxLjMsNi40YzAsMi4zLTAuNSw0LjQtMS4zLDYuNGw2LjIsMi42YzEuMS0yLjgsMS44LTUuOCwxLjgtOC45cy0wLjYtNi4yLTEuOC04LjkKCUw2NS40LDE4Ljl6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0zNC42LDMxLjdjLTAuOC0yLTEuMy00LjEtMS4zLTYuNGMwLTIuMywwLjUtNC40LDEuMy02LjRsLTYuMi0yLjZjLTEuMSwyLjgtMS44LDUuOC0xLjgsOC45czAuNiw2LjIsMS44LDguOQoJTDM0LjYsMzEuN3oiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsNTBoLTMwVjM0LjdjMy45LTEuNCw2LjctNSw2LjctOS40YzAtNS41LTQuNS0xMC0xMC0xMGMtNS41LDAtMTAsNC41LTEwLDEwYzAsNC40LDIuOCw4LDYuNyw5LjRWNTBoLTMwCglDMTMsNTAsMTAsNTMsMTAsNTYuN3YyMGMwLDMuNywzLDYuNyw2LjcsNi43VjkwaDYuN3YtNi43aDIwdi0yMEg1MHYyMGg2Ljd2LTIwaDYuN3YyMEg3MHYtMjBoNi43djIwVjkwaDYuN3YtNi43CgljMy43LDAsNi43LTMsNi43LTYuN3YtMjBDOTAsNTMsODcsNTAsODMuMyw1MHogTTM2LjcsNzBIMjMuM3YtNi43aDEzLjNWNzB6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "outlet": {
+                        "index": 9,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03Ny42LDIwbC01NS4yLDBjLTE2LjYsMTYuNi0xNi42LDQzLjQsMCw2MGw1NS4yLDBDOTQuMSw2My40LDk0LjEsMzYuNiw3Ny42LDIweiBNMzYuNyw1My4zSDMwdi0yMGg2LjdWNTMuM3oKCSBNNTYuNyw2Ni43SDQzLjNWNjBoMTMuM1Y2Ni43eiBNNzAsNTMuM2gtNi43di0yMEg3MFY1My4zeiIvPgo8L3N2Zz4K"
+                      },
+                      "settings": {
+                        "index": 10,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04OS44LDUzLjNjMC4xLTEuMSwwLjItMi4yLDAuMi0zLjNjMC0xLjEtMC4xLTIuMi0wLjItMy4zaC02LjdjLTAuMi0yLjItMC42LTQuMy0xLjItNi4zbDYuMi0yLjYKCWMtMC43LTIuMS0xLjYtNC4yLTIuNi02LjFsLTYuMiwyLjZjLTEtMS45LTIuMi0zLjctMy42LTUuM2w0LjctNC43Yy0xLjQtMS43LTMtMy4zLTQuNy00LjdsLTQuNyw0LjdjLTEuNi0xLjQtMy40LTIuNS01LjMtMy42CglsMi42LTYuMmMtMi0xLTQtMS45LTYuMS0yLjZsLTIuNiw2LjJjLTItMC42LTQuMS0xLTYuMy0xLjJ2LTYuN0M1Mi4yLDEwLjEsNTEuMSwxMCw1MCwxMGMtMS4xLDAtMi4yLDAuMS0zLjMsMC4ydjYuNwoJYy0yLjIsMC4yLTQuMywwLjYtNi4zLDEuMmwtMi42LTYuMmMtMi4xLDAuNy00LjIsMS42LTYuMSwyLjZsMi42LDYuMmMtMS45LDEtMy43LDIuMi01LjMsMy42bC00LjctNC43Yy0xLjcsMS40LTMuMywzLTQuNyw0LjcKCWw0LjcsNC43Yy0xLjMsMS43LTIuNSwzLjQtMy42LDUuM2wtNi4yLTIuNmMtMSwyLTEuOSw0LTIuNiw2LjFsNi4yLDIuNmMtMC42LDItMSw0LjEtMS4yLDYuM2gtNi43QzEwLjEsNDcuOCwxMCw0OC45LDEwLDUwCgljMCwxLjEsMC4xLDIuMiwwLjIsMy4zaDYuN2MwLjIsMi4yLDAuNiw0LjMsMS4yLDYuM2wtNi4yLDIuNmMwLjcsMi4xLDEuNiw0LjIsMi42LDYuMWw2LjItMi42aDBjMSwxLjksMi4yLDMuNywzLjYsNS4zbDAsMAoJbC00LjcsNC43YzEuNCwxLjcsMywzLjMsNC43LDQuN2w0LjctNC43YzEuNiwxLjQsMy40LDIuNSw1LjMsMy42djBsLTIuNiw2LjJjMiwxLDQsMS45LDYuMSwyLjZsMi42LTYuMnYwYzIsMC42LDQuMSwxLDYuMywxLjN2Ni43CgljMS4xLDAuMSwyLjIsMC4yLDMuMywwLjJjMS4xLDAsMi4yLTAuMSwzLjMtMC4ydi02LjdjMi4yLTAuMiw0LjMtMC42LDYuMy0xLjNsMi42LDYuMmMyLjEtMC43LDQuMi0xLjYsNi4yLTIuNmwtMi42LTYuMgoJYzEuOS0xLDMuNy0yLjIsNS4zLTMuNmw0LjcsNC43YzEuNy0xLjQsMy4zLTMsNC43LTQuN2wtNC43LTQuN2MxLjQtMS42LDIuNS0zLjQsMy42LTUuM2gwbDYuMiwyLjZjMS0yLDEuOS00LDIuNi02LjFsLTYuMi0yLjYKCWMwLjYtMiwxLTQuMSwxLjMtNi4zTDg5LjgsNTMuM0w4OS44LDUzLjN6IE0zMCw1MGMwLTEwLjYsOC4zLTE5LjMsMTguNy0xOS45TDQwLDUzLjNoMTAuNGwtNS45LDE1LjlDMzYuMSw2Ni44LDMwLDU5LjEsMzAsNTB6CgkgTTUxLjMsNjkuOUw2MCw0Ni43SDQ5LjZsNi0xNS45QzYzLjksMzMuMiw3MCw0MC45LDcwLDUwQzcwLDYwLjYsNjEuNyw2OS4zLDUxLjMsNjkuOXoiLz4KPC9zdmc+Cg=="
+                      },
+                      "socket": {
+                        "index": 11,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+Cjxwb2x5Z29uIGNsYXNzPSJzdDAiIHBvaW50cz0iNTguMywyNi43IDU4LjMsMTAgNTEuNywxMCA1MS43LDI2LjcgMzUsMjYuNyAzNSwxMCAyOC4zLDEwIDI4LjMsMjYuNyAxNi43LDI2LjcgMTYuNyw0MCA3MCw0MCAKCTcwLDI2LjcgIi8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik01My4zLDgzLjNjLTMuNywwLTYuNy0zLTYuNy02LjdoMTBsNi43LTMwaC00MGw2LjcsMzBoMTBDNDAsODQsNDYsOTAsNTMuMyw5MGgzMHYtNi43SDUzLjN6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "toaster_oven": {
+                        "index": 12,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6I0I3QjdCNzt9Cgkuc3Qze2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMy4zLDQwVjI2LjdjMC0xLjgsMS41LTMuMywzLjMtMy4zaDQwYzEuOCwwLDMuMywxLjUsMy4zLDMuM1Y0MEgyMy4zeiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODMuMyw1NXYtMy4zYzAtMy43LTMtNi43LTYuNy02LjdoLTYwQzEzLDQ1LDEwLDQ4LDEwLDUxLjd2MzEuN2g2LjdWOTBoNi43di02LjdINzBWOTBoNi43di02LjdoNi43di0yMEw5MCw2MAoJdi01SDgzLjN6IE01Ni43LDczLjNjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM2MwLTEuOCwxLjUtMy4zLDMuMy0zLjNjMS44LDAsMy4zLDEuNSwzLjMsMy4zQzYwLDcxLjgsNTguNSw3My4zLDU2LjcsNzMuM3ogTTcwLDczLjMKCWMtMS44LDAtMy4zLTEuNS0zLjMtMy4zYzAtMS44LDEuNS0zLjMsMy4zLTMuM3MzLjMsMS41LDMuMywzLjNDNzMuMyw3MS44LDcxLjgsNzMuMyw3MCw3My4zeiIvPgo8cmVjdCB4PSI0My4zIiB5PSIxMCIgY2xhc3M9InN0MiIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI4LjMiLz4KPHJlY3QgeD0iMzAiIHk9IjEwIiBjbGFzcz0ic3QzIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjguMyIvPgo8cmVjdCB4PSI1Ni43IiB5PSIxMCIgY2xhc3M9InN0MyIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI4LjMiLz4KPC9zdmc+Cg=="
+                      },
+                      "trash": {
+                        "index": 13,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6I0I3QjdCNzt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik05MCwzNi43VjMwYzAtMy43LTMtNi43LTYuNy02LjdIMTYuN2MtMy43LDAtNi43LDMtNi43LDYuN3Y2LjdIOTB6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xNi43LDQzLjN2NDBjMCwzLjcsMyw2LjcsNi43LDYuN2g1My4zYzMuNywwLDYuNy0zLDYuNy02Ljd2LTQwSDE2Ljd6IE0zNi43LDgwSDMwVjUzLjNoNi43VjgweiBNNTMuMyw4MGgtNi43CglWNTMuM2g2LjdWODB6IE03MCw4MGgtNi43VjUzLjNINzBWODB6Ii8+CjxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik02MCwxMEg0MGMtMy43LDAtNi43LDMtNi43LDYuN2gzMy4zQzY2LjcsMTMsNjMuNywxMCw2MCwxMHoiLz4KPC9zdmc+Cg=="
+                      },
+                      "tv": {
+                        "index": 14,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qxe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03MCw3OC4zVjkwaDEzLjNjMy43LDAsNi43LTMsNi43LTYuN3YtNUg3MHoiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTgzLjMsMzYuN0g3MHYzNi43aDIwdi0zMEM5MCwzOS43LDg3LDM2LjcsODMuMywzNi43eiBNODAsNjMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuMwoJYzEuOCwwLDMuMywxLjUsMy4zLDMuM1M4MS44LDYzLjMsODAsNjMuM3ogTTgwLDUzLjNjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM3MxLjUtMy4zLDMuMy0zLjNjMS44LDAsMy4zLDEuNSwzLjMsMy4zCglTODEuOCw1My4zLDgwLDUzLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik02OCwxNC43TDYzLjMsMTBMNDAsMzMuM0wxNi43LDEwTDEyLDE0LjdsMjEuOSwyMkgxNi43Yy0zLjcsMC02LjcsMy02LjcsNi43djQwYzAsMy43LDMsNi43LDYuNyw2LjdINjVWMzYuNwoJSDQ2LjFMNjgsMTQuN3oiLz4KPC9zdmc+Cg=="
+                      },
+                      "voice_assistant": {
+                        "index": 15,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01MCwxMEwyMCwyNi43djQ2LjdMNTAsOTBsMzAtMTYuN1YyNi43TDUwLDEweiBNNDYuNyw4MC41bC0yMC0xMS4xdi00LjdsMjAsMTEuMVY4MC41eiBNNDYuNyw2OC4ybC0yMC0xMS4xCgl2LTcuNmwyMCwxMS4xVjY4LjJ6IE00Ni43LDUyLjlsLTIwLTExLjF2LTcuNmwyMCwxMS4xVjUyLjl6IE01MCwzNC44Yy01LjUsMC0xMC0yLjgtMTAtNi4yYzAtMy41LDQuNS02LjIsMTAtNi4yCgljNS41LDAsMTAsMi44LDEwLDYuMkM2MCwzMiw1NS41LDM0LjgsNTAsMzQuOHogTTY2LjcsNTMuMUw2MCw1Ni44di03LjZsNi43LTMuN1Y1My4xeiIvPgo8L3N2Zz4K"
+                      },
+                      "washer": {
+                        "index": 16,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMCwzMHY1My4zYzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjMwSDEweiBNNTAsODMuM2MtMTIuOSwwLTIzLjMtMTAuNC0yMy4zLTIzLjMKCVMzNy4xLDM2LjcsNTAsMzYuN2MxMi45LDAsMjMuMywxMC40LDIzLjMsMjMuM1M2Mi45LDgzLjMsNTAsODMuM3oiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTUwLDQzLjNjLTkuMiwwLTE2LjcsNy41LTE2LjcsMTYuN2MwLDkuMiw3LjUsMTYuNywxNi43LDE2LjdjOS4yLDAsMTYuNy03LjUsMTYuNy0xNi43CglDNjYuNyw1MC44LDU5LjIsNDMuMyw1MCw0My4zeiBNNTAsNzBjLTUuNSwwLTEwLTQuNS0xMC0xMGMwLTUuNSw0LjUtMTAsMTAtMTBzMTAsNC41LDEwLDEwQzYwLDY1LjUsNTUuNSw3MCw1MCw3MHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsMTBIMTYuN0MxMywxMCwxMCwxMywxMCwxNi43djYuN2gxMHYtNi43aDIwdjYuN2gyMHYtNi43aDYuN3Y2LjdoNi43di02LjdIODB2Ni43aDEwdi02LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiIvPgo8L3N2Zz4K"
+                      },
+                      "water_heater": {
+                        "index": 17,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qxe2ZpbGw6I0I3QjdCNzt9Cgkuc3Qye2ZpbGw6Izc3RDM4RTt9Cgkuc3Qze2ZpbGw6IzQ2ODg2MDt9Cgkuc3Q0e2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxyZWN0IHg9IjI2LjciIHk9IjcwIiBjbGFzcz0ic3QwIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjIwIi8+CjxyZWN0IHg9IjI2LjciIHk9IjUwIiBjbGFzcz0ic3QxIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjEzLjMiLz4KPHJlY3QgeD0iNDAiIHk9IjUwIiBjbGFzcz0ic3QyIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjIwIi8+CjxyZWN0IHg9IjQwIiB5PSI3Ni43IiBjbGFzcz0ic3QxIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjYuNyIvPgo8cmVjdCB4PSI1My4zIiB5PSI1MCIgY2xhc3M9InN0MCIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI2LjciLz4KPHJlY3QgeD0iNTMuMyIgeT0iNjMuMyIgY2xhc3M9InN0MSIgd2lkdGg9IjYuNyIgaGVpZ2h0PSIxMy4zIi8+CjxyZWN0IHg9IjUzLjMiIHk9IjgzLjMiIGNsYXNzPSJzdDIiIHdpZHRoPSI2LjciIGhlaWdodD0iNi43Ii8+CjxyZWN0IHg9IjY2LjciIHk9IjUwIiBjbGFzcz0ic3QzIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjEzLjMiLz4KPHJlY3QgeD0iNjYuNyIgeT0iNzAiIGNsYXNzPSJzdDEiIHdpZHRoPSI2LjciIGhlaWdodD0iMjAiLz4KPHBhdGggY2xhc3M9InN0NCIgZD0iTTUzLjMsMjAuM1YxMGgtNi43djEwLjNjLTExLjMsMS42LTIwLDExLjMtMjAsMjMuMWg0Ni43QzczLjMsMzEuNiw2NC42LDIxLjksNTMuMywyMC4zeiIvPgo8L3N2Zz4K"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 33
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "DeviceIdle": {
+                        "color": "#77d38e",
+                        "index": 2,
+                        "text": "Idle"
+                      },
+                      "DeviceOff": {
+                        "color": "#707070",
+                        "index": 1,
+                        "text": "Off"
+                      },
+                      "DeviceOn": {
+                        "color": "#e35431",
+                        "index": 0,
+                        "text": "On"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 36
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 185
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 6,
+        "x": 0,
+        "y": 16
+      },
+      "id": 30,
+      "interval": "$interval",
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Time"
+          }
+        ]
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "groupBy": [
+            {
+              "params": [
+                "$__interval"
+              ],
+              "type": "time"
+            },
+            {
+              "params": [
+                "device_name::tag"
+              ],
+              "type": "tag"
+            },
+            {
+              "params": [
+                "null"
+              ],
+              "type": "fill"
+            }
+          ],
+          "measurement": "sense_event",
+          "orderByTime": "DESC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "table",
+          "select": [
+            [
+              {
+                "params": [
+                  "device_state"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "body"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ],
+            [
+              {
+                "params": [
+                  "icon"
+                ],
+                "type": "field"
+              },
+              {
+                "params": [],
+                "type": "last"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "title": "Event Timeline",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "device_name": false,
+              "last": false,
+              "last_1": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "Time": "Time",
+              "device_name": "Device Name",
+              "last": "State",
+              "last_1": "Text",
+              "last_2": "Icon"
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "isNotNull",
+                  "options": {}
+                },
+                "fieldName": "State"
+              }
+            ],
+            "match": "any",
+            "type": "include"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "Device Name": 2,
+              "Icon": 1,
+              "State": 3,
+              "Time": 0
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${data_source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "custom.width",
+                "value": 82
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Monthly Percent"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 129
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "rgba(55, 135, 45, 0)",
+                      "value": null
+                    },
+                    {
+                      "color": "rgba(69, 135, 95, 0.1)",
+                      "value": 10
+                    },
+                    {
+                      "color": "rgba(69, 135, 95, 0.2)",
+                      "value": 20
+                    },
+                    {
+                      "color": "rgba(69, 135, 95, 0.3)",
+                      "value": 30
+                    },
+                    {
+                      "color": "rgba(69, 135, 95, 0.4)",
+                      "value": 40
+                    },
+                    {
+                      "color": "rgba(69, 135, 95, 0.5)",
+                      "value": 50
+                    },
+                    {
+                      "color": "rgba(69, 135, 95, 0.6)",
+                      "value": 60
+                    },
+                    {
+                      "color": "rgba(69, 135, 95, 0.7)",
+                      "value": 70
+                    },
+                    {
+                      "color": "rgba(69, 135, 95, 0.8)",
+                      "value": 80
+                    },
+                    {
+                      "color": "rgba(69, 135, 95, 0.9)",
+                      "value": 90
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "color-background"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Watts (Avg)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watt"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Icon"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "image"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "ac": {
+                        "index": 0,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04NC43LDUzLjdsLTE0LjgsNGwtNC4yLTIuNGMwLjYtMS43LDAuOS0zLjQsMC45LTUuMnMtMC40LTMuNi0wLjktNS4ybDQuMi0yLjRsMTQuOCw0bDEuNy02LjRsLTguMy0yLjIKCWw4LjItNC43TDgzLDI3LjFsLTguMiw0LjdsMi4yLTguM2wtNi40LTEuN2wtNCwxNC44TDYyLjQsMzljLTIuMy0yLjYtNS41LTQuNi05LjEtNS4zdi00LjhMNjQuMSwxOGwtNC43LTQuN2wtNi4xLDYuMVYxMGgtNi43djkuNAoJbC02LjEtNi4xTDM1LjksMThsMTAuOCwxMC44djQuOGMtMy42LDAuNy02LjcsMi43LTkuMSw1LjNsLTQuMi0yLjRsLTQtMTQuOEwyMywyMy41bDIuMiw4LjNMMTcsMjcuMWwtMy4zLDUuOGw4LjIsNC43bC04LjMsMi4yCglsMS43LDYuNGwxNC44LTRsNC4yLDIuNGMtMC42LDEuNy0wLjksMy40LTAuOSw1LjJzMC40LDMuNiwwLjksNS4yTDMwLDU3LjdsLTE0LjgtNGwtMS43LDYuNGw4LjMsMi4ybC04LjIsNC43bDMuMyw1LjhsOC4yLTQuNwoJTDIzLDc2LjVsNi40LDEuN2w0LTE0LjhsNC4yLTIuNGMyLjMsMi42LDUuNSw0LjYsOS4xLDUuM3Y0LjhMMzUuOSw4Mmw0LjcsNC43bDYuMS02LjFWOTBoNi43di05LjRsNi4xLDYuMWw0LjctNC43TDUzLjMsNzEuMXYtNC44CgljMy42LTAuNyw2LjctMi43LDkuMS01LjNsNC4yLDIuNGw0LDE0LjhsNi40LTEuN2wtMi4yLTguM2w4LjIsNC43bDMuMy01LjhsLTguMi00LjdsOC4zLTIuMkw4NC43LDUzLjd6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "always_on": {
+                        "index": 1,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04My4zLDEwSDE2LjdDMTMsMTAsMTAsMTMsMTAsMTYuN3Y2Ni43YzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjE2LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiBNNzguMyw4MGgtNi43di05LjJDNjYuMiw3Ni40LDU4LjUsODAsNTAsODBjLTE2LjYsMC0zMC0xMy40LTMwLTMwaDYuN2MwLDEyLjksMTAuNCwyMy4zLDIzLjMsMjMuMwoJYzYuNiwwLDEyLjYtMi44LDE2LjktNy4yaC05LjF2LTYuN2wxNy4yLDB2MGMxLjgsMCwzLjMsMS41LDMuMywzLjNWODB6IE03My4zLDUwYzAtMTIuOS0xMC40LTIzLjMtMjMuMy0yMy4zCgljLTYuNiwwLTEyLjYsMi44LTE2LjksNy4yaDkuMnY2LjdsLTE3LjIsMGwwLDBjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM1YyMGg2LjdsMCw5LjJDMzMuOCwyMy42LDQxLjUsMjAsNTAsMjBjMTYuNiwwLDMwLDEzLjQsMzAsMzAKCUg3My4zeiIvPgo8L3N2Zz4K"
+                      },
+                      "car": {
+                        "index": 2,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qxe2ZpbGw6IzQ2ODg2MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04My4zLDU2LjdsLTUuNi0xNi44Yy0wLjYtMS43LTIuNi0zLjItNC40LTMuMkg0Ni43bC0xMy4zLDIwbC0yMC4zLDguN0MxMS40LDY2LjEsMTAsNjguMiwxMCw3MHYxMy4zaDEwLjYKCWMxLjQsMy45LDUsNi43LDkuNCw2LjdzOC0yLjgsOS40LTYuN2gyNC42YzEuNCwzLjksNSw2LjcsOS40LDYuN2M0LjMsMCw4LTIuOCw5LjQtNi43SDkwdi0yMEM5MCw1OS43LDg3LDU2LjcsODMuMyw1Ni43eiBNMzAsODMuMwoJYy0xLjgsMC0zLjMtMS41LTMuMy0zLjNzMS41LTMuMywzLjMtMy4zczMuMywxLjUsMy4zLDMuM1MzMS44LDgzLjMsMzAsODMuM3ogTTU2LjcsNTYuN0g0MS4zbDguOS0xMy4zaDYuNEw1Ni43LDU2LjdMNTYuNyw1Ni43egoJIE02My4zLDU2LjdWNDMuM2g4LjVsNC40LDEzLjNINjMuM3ogTTczLjMsODMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuM2MxLjgsMCwzLjMsMS41LDMuMywzLjNTNzUuMiw4My4zLDczLjMsODMuMwoJeiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODMuMywxMHY4LjNjMCwxLjgtMS41LDMuMy0zLjMsMy4zSDM2Ljd2LTVjMC0zLjctMy02LjctNi43LTYuN0gyMHY1LjhoLTYuN2MtMS44LDAtMy4zLDEuNS0zLjMsMy4zCgljMCwxLjgsMS41LDMuMywzLjMsMy4zSDIwdjVoLTYuN2MtMS44LDAtMy4zLDEuNS0zLjMsMy4zYzAsMS44LDEuNSwzLjMsMy4zLDMuM0gyMFY0MGgxMGMzLjcsMCw2LjctMyw2LjctNi43di01SDgwCgljNS41LDAsMTAtNC41LDEwLTEwVjEwSDgzLjN6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "computer": {
+                        "index": 3,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMy4zLDgzLjNWOTBoMjBWMjMuM0gxNi43Yy0zLjcsMC02LjcsMy02LjcsNi43djQwYzAsMy43LDMsNi43LDYuNyw2LjdoMjB2Ni43SDIzLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik04My4zLDEwSDU2LjdDNTMsMTAsNTAsMTMsNTAsMTYuN3Y2Ni43YzAsMy43LDMsNi43LDYuNyw2LjdoMjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjE2LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiBNNzAsODMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuM3MzLjMsMS41LDMuMywzLjNTNzEuOCw4My4zLDcwLDgzLjN6IE04My4zLDQzLjNINTYuN3YtNi43CgloMjYuN1Y0My4zeiBNODMuMywzMEg1Ni43di02LjdoMjYuN1YzMHoiLz4KPC9zdmc+Cg=="
+                      },
+                      "dishes": {
+                        "index": 4,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMCwzMHY1My4zYzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjMwSDEweiBNNTAsODMuM2MtMTIuOSwwLTIzLjMtMTAuNC0yMy4zLTIzLjMKCVMzNy4xLDM2LjcsNTAsMzYuN2MxMi45LDAsMjMuMywxMC40LDIzLjMsMjMuM1M2Mi45LDgzLjMsNTAsODMuM3oiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTUwLDQzLjNjLTkuMiwwLTE2LjcsNy41LTE2LjcsMTYuN2MwLDkuMiw3LjUsMTYuNywxNi43LDE2LjdjOS4yLDAsMTYuNy03LjUsMTYuNy0xNi43CglDNjYuNyw1MC44LDU5LjIsNDMuMyw1MCw0My4zeiBNNTAsNzBjLTUuNSwwLTEwLTQuNS0xMC0xMGMwLTUuNSw0LjUtMTAsMTAtMTBzMTAsNC41LDEwLDEwQzYwLDY1LjUsNTUuNSw3MCw1MCw3MHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsMTBIMTYuN0MxMywxMCwxMCwxMywxMCwxNi43djYuN2gxMHYtNi43aDIwdjYuN2gyMHYtNi43aDYuN3Y2LjdoNi43di02LjdIODB2Ni43aDEwdi02LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiIvPgo8L3N2Zz4K"
+                      },
+                      "fridge": {
+                        "index": 5,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03My4zLDQzLjN2MjBoLTYuN3YtMjBIMjBWODBjMCw1LjUsNC41LDEwLDEwLDEwaDQwYzUuNSwwLDEwLTQuNSwxMC0xMFY0My4zSDczLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik02Ni43LDM2LjdWMjMuM2g2Ljd2MTMuM0g4MFYyMGMwLTUuNS00LjUtMTAtMTAtMTBIMzBjLTUuNSwwLTEwLDQuNS0xMCwxMHYxNi43SDY2Ljd6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "garage": {
+                        "index": 6,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qxe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qye2ZpbGw6Izc3RDM4RTt9Cjwvc3R5bGU+Cjxwb2x5Z29uIGNsYXNzPSJzdDAiIHBvaW50cz0iMTAsMzYuNyAxMCw5MCAyMCw5MCAyMCw0Ni43IDgwLDQ2LjcgODAsOTAgOTAsOTAgOTAsMzYuNyAiLz4KPHBvbHlnb24gY2xhc3M9InN0MSIgcG9pbnRzPSIyNi43LDUzLjMgMjYuNyw3MCA0Ni43LDcwIDQ2LjcsNjMuMyA1My4zLDYzLjMgNTMuMyw3MCA3My4zLDcwIDczLjMsNTMuMyAiLz4KPHBvbHlnb24gY2xhc3M9InN0MiIgcG9pbnRzPSI1MCwxMCAxMCwzMCA5MCwzMCAiLz4KPC9zdmc+Cg=="
+                      },
+                      "heat": {
+                        "index": 7,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01MCw3NWMtMTIsMC0yNC4yLTIuNS0zMS41LTcuNEMyMy4xLDgwLjYsMzUuNCw5MCw1MCw5MHMyNi45LTkuNCwzMS41LTIyLjRDNzQuMiw3Mi41LDYyLDc1LDUwLDc1eiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNzYuMSw0OC40Yy0xLDQuNC0zLjIsOC41LTYuNCwxMS44bC0xLjUsMS41bC0zNi40LDBsLTEuNS0xLjVjLTMuMy0zLjMtNS41LTcuNC02LjQtMTEuOAoJYy00LjUsMi4zLTcuMiw1LjEtNy4yLDguM0MxNi43LDY0LDMxLjYsNzAsNTAsNzBzMzMuMy02LDMzLjMtMTMuM0M4My4zLDUzLjUsODAuNiw1MC43LDc2LjEsNDguNHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTMzLjksNTYuN2MtNy40LTcuNC03LjQtMTkuMywwLTI2LjdjMCw1LjUsNC41LDEwLDEwLDEwdi01LjZjMC05LjUsMy45LTE4LjEsMTAuMS0yNC40YzAsNC44LDEuOCw5LjYsNS41LDEzLjMKCWw2LjcsNi43YzcuNCw3LjQsNy40LDE5LjMsMCwyNi43TDMzLjksNTYuN3oiLz4KPC9zdmc+Cg=="
+                      },
+                      "modem": {
+                        "index": 8,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMyw0MC42Yy0yLTQuNy0zLTkuOS0zLTE1LjNjMC01LjQsMS4xLTEwLjYsMy0xNS4zbDYuMiwyLjZjLTEuNiwzLjktMi41LDguMi0yLjUsMTIuOGMwLDQuNSwwLjksOC44LDIuNSwxMi44CglMMTMsNDAuNnoiLz4KPHBhdGggY2xhc3M9InN0MCIgZD0iTTgwLjgsMTIuNmMxLjYsMy45LDIuNSw4LjIsMi41LDEyLjhjMCw0LjUtMC45LDguOC0yLjUsMTIuOGw2LjIsMi42YzItNC43LDMtOS45LDMtMTUuM2MwLTUuNC0xLjEtMTAuNi0zLTE1LjMKCUw4MC44LDEyLjZ6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik02NS40LDE4LjljMC44LDIsMS4zLDQuMSwxLjMsNi40YzAsMi4zLTAuNSw0LjQtMS4zLDYuNGw2LjIsMi42YzEuMS0yLjgsMS44LTUuOCwxLjgtOC45cy0wLjYtNi4yLTEuOC04LjkKCUw2NS40LDE4Ljl6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0zNC42LDMxLjdjLTAuOC0yLTEuMy00LjEtMS4zLTYuNGMwLTIuMywwLjUtNC40LDEuMy02LjRsLTYuMi0yLjZjLTEuMSwyLjgtMS44LDUuOC0xLjgsOC45czAuNiw2LjIsMS44LDguOQoJTDM0LjYsMzEuN3oiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsNTBoLTMwVjM0LjdjMy45LTEuNCw2LjctNSw2LjctOS40YzAtNS41LTQuNS0xMC0xMC0xMGMtNS41LDAtMTAsNC41LTEwLDEwYzAsNC40LDIuOCw4LDYuNyw5LjRWNTBoLTMwCglDMTMsNTAsMTAsNTMsMTAsNTYuN3YyMGMwLDMuNywzLDYuNyw2LjcsNi43VjkwaDYuN3YtNi43aDIwdi0yMEg1MHYyMGg2Ljd2LTIwaDYuN3YyMEg3MHYtMjBoNi43djIwVjkwaDYuN3YtNi43CgljMy43LDAsNi43LTMsNi43LTYuN3YtMjBDOTAsNTMsODcsNTAsODMuMyw1MHogTTM2LjcsNzBIMjMuM3YtNi43aDEzLjNWNzB6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "outlet": {
+                        "index": 9,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03Ny42LDIwbC01NS4yLDBjLTE2LjYsMTYuNi0xNi42LDQzLjQsMCw2MGw1NS4yLDBDOTQuMSw2My40LDk0LjEsMzYuNiw3Ny42LDIweiBNMzYuNyw1My4zSDMwdi0yMGg2LjdWNTMuM3oKCSBNNTYuNyw2Ni43SDQzLjNWNjBoMTMuM1Y2Ni43eiBNNzAsNTMuM2gtNi43di0yMEg3MFY1My4zeiIvPgo8L3N2Zz4K"
+                      },
+                      "settings": {
+                        "index": 10,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04OS44LDUzLjNjMC4xLTEuMSwwLjItMi4yLDAuMi0zLjNjMC0xLjEtMC4xLTIuMi0wLjItMy4zaC02LjdjLTAuMi0yLjItMC42LTQuMy0xLjItNi4zbDYuMi0yLjYKCWMtMC43LTIuMS0xLjYtNC4yLTIuNi02LjFsLTYuMiwyLjZjLTEtMS45LTIuMi0zLjctMy42LTUuM2w0LjctNC43Yy0xLjQtMS43LTMtMy4zLTQuNy00LjdsLTQuNyw0LjdjLTEuNi0xLjQtMy40LTIuNS01LjMtMy42CglsMi42LTYuMmMtMi0xLTQtMS45LTYuMS0yLjZsLTIuNiw2LjJjLTItMC42LTQuMS0xLTYuMy0xLjJ2LTYuN0M1Mi4yLDEwLjEsNTEuMSwxMCw1MCwxMGMtMS4xLDAtMi4yLDAuMS0zLjMsMC4ydjYuNwoJYy0yLjIsMC4yLTQuMywwLjYtNi4zLDEuMmwtMi42LTYuMmMtMi4xLDAuNy00LjIsMS42LTYuMSwyLjZsMi42LDYuMmMtMS45LDEtMy43LDIuMi01LjMsMy42bC00LjctNC43Yy0xLjcsMS40LTMuMywzLTQuNyw0LjcKCWw0LjcsNC43Yy0xLjMsMS43LTIuNSwzLjQtMy42LDUuM2wtNi4yLTIuNmMtMSwyLTEuOSw0LTIuNiw2LjFsNi4yLDIuNmMtMC42LDItMSw0LjEtMS4yLDYuM2gtNi43QzEwLjEsNDcuOCwxMCw0OC45LDEwLDUwCgljMCwxLjEsMC4xLDIuMiwwLjIsMy4zaDYuN2MwLjIsMi4yLDAuNiw0LjMsMS4yLDYuM2wtNi4yLDIuNmMwLjcsMi4xLDEuNiw0LjIsMi42LDYuMWw2LjItMi42aDBjMSwxLjksMi4yLDMuNywzLjYsNS4zbDAsMAoJbC00LjcsNC43YzEuNCwxLjcsMywzLjMsNC43LDQuN2w0LjctNC43YzEuNiwxLjQsMy40LDIuNSw1LjMsMy42djBsLTIuNiw2LjJjMiwxLDQsMS45LDYuMSwyLjZsMi42LTYuMnYwYzIsMC42LDQuMSwxLDYuMywxLjN2Ni43CgljMS4xLDAuMSwyLjIsMC4yLDMuMywwLjJjMS4xLDAsMi4yLTAuMSwzLjMtMC4ydi02LjdjMi4yLTAuMiw0LjMtMC42LDYuMy0xLjNsMi42LDYuMmMyLjEtMC43LDQuMi0xLjYsNi4yLTIuNmwtMi42LTYuMgoJYzEuOS0xLDMuNy0yLjIsNS4zLTMuNmw0LjcsNC43YzEuNy0xLjQsMy4zLTMsNC43LTQuN2wtNC43LTQuN2MxLjQtMS42LDIuNS0zLjQsMy42LTUuM2gwbDYuMiwyLjZjMS0yLDEuOS00LDIuNi02LjFsLTYuMi0yLjYKCWMwLjYtMiwxLTQuMSwxLjMtNi4zTDg5LjgsNTMuM0w4OS44LDUzLjN6IE0zMCw1MGMwLTEwLjYsOC4zLTE5LjMsMTguNy0xOS45TDQwLDUzLjNoMTAuNGwtNS45LDE1LjlDMzYuMSw2Ni44LDMwLDU5LjEsMzAsNTB6CgkgTTUxLjMsNjkuOUw2MCw0Ni43SDQ5LjZsNi0xNS45QzYzLjksMzMuMiw3MCw0MC45LDcwLDUwQzcwLDYwLjYsNjEuNyw2OS4zLDUxLjMsNjkuOXoiLz4KPC9zdmc+Cg=="
+                      },
+                      "socket": {
+                        "index": 11,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+Cjxwb2x5Z29uIGNsYXNzPSJzdDAiIHBvaW50cz0iNTguMywyNi43IDU4LjMsMTAgNTEuNywxMCA1MS43LDI2LjcgMzUsMjYuNyAzNSwxMCAyOC4zLDEwIDI4LjMsMjYuNyAxNi43LDI2LjcgMTYuNyw0MCA3MCw0MCAKCTcwLDI2LjcgIi8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik01My4zLDgzLjNjLTMuNywwLTYuNy0zLTYuNy02LjdoMTBsNi43LTMwaC00MGw2LjcsMzBoMTBDNDAsODQsNDYsOTAsNTMuMyw5MGgzMHYtNi43SDUzLjN6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "toaster_oven": {
+                        "index": 12,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6I0I3QjdCNzt9Cgkuc3Qze2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMy4zLDQwVjI2LjdjMC0xLjgsMS41LTMuMywzLjMtMy4zaDQwYzEuOCwwLDMuMywxLjUsMy4zLDMuM1Y0MEgyMy4zeiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODMuMyw1NXYtMy4zYzAtMy43LTMtNi43LTYuNy02LjdoLTYwQzEzLDQ1LDEwLDQ4LDEwLDUxLjd2MzEuN2g2LjdWOTBoNi43di02LjdINzBWOTBoNi43di02LjdoNi43di0yMEw5MCw2MAoJdi01SDgzLjN6IE01Ni43LDczLjNjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM2MwLTEuOCwxLjUtMy4zLDMuMy0zLjNjMS44LDAsMy4zLDEuNSwzLjMsMy4zQzYwLDcxLjgsNTguNSw3My4zLDU2LjcsNzMuM3ogTTcwLDczLjMKCWMtMS44LDAtMy4zLTEuNS0zLjMtMy4zYzAtMS44LDEuNS0zLjMsMy4zLTMuM3MzLjMsMS41LDMuMywzLjNDNzMuMyw3MS44LDcxLjgsNzMuMyw3MCw3My4zeiIvPgo8cmVjdCB4PSI0My4zIiB5PSIxMCIgY2xhc3M9InN0MiIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI4LjMiLz4KPHJlY3QgeD0iMzAiIHk9IjEwIiBjbGFzcz0ic3QzIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjguMyIvPgo8cmVjdCB4PSI1Ni43IiB5PSIxMCIgY2xhc3M9InN0MyIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI4LjMiLz4KPC9zdmc+Cg=="
+                      },
+                      "trash": {
+                        "index": 13,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6I0I3QjdCNzt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik05MCwzNi43VjMwYzAtMy43LTMtNi43LTYuNy02LjdIMTYuN2MtMy43LDAtNi43LDMtNi43LDYuN3Y2LjdIOTB6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xNi43LDQzLjN2NDBjMCwzLjcsMyw2LjcsNi43LDYuN2g1My4zYzMuNywwLDYuNy0zLDYuNy02Ljd2LTQwSDE2Ljd6IE0zNi43LDgwSDMwVjUzLjNoNi43VjgweiBNNTMuMyw4MGgtNi43CglWNTMuM2g2LjdWODB6IE03MCw4MGgtNi43VjUzLjNINzBWODB6Ii8+CjxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik02MCwxMEg0MGMtMy43LDAtNi43LDMtNi43LDYuN2gzMy4zQzY2LjcsMTMsNjMuNywxMCw2MCwxMHoiLz4KPC9zdmc+Cg=="
+                      },
+                      "tv": {
+                        "index": 14,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qxe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03MCw3OC4zVjkwaDEzLjNjMy43LDAsNi43LTMsNi43LTYuN3YtNUg3MHoiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTgzLjMsMzYuN0g3MHYzNi43aDIwdi0zMEM5MCwzOS43LDg3LDM2LjcsODMuMywzNi43eiBNODAsNjMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuMwoJYzEuOCwwLDMuMywxLjUsMy4zLDMuM1M4MS44LDYzLjMsODAsNjMuM3ogTTgwLDUzLjNjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM3MxLjUtMy4zLDMuMy0zLjNjMS44LDAsMy4zLDEuNSwzLjMsMy4zCglTODEuOCw1My4zLDgwLDUzLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik02OCwxNC43TDYzLjMsMTBMNDAsMzMuM0wxNi43LDEwTDEyLDE0LjdsMjEuOSwyMkgxNi43Yy0zLjcsMC02LjcsMy02LjcsNi43djQwYzAsMy43LDMsNi43LDYuNyw2LjdINjVWMzYuNwoJSDQ2LjFMNjgsMTQuN3oiLz4KPC9zdmc+Cg=="
+                      },
+                      "voice_assistant": {
+                        "index": 15,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01MCwxMEwyMCwyNi43djQ2LjdMNTAsOTBsMzAtMTYuN1YyNi43TDUwLDEweiBNNDYuNyw4MC41bC0yMC0xMS4xdi00LjdsMjAsMTEuMVY4MC41eiBNNDYuNyw2OC4ybC0yMC0xMS4xCgl2LTcuNmwyMCwxMS4xVjY4LjJ6IE00Ni43LDUyLjlsLTIwLTExLjF2LTcuNmwyMCwxMS4xVjUyLjl6IE01MCwzNC44Yy01LjUsMC0xMC0yLjgtMTAtNi4yYzAtMy41LDQuNS02LjIsMTAtNi4yCgljNS41LDAsMTAsMi44LDEwLDYuMkM2MCwzMiw1NS41LDM0LjgsNTAsMzQuOHogTTY2LjcsNTMuMUw2MCw1Ni44di03LjZsNi43LTMuN1Y1My4xeiIvPgo8L3N2Zz4K"
+                      },
+                      "washer": {
+                        "index": 16,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMCwzMHY1My4zYzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjMwSDEweiBNNTAsODMuM2MtMTIuOSwwLTIzLjMtMTAuNC0yMy4zLTIzLjMKCVMzNy4xLDM2LjcsNTAsMzYuN2MxMi45LDAsMjMuMywxMC40LDIzLjMsMjMuM1M2Mi45LDgzLjMsNTAsODMuM3oiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTUwLDQzLjNjLTkuMiwwLTE2LjcsNy41LTE2LjcsMTYuN2MwLDkuMiw3LjUsMTYuNywxNi43LDE2LjdjOS4yLDAsMTYuNy03LjUsMTYuNy0xNi43CglDNjYuNyw1MC44LDU5LjIsNDMuMyw1MCw0My4zeiBNNTAsNzBjLTUuNSwwLTEwLTQuNS0xMC0xMGMwLTUuNSw0LjUtMTAsMTAtMTBzMTAsNC41LDEwLDEwQzYwLDY1LjUsNTUuNSw3MCw1MCw3MHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsMTBIMTYuN0MxMywxMCwxMCwxMywxMCwxNi43djYuN2gxMHYtNi43aDIwdjYuN2gyMHYtNi43aDYuN3Y2LjdoNi43di02LjdIODB2Ni43aDEwdi02LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiIvPgo8L3N2Zz4K"
+                      },
+                      "water_heater": {
+                        "index": 17,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qxe2ZpbGw6I0I3QjdCNzt9Cgkuc3Qye2ZpbGw6Izc3RDM4RTt9Cgkuc3Qze2ZpbGw6IzQ2ODg2MDt9Cgkuc3Q0e2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxyZWN0IHg9IjI2LjciIHk9IjcwIiBjbGFzcz0ic3QwIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjIwIi8+CjxyZWN0IHg9IjI2LjciIHk9IjUwIiBjbGFzcz0ic3QxIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjEzLjMiLz4KPHJlY3QgeD0iNDAiIHk9IjUwIiBjbGFzcz0ic3QyIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjIwIi8+CjxyZWN0IHg9IjQwIiB5PSI3Ni43IiBjbGFzcz0ic3QxIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjYuNyIvPgo8cmVjdCB4PSI1My4zIiB5PSI1MCIgY2xhc3M9InN0MCIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI2LjciLz4KPHJlY3QgeD0iNTMuMyIgeT0iNjMuMyIgY2xhc3M9InN0MSIgd2lkdGg9IjYuNyIgaGVpZ2h0PSIxMy4zIi8+CjxyZWN0IHg9IjUzLjMiIHk9IjgzLjMiIGNsYXNzPSJzdDIiIHdpZHRoPSI2LjciIGhlaWdodD0iNi43Ii8+CjxyZWN0IHg9IjY2LjciIHk9IjUwIiBjbGFzcz0ic3QzIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjEzLjMiLz4KPHJlY3QgeD0iNjYuNyIgeT0iNzAiIGNsYXNzPSJzdDEiIHdpZHRoPSI2LjciIGhlaWdodD0iMjAiLz4KPHBhdGggY2xhc3M9InN0NCIgZD0iTTUzLjMsMjAuM1YxMGgtNi43djEwLjNjLTExLjMsMS42LTIwLDExLjMtMjAsMjMuMWg0Ni43QzczLjMsMzEuNiw2NC42LDIxLjksNTMuMywyMC4zeiIvPgo8L3N2Zz4K"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 34
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Monthly kWh"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "kwatth"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.width",
+                "value": 104
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "Idle": {
+                        "color": "#77d38e",
+                        "index": 2
+                      },
+                      "Off": {
+                        "color": "#707070",
+                        "index": 1
+                      },
+                      "On": {
+                        "color": "#e35431",
+                        "index": 0
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "color": "transparent",
+                        "index": 3
+                      }
+                    },
+                    "type": "special"
+                  }
+                ]
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 37
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last State Time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsUSNoDateIfToday"
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 254
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Watts"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 68
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg Watts"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 86
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg Duration"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 105
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SD Current"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 93
+              },
+              {
+                "id": "unit",
+                "value": "amp"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SD Energy"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 88
+              },
+              {
+                "id": "unit",
+                "value": "watth"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SD Voltage"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 102
+              },
+              {
+                "id": "unit",
+                "value": "volt"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SD Watts"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 91
+              },
+              {
+                "id": "unit",
+                "value": "watt"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AO State"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 93
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AO Watts"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 91
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 18,
+        "x": 6,
+        "y": 16
+      },
+      "hideTimeOverride": true,
+      "id": 5,
+      "maxDataPoints": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Last State Time"
+          }
+        ]
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "query": "SELECT last(*) FROM \"sense_devices\" WHERE $timeFilter GROUP BY time(30d), \"device_name\"::tag",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "table"
+        }
+      ],
+      "timeFrom": "30d",
+      "title": "Device Details - Average",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Last State Time",
+            "binary": {
+              "left": "last_last_state_time",
+              "operator": "*",
+              "right": "1000"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "last_ao_st": true,
+              "last_ao_w": true,
+              "last_avg_monthly_KWH": true,
+              "last_avg_monthly_cost": true,
+              "last_avg_monthly_pct": true,
+              "last_avg_monthly_runs": true,
+              "last_current_ao_wattage": true,
+              "last_current_month_KWH": true,
+              "last_current_month_cost": true,
+              "last_current_month_runs": true,
+              "last_e": true,
+              "last_i": true,
+              "last_icon": false,
+              "last_info": true,
+              "last_last_state": false,
+              "last_last_state_time": true,
+              "last_last_state_time_epoch": false,
+              "last_sd_current": false,
+              "last_sd_energy": false,
+              "last_sd_voltage": false,
+              "last_sd_watts": false,
+              "last_v": true,
+              "last_watts": false,
+              "last_yearly_KWH": true,
+              "last_yearly_cost": true,
+              "last_yearly_text": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Last State Time": 4,
+              "Time": 0,
+              "device_name": 1,
+              "last_always_on_state": 24,
+              "last_always_on_watts": 25,
+              "last_avg_duration": 7,
+              "last_avg_monthly_KWH": 8,
+              "last_avg_monthly_cost": 9,
+              "last_avg_monthly_pct": 10,
+              "last_avg_monthly_runs": 11,
+              "last_avg_watts": 6,
+              "last_current_month_KWH": 12,
+              "last_current_month_cost": 13,
+              "last_current_month_runs": 14,
+              "last_icon": 2,
+              "last_info": 18,
+              "last_last_state": 3,
+              "last_last_state_time": 19,
+              "last_sd_current": 20,
+              "last_sd_energy": 21,
+              "last_sd_voltage": 22,
+              "last_sd_watts": 23,
+              "last_watts": 5,
+              "last_yearly_KWH": 15,
+              "last_yearly_cost": 16,
+              "last_yearly_text": 17
+            },
+            "renameByName": {
+              "Last State Time": "",
+              "device_name": "Device Name",
+              "last_always_on_state": "AO State",
+              "last_always_on_watts": "AO Watts",
+              "last_ao_st": "",
+              "last_ao_w": "Watts (AO)",
+              "last_avg_duration": "Avg Duration",
+              "last_avg_monthly_KWH": "Avg Monthly kWh",
+              "last_avg_monthly_cost": "Avg Monthly Cost",
+              "last_avg_monthly_pct": "Avg Monthly Percent",
+              "last_avg_monthly_runs": "Avg Monthly Runs",
+              "last_avg_watts": "Avg Watts",
+              "last_current_ao_wattage": "Always On Wattage (Average)",
+              "last_current_month_KWH": "Current Month kWh",
+              "last_current_month_cost": "Current Month Cost",
+              "last_current_month_runs": "Current Month Runs",
+              "last_current_watts": "Watts (In Use)",
+              "last_e": "Who Knows",
+              "last_i": "Amps",
+              "last_icon": "Icon",
+              "last_info": "Info",
+              "last_last_state": "State",
+              "last_last_state_time": "Last State Time",
+              "last_last_state_time_epoch": "State Time",
+              "last_sd_current": "SD Current",
+              "last_sd_energy": "SD Energy",
+              "last_sd_voltage": "SD Voltage",
+              "last_sd_watts": "SD Watts",
+              "last_v": "Voltage",
+              "last_watts": "Watts",
+              "last_yearly_KWH": "Yearly kWh",
+              "last_yearly_cost": "Yearly Cost",
+              "last_yearly_text": "Yearly Text",
+              "name": "Name"
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "isNull",
+                  "options": {}
+                },
+                "fieldName": "State"
+              }
+            ],
+            "match": "any",
+            "type": "exclude"
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${data_source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Icon"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "image"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "ac": {
+                        "index": 0,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04NC43LDUzLjdsLTE0LjgsNGwtNC4yLTIuNGMwLjYtMS43LDAuOS0zLjQsMC45LTUuMnMtMC40LTMuNi0wLjktNS4ybDQuMi0yLjRsMTQuOCw0bDEuNy02LjRsLTguMy0yLjIKCWw4LjItNC43TDgzLDI3LjFsLTguMiw0LjdsMi4yLTguM2wtNi40LTEuN2wtNCwxNC44TDYyLjQsMzljLTIuMy0yLjYtNS41LTQuNi05LjEtNS4zdi00LjhMNjQuMSwxOGwtNC43LTQuN2wtNi4xLDYuMVYxMGgtNi43djkuNAoJbC02LjEtNi4xTDM1LjksMThsMTAuOCwxMC44djQuOGMtMy42LDAuNy02LjcsMi43LTkuMSw1LjNsLTQuMi0yLjRsLTQtMTQuOEwyMywyMy41bDIuMiw4LjNMMTcsMjcuMWwtMy4zLDUuOGw4LjIsNC43bC04LjMsMi4yCglsMS43LDYuNGwxNC44LTRsNC4yLDIuNGMtMC42LDEuNy0wLjksMy40LTAuOSw1LjJzMC40LDMuNiwwLjksNS4yTDMwLDU3LjdsLTE0LjgtNGwtMS43LDYuNGw4LjMsMi4ybC04LjIsNC43bDMuMyw1LjhsOC4yLTQuNwoJTDIzLDc2LjVsNi40LDEuN2w0LTE0LjhsNC4yLTIuNGMyLjMsMi42LDUuNSw0LjYsOS4xLDUuM3Y0LjhMMzUuOSw4Mmw0LjcsNC43bDYuMS02LjFWOTBoNi43di05LjRsNi4xLDYuMWw0LjctNC43TDUzLjMsNzEuMXYtNC44CgljMy42LTAuNyw2LjctMi43LDkuMS01LjNsNC4yLDIuNGw0LDE0LjhsNi40LTEuN2wtMi4yLTguM2w4LjIsNC43bDMuMy01LjhsLTguMi00LjdsOC4zLTIuMkw4NC43LDUzLjd6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "always_on": {
+                        "index": 1,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04My4zLDEwSDE2LjdDMTMsMTAsMTAsMTMsMTAsMTYuN3Y2Ni43YzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjE2LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiBNNzguMyw4MGgtNi43di05LjJDNjYuMiw3Ni40LDU4LjUsODAsNTAsODBjLTE2LjYsMC0zMC0xMy40LTMwLTMwaDYuN2MwLDEyLjksMTAuNCwyMy4zLDIzLjMsMjMuMwoJYzYuNiwwLDEyLjYtMi44LDE2LjktNy4yaC05LjF2LTYuN2wxNy4yLDB2MGMxLjgsMCwzLjMsMS41LDMuMywzLjNWODB6IE03My4zLDUwYzAtMTIuOS0xMC40LTIzLjMtMjMuMy0yMy4zCgljLTYuNiwwLTEyLjYsMi44LTE2LjksNy4yaDkuMnY2LjdsLTE3LjIsMGwwLDBjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM1YyMGg2LjdsMCw5LjJDMzMuOCwyMy42LDQxLjUsMjAsNTAsMjBjMTYuNiwwLDMwLDEzLjQsMzAsMzAKCUg3My4zeiIvPgo8L3N2Zz4K"
+                      },
+                      "car": {
+                        "index": 2,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qxe2ZpbGw6IzQ2ODg2MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04My4zLDU2LjdsLTUuNi0xNi44Yy0wLjYtMS43LTIuNi0zLjItNC40LTMuMkg0Ni43bC0xMy4zLDIwbC0yMC4zLDguN0MxMS40LDY2LjEsMTAsNjguMiwxMCw3MHYxMy4zaDEwLjYKCWMxLjQsMy45LDUsNi43LDkuNCw2LjdzOC0yLjgsOS40LTYuN2gyNC42YzEuNCwzLjksNSw2LjcsOS40LDYuN2M0LjMsMCw4LTIuOCw5LjQtNi43SDkwdi0yMEM5MCw1OS43LDg3LDU2LjcsODMuMyw1Ni43eiBNMzAsODMuMwoJYy0xLjgsMC0zLjMtMS41LTMuMy0zLjNzMS41LTMuMywzLjMtMy4zczMuMywxLjUsMy4zLDMuM1MzMS44LDgzLjMsMzAsODMuM3ogTTU2LjcsNTYuN0g0MS4zbDguOS0xMy4zaDYuNEw1Ni43LDU2LjdMNTYuNyw1Ni43egoJIE02My4zLDU2LjdWNDMuM2g4LjVsNC40LDEzLjNINjMuM3ogTTczLjMsODMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuM2MxLjgsMCwzLjMsMS41LDMuMywzLjNTNzUuMiw4My4zLDczLjMsODMuMwoJeiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODMuMywxMHY4LjNjMCwxLjgtMS41LDMuMy0zLjMsMy4zSDM2Ljd2LTVjMC0zLjctMy02LjctNi43LTYuN0gyMHY1LjhoLTYuN2MtMS44LDAtMy4zLDEuNS0zLjMsMy4zCgljMCwxLjgsMS41LDMuMywzLjMsMy4zSDIwdjVoLTYuN2MtMS44LDAtMy4zLDEuNS0zLjMsMy4zYzAsMS44LDEuNSwzLjMsMy4zLDMuM0gyMFY0MGgxMGMzLjcsMCw2LjctMyw2LjctNi43di01SDgwCgljNS41LDAsMTAtNC41LDEwLTEwVjEwSDgzLjN6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "computer": {
+                        "index": 3,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMy4zLDgzLjNWOTBoMjBWMjMuM0gxNi43Yy0zLjcsMC02LjcsMy02LjcsNi43djQwYzAsMy43LDMsNi43LDYuNyw2LjdoMjB2Ni43SDIzLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik04My4zLDEwSDU2LjdDNTMsMTAsNTAsMTMsNTAsMTYuN3Y2Ni43YzAsMy43LDMsNi43LDYuNyw2LjdoMjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjE2LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiBNNzAsODMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuM3MzLjMsMS41LDMuMywzLjNTNzEuOCw4My4zLDcwLDgzLjN6IE04My4zLDQzLjNINTYuN3YtNi43CgloMjYuN1Y0My4zeiBNODMuMywzMEg1Ni43di02LjdoMjYuN1YzMHoiLz4KPC9zdmc+Cg=="
+                      },
+                      "dishes": {
+                        "index": 4,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMCwzMHY1My4zYzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjMwSDEweiBNNTAsODMuM2MtMTIuOSwwLTIzLjMtMTAuNC0yMy4zLTIzLjMKCVMzNy4xLDM2LjcsNTAsMzYuN2MxMi45LDAsMjMuMywxMC40LDIzLjMsMjMuM1M2Mi45LDgzLjMsNTAsODMuM3oiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTUwLDQzLjNjLTkuMiwwLTE2LjcsNy41LTE2LjcsMTYuN2MwLDkuMiw3LjUsMTYuNywxNi43LDE2LjdjOS4yLDAsMTYuNy03LjUsMTYuNy0xNi43CglDNjYuNyw1MC44LDU5LjIsNDMuMyw1MCw0My4zeiBNNTAsNzBjLTUuNSwwLTEwLTQuNS0xMC0xMGMwLTUuNSw0LjUtMTAsMTAtMTBzMTAsNC41LDEwLDEwQzYwLDY1LjUsNTUuNSw3MCw1MCw3MHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsMTBIMTYuN0MxMywxMCwxMCwxMywxMCwxNi43djYuN2gxMHYtNi43aDIwdjYuN2gyMHYtNi43aDYuN3Y2LjdoNi43di02LjdIODB2Ni43aDEwdi02LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiIvPgo8L3N2Zz4K"
+                      },
+                      "fridge": {
+                        "index": 5,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03My4zLDQzLjN2MjBoLTYuN3YtMjBIMjBWODBjMCw1LjUsNC41LDEwLDEwLDEwaDQwYzUuNSwwLDEwLTQuNSwxMC0xMFY0My4zSDczLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik02Ni43LDM2LjdWMjMuM2g2Ljd2MTMuM0g4MFYyMGMwLTUuNS00LjUtMTAtMTAtMTBIMzBjLTUuNSwwLTEwLDQuNS0xMCwxMHYxNi43SDY2Ljd6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "garage": {
+                        "index": 6,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qxe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qye2ZpbGw6Izc3RDM4RTt9Cjwvc3R5bGU+Cjxwb2x5Z29uIGNsYXNzPSJzdDAiIHBvaW50cz0iMTAsMzYuNyAxMCw5MCAyMCw5MCAyMCw0Ni43IDgwLDQ2LjcgODAsOTAgOTAsOTAgOTAsMzYuNyAiLz4KPHBvbHlnb24gY2xhc3M9InN0MSIgcG9pbnRzPSIyNi43LDUzLjMgMjYuNyw3MCA0Ni43LDcwIDQ2LjcsNjMuMyA1My4zLDYzLjMgNTMuMyw3MCA3My4zLDcwIDczLjMsNTMuMyAiLz4KPHBvbHlnb24gY2xhc3M9InN0MiIgcG9pbnRzPSI1MCwxMCAxMCwzMCA5MCwzMCAiLz4KPC9zdmc+Cg=="
+                      },
+                      "heat": {
+                        "index": 7,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01MCw3NWMtMTIsMC0yNC4yLTIuNS0zMS41LTcuNEMyMy4xLDgwLjYsMzUuNCw5MCw1MCw5MHMyNi45LTkuNCwzMS41LTIyLjRDNzQuMiw3Mi41LDYyLDc1LDUwLDc1eiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNzYuMSw0OC40Yy0xLDQuNC0zLjIsOC41LTYuNCwxMS44bC0xLjUsMS41bC0zNi40LDBsLTEuNS0xLjVjLTMuMy0zLjMtNS41LTcuNC02LjQtMTEuOAoJYy00LjUsMi4zLTcuMiw1LjEtNy4yLDguM0MxNi43LDY0LDMxLjYsNzAsNTAsNzBzMzMuMy02LDMzLjMtMTMuM0M4My4zLDUzLjUsODAuNiw1MC43LDc2LjEsNDguNHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTMzLjksNTYuN2MtNy40LTcuNC03LjQtMTkuMywwLTI2LjdjMCw1LjUsNC41LDEwLDEwLDEwdi01LjZjMC05LjUsMy45LTE4LjEsMTAuMS0yNC40YzAsNC44LDEuOCw5LjYsNS41LDEzLjMKCWw2LjcsNi43YzcuNCw3LjQsNy40LDE5LjMsMCwyNi43TDMzLjksNTYuN3oiLz4KPC9zdmc+Cg=="
+                      },
+                      "modem": {
+                        "index": 8,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMyw0MC42Yy0yLTQuNy0zLTkuOS0zLTE1LjNjMC01LjQsMS4xLTEwLjYsMy0xNS4zbDYuMiwyLjZjLTEuNiwzLjktMi41LDguMi0yLjUsMTIuOGMwLDQuNSwwLjksOC44LDIuNSwxMi44CglMMTMsNDAuNnoiLz4KPHBhdGggY2xhc3M9InN0MCIgZD0iTTgwLjgsMTIuNmMxLjYsMy45LDIuNSw4LjIsMi41LDEyLjhjMCw0LjUtMC45LDguOC0yLjUsMTIuOGw2LjIsMi42YzItNC43LDMtOS45LDMtMTUuM2MwLTUuNC0xLjEtMTAuNi0zLTE1LjMKCUw4MC44LDEyLjZ6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik02NS40LDE4LjljMC44LDIsMS4zLDQuMSwxLjMsNi40YzAsMi4zLTAuNSw0LjQtMS4zLDYuNGw2LjIsMi42YzEuMS0yLjgsMS44LTUuOCwxLjgtOC45cy0wLjYtNi4yLTEuOC04LjkKCUw2NS40LDE4Ljl6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0zNC42LDMxLjdjLTAuOC0yLTEuMy00LjEtMS4zLTYuNGMwLTIuMywwLjUtNC40LDEuMy02LjRsLTYuMi0yLjZjLTEuMSwyLjgtMS44LDUuOC0xLjgsOC45czAuNiw2LjIsMS44LDguOQoJTDM0LjYsMzEuN3oiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsNTBoLTMwVjM0LjdjMy45LTEuNCw2LjctNSw2LjctOS40YzAtNS41LTQuNS0xMC0xMC0xMGMtNS41LDAtMTAsNC41LTEwLDEwYzAsNC40LDIuOCw4LDYuNyw5LjRWNTBoLTMwCglDMTMsNTAsMTAsNTMsMTAsNTYuN3YyMGMwLDMuNywzLDYuNyw2LjcsNi43VjkwaDYuN3YtNi43aDIwdi0yMEg1MHYyMGg2Ljd2LTIwaDYuN3YyMEg3MHYtMjBoNi43djIwVjkwaDYuN3YtNi43CgljMy43LDAsNi43LTMsNi43LTYuN3YtMjBDOTAsNTMsODcsNTAsODMuMyw1MHogTTM2LjcsNzBIMjMuM3YtNi43aDEzLjNWNzB6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "outlet": {
+                        "index": 9,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03Ny42LDIwbC01NS4yLDBjLTE2LjYsMTYuNi0xNi42LDQzLjQsMCw2MGw1NS4yLDBDOTQuMSw2My40LDk0LjEsMzYuNiw3Ny42LDIweiBNMzYuNyw1My4zSDMwdi0yMGg2LjdWNTMuM3oKCSBNNTYuNyw2Ni43SDQzLjNWNjBoMTMuM1Y2Ni43eiBNNzAsNTMuM2gtNi43di0yMEg3MFY1My4zeiIvPgo8L3N2Zz4K"
+                      },
+                      "settings": {
+                        "index": 10,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04OS44LDUzLjNjMC4xLTEuMSwwLjItMi4yLDAuMi0zLjNjMC0xLjEtMC4xLTIuMi0wLjItMy4zaC02LjdjLTAuMi0yLjItMC42LTQuMy0xLjItNi4zbDYuMi0yLjYKCWMtMC43LTIuMS0xLjYtNC4yLTIuNi02LjFsLTYuMiwyLjZjLTEtMS45LTIuMi0zLjctMy42LTUuM2w0LjctNC43Yy0xLjQtMS43LTMtMy4zLTQuNy00LjdsLTQuNyw0LjdjLTEuNi0xLjQtMy40LTIuNS01LjMtMy42CglsMi42LTYuMmMtMi0xLTQtMS45LTYuMS0yLjZsLTIuNiw2LjJjLTItMC42LTQuMS0xLTYuMy0xLjJ2LTYuN0M1Mi4yLDEwLjEsNTEuMSwxMCw1MCwxMGMtMS4xLDAtMi4yLDAuMS0zLjMsMC4ydjYuNwoJYy0yLjIsMC4yLTQuMywwLjYtNi4zLDEuMmwtMi42LTYuMmMtMi4xLDAuNy00LjIsMS42LTYuMSwyLjZsMi42LDYuMmMtMS45LDEtMy43LDIuMi01LjMsMy42bC00LjctNC43Yy0xLjcsMS40LTMuMywzLTQuNyw0LjcKCWw0LjcsNC43Yy0xLjMsMS43LTIuNSwzLjQtMy42LDUuM2wtNi4yLTIuNmMtMSwyLTEuOSw0LTIuNiw2LjFsNi4yLDIuNmMtMC42LDItMSw0LjEtMS4yLDYuM2gtNi43QzEwLjEsNDcuOCwxMCw0OC45LDEwLDUwCgljMCwxLjEsMC4xLDIuMiwwLjIsMy4zaDYuN2MwLjIsMi4yLDAuNiw0LjMsMS4yLDYuM2wtNi4yLDIuNmMwLjcsMi4xLDEuNiw0LjIsMi42LDYuMWw2LjItMi42aDBjMSwxLjksMi4yLDMuNywzLjYsNS4zbDAsMAoJbC00LjcsNC43YzEuNCwxLjcsMywzLjMsNC43LDQuN2w0LjctNC43YzEuNiwxLjQsMy40LDIuNSw1LjMsMy42djBsLTIuNiw2LjJjMiwxLDQsMS45LDYuMSwyLjZsMi42LTYuMnYwYzIsMC42LDQuMSwxLDYuMywxLjN2Ni43CgljMS4xLDAuMSwyLjIsMC4yLDMuMywwLjJjMS4xLDAsMi4yLTAuMSwzLjMtMC4ydi02LjdjMi4yLTAuMiw0LjMtMC42LDYuMy0xLjNsMi42LDYuMmMyLjEtMC43LDQuMi0xLjYsNi4yLTIuNmwtMi42LTYuMgoJYzEuOS0xLDMuNy0yLjIsNS4zLTMuNmw0LjcsNC43YzEuNy0xLjQsMy4zLTMsNC43LTQuN2wtNC43LTQuN2MxLjQtMS42LDIuNS0zLjQsMy42LTUuM2gwbDYuMiwyLjZjMS0yLDEuOS00LDIuNi02LjFsLTYuMi0yLjYKCWMwLjYtMiwxLTQuMSwxLjMtNi4zTDg5LjgsNTMuM0w4OS44LDUzLjN6IE0zMCw1MGMwLTEwLjYsOC4zLTE5LjMsMTguNy0xOS45TDQwLDUzLjNoMTAuNGwtNS45LDE1LjlDMzYuMSw2Ni44LDMwLDU5LjEsMzAsNTB6CgkgTTUxLjMsNjkuOUw2MCw0Ni43SDQ5LjZsNi0xNS45QzYzLjksMzMuMiw3MCw0MC45LDcwLDUwQzcwLDYwLjYsNjEuNyw2OS4zLDUxLjMsNjkuOXoiLz4KPC9zdmc+Cg=="
+                      },
+                      "socket": {
+                        "index": 11,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+Cjxwb2x5Z29uIGNsYXNzPSJzdDAiIHBvaW50cz0iNTguMywyNi43IDU4LjMsMTAgNTEuNywxMCA1MS43LDI2LjcgMzUsMjYuNyAzNSwxMCAyOC4zLDEwIDI4LjMsMjYuNyAxNi43LDI2LjcgMTYuNyw0MCA3MCw0MCAKCTcwLDI2LjcgIi8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik01My4zLDgzLjNjLTMuNywwLTYuNy0zLTYuNy02LjdoMTBsNi43LTMwaC00MGw2LjcsMzBoMTBDNDAsODQsNDYsOTAsNTMuMyw5MGgzMHYtNi43SDUzLjN6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "toaster_oven": {
+                        "index": 12,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6I0I3QjdCNzt9Cgkuc3Qze2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMy4zLDQwVjI2LjdjMC0xLjgsMS41LTMuMywzLjMtMy4zaDQwYzEuOCwwLDMuMywxLjUsMy4zLDMuM1Y0MEgyMy4zeiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODMuMyw1NXYtMy4zYzAtMy43LTMtNi43LTYuNy02LjdoLTYwQzEzLDQ1LDEwLDQ4LDEwLDUxLjd2MzEuN2g2LjdWOTBoNi43di02LjdINzBWOTBoNi43di02LjdoNi43di0yMEw5MCw2MAoJdi01SDgzLjN6IE01Ni43LDczLjNjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM2MwLTEuOCwxLjUtMy4zLDMuMy0zLjNjMS44LDAsMy4zLDEuNSwzLjMsMy4zQzYwLDcxLjgsNTguNSw3My4zLDU2LjcsNzMuM3ogTTcwLDczLjMKCWMtMS44LDAtMy4zLTEuNS0zLjMtMy4zYzAtMS44LDEuNS0zLjMsMy4zLTMuM3MzLjMsMS41LDMuMywzLjNDNzMuMyw3MS44LDcxLjgsNzMuMyw3MCw3My4zeiIvPgo8cmVjdCB4PSI0My4zIiB5PSIxMCIgY2xhc3M9InN0MiIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI4LjMiLz4KPHJlY3QgeD0iMzAiIHk9IjEwIiBjbGFzcz0ic3QzIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjguMyIvPgo8cmVjdCB4PSI1Ni43IiB5PSIxMCIgY2xhc3M9InN0MyIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI4LjMiLz4KPC9zdmc+Cg=="
+                      },
+                      "trash": {
+                        "index": 13,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6I0I3QjdCNzt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik05MCwzNi43VjMwYzAtMy43LTMtNi43LTYuNy02LjdIMTYuN2MtMy43LDAtNi43LDMtNi43LDYuN3Y2LjdIOTB6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xNi43LDQzLjN2NDBjMCwzLjcsMyw2LjcsNi43LDYuN2g1My4zYzMuNywwLDYuNy0zLDYuNy02Ljd2LTQwSDE2Ljd6IE0zNi43LDgwSDMwVjUzLjNoNi43VjgweiBNNTMuMyw4MGgtNi43CglWNTMuM2g2LjdWODB6IE03MCw4MGgtNi43VjUzLjNINzBWODB6Ii8+CjxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik02MCwxMEg0MGMtMy43LDAtNi43LDMtNi43LDYuN2gzMy4zQzY2LjcsMTMsNjMuNywxMCw2MCwxMHoiLz4KPC9zdmc+Cg=="
+                      },
+                      "tv": {
+                        "index": 14,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qxe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03MCw3OC4zVjkwaDEzLjNjMy43LDAsNi43LTMsNi43LTYuN3YtNUg3MHoiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTgzLjMsMzYuN0g3MHYzNi43aDIwdi0zMEM5MCwzOS43LDg3LDM2LjcsODMuMywzNi43eiBNODAsNjMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuMwoJYzEuOCwwLDMuMywxLjUsMy4zLDMuM1M4MS44LDYzLjMsODAsNjMuM3ogTTgwLDUzLjNjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM3MxLjUtMy4zLDMuMy0zLjNjMS44LDAsMy4zLDEuNSwzLjMsMy4zCglTODEuOCw1My4zLDgwLDUzLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik02OCwxNC43TDYzLjMsMTBMNDAsMzMuM0wxNi43LDEwTDEyLDE0LjdsMjEuOSwyMkgxNi43Yy0zLjcsMC02LjcsMy02LjcsNi43djQwYzAsMy43LDMsNi43LDYuNyw2LjdINjVWMzYuNwoJSDQ2LjFMNjgsMTQuN3oiLz4KPC9zdmc+Cg=="
+                      },
+                      "voice_assistant": {
+                        "index": 15,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01MCwxMEwyMCwyNi43djQ2LjdMNTAsOTBsMzAtMTYuN1YyNi43TDUwLDEweiBNNDYuNyw4MC41bC0yMC0xMS4xdi00LjdsMjAsMTEuMVY4MC41eiBNNDYuNyw2OC4ybC0yMC0xMS4xCgl2LTcuNmwyMCwxMS4xVjY4LjJ6IE00Ni43LDUyLjlsLTIwLTExLjF2LTcuNmwyMCwxMS4xVjUyLjl6IE01MCwzNC44Yy01LjUsMC0xMC0yLjgtMTAtNi4yYzAtMy41LDQuNS02LjIsMTAtNi4yCgljNS41LDAsMTAsMi44LDEwLDYuMkM2MCwzMiw1NS41LDM0LjgsNTAsMzQuOHogTTY2LjcsNTMuMUw2MCw1Ni44di03LjZsNi43LTMuN1Y1My4xeiIvPgo8L3N2Zz4K"
+                      },
+                      "washer": {
+                        "index": 16,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMCwzMHY1My4zYzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjMwSDEweiBNNTAsODMuM2MtMTIuOSwwLTIzLjMtMTAuNC0yMy4zLTIzLjMKCVMzNy4xLDM2LjcsNTAsMzYuN2MxMi45LDAsMjMuMywxMC40LDIzLjMsMjMuM1M2Mi45LDgzLjMsNTAsODMuM3oiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTUwLDQzLjNjLTkuMiwwLTE2LjcsNy41LTE2LjcsMTYuN2MwLDkuMiw3LjUsMTYuNywxNi43LDE2LjdjOS4yLDAsMTYuNy03LjUsMTYuNy0xNi43CglDNjYuNyw1MC44LDU5LjIsNDMuMyw1MCw0My4zeiBNNTAsNzBjLTUuNSwwLTEwLTQuNS0xMC0xMGMwLTUuNSw0LjUtMTAsMTAtMTBzMTAsNC41LDEwLDEwQzYwLDY1LjUsNTUuNSw3MCw1MCw3MHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsMTBIMTYuN0MxMywxMCwxMCwxMywxMCwxNi43djYuN2gxMHYtNi43aDIwdjYuN2gyMHYtNi43aDYuN3Y2LjdoNi43di02LjdIODB2Ni43aDEwdi02LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiIvPgo8L3N2Zz4K"
+                      },
+                      "water_heater": {
+                        "index": 17,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qxe2ZpbGw6I0I3QjdCNzt9Cgkuc3Qye2ZpbGw6Izc3RDM4RTt9Cgkuc3Qze2ZpbGw6IzQ2ODg2MDt9Cgkuc3Q0e2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxyZWN0IHg9IjI2LjciIHk9IjcwIiBjbGFzcz0ic3QwIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjIwIi8+CjxyZWN0IHg9IjI2LjciIHk9IjUwIiBjbGFzcz0ic3QxIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjEzLjMiLz4KPHJlY3QgeD0iNDAiIHk9IjUwIiBjbGFzcz0ic3QyIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjIwIi8+CjxyZWN0IHg9IjQwIiB5PSI3Ni43IiBjbGFzcz0ic3QxIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjYuNyIvPgo8cmVjdCB4PSI1My4zIiB5PSI1MCIgY2xhc3M9InN0MCIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI2LjciLz4KPHJlY3QgeD0iNTMuMyIgeT0iNjMuMyIgY2xhc3M9InN0MSIgd2lkdGg9IjYuNyIgaGVpZ2h0PSIxMy4zIi8+CjxyZWN0IHg9IjUzLjMiIHk9IjgzLjMiIGNsYXNzPSJzdDIiIHdpZHRoPSI2LjciIGhlaWdodD0iNi43Ii8+CjxyZWN0IHg9IjY2LjciIHk9IjUwIiBjbGFzcz0ic3QzIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjEzLjMiLz4KPHJlY3QgeD0iNjYuNyIgeT0iNzAiIGNsYXNzPSJzdDEiIHdpZHRoPSI2LjciIGhlaWdodD0iMjAiLz4KPHBhdGggY2xhc3M9InN0NCIgZD0iTTUzLjMsMjAuM1YxMGgtNi43djEwLjNjLTExLjMsMS42LTIwLDExLjMtMjAsMjMuMWg0Ni43QzczLjMsMzEuNiw2NC42LDIxLjksNTMuMywyMC4zeiIvPgo8L3N2Zz4K"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 34
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg kWh"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "kwatth"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "Idle": {
+                        "color": "#77d38e",
+                        "index": 2
+                      },
+                      "Off": {
+                        "color": "#707070",
+                        "index": 1
+                      },
+                      "On": {
+                        "color": "#e35431",
+                        "index": 0
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "color": "transparent",
+                        "index": 3
+                      }
+                    },
+                    "type": "special"
+                  }
+                ]
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 37
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg Runs"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 79
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 250
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Current Cost"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Current kWh"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "unit",
+                "value": "kwatth"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Current Runs"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg Percent"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 14,
+        "x": 0,
+        "y": 28
+      },
+      "hideTimeOverride": true,
+      "id": 28,
+      "maxDataPoints": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Avg kWh"
+          }
+        ]
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "query": "SELECT last(*) FROM \"sense_devices\" WHERE $timeFilter GROUP BY time(30d), \"device_name\"::tag",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "table"
+        }
+      ],
+      "timeFrom": "30d",
+      "title": "Device Details - Monthly",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Last State Time",
+            "binary": {
+              "left": "last_last_state_time",
+              "operator": "*",
+              "right": "1000"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Last State Time": true,
+              "Time": true,
+              "last_always_on_state": true,
+              "last_always_on_watts": true,
+              "last_ao_st": true,
+              "last_ao_w": true,
+              "last_avg_duration": true,
+              "last_avg_monthly_cost": true,
+              "last_avg_watts": true,
+              "last_current_ao_wattage": true,
+              "last_current_month_KWH": false,
+              "last_current_month_cost": false,
+              "last_current_month_runs": false,
+              "last_e": true,
+              "last_i": true,
+              "last_icon": false,
+              "last_info": true,
+              "last_last_state": false,
+              "last_last_state_time": true,
+              "last_last_state_time_epoch": false,
+              "last_sd_current": true,
+              "last_sd_energy": true,
+              "last_sd_voltage": true,
+              "last_sd_watts": true,
+              "last_v": true,
+              "last_watts": true,
+              "last_yearly_KWH": true,
+              "last_yearly_cost": true,
+              "last_yearly_text": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Last State Time": 4,
+              "Time": 0,
+              "device_name": 1,
+              "last_always_on_state": 24,
+              "last_always_on_watts": 25,
+              "last_avg_duration": 7,
+              "last_avg_monthly_KWH": 11,
+              "last_avg_monthly_cost": 12,
+              "last_avg_monthly_pct": 13,
+              "last_avg_monthly_runs": 14,
+              "last_avg_watts": 6,
+              "last_current_month_KWH": 8,
+              "last_current_month_cost": 9,
+              "last_current_month_runs": 10,
+              "last_icon": 2,
+              "last_info": 18,
+              "last_last_state": 3,
+              "last_last_state_time": 19,
+              "last_sd_current": 20,
+              "last_sd_energy": 21,
+              "last_sd_voltage": 22,
+              "last_sd_watts": 23,
+              "last_watts": 5,
+              "last_yearly_KWH": 15,
+              "last_yearly_cost": 16,
+              "last_yearly_text": 17
+            },
+            "renameByName": {
+              "Last State Time": "",
+              "device_name": "Device Name",
+              "last_always_on_state": "AO State",
+              "last_always_on_watts": "AO Watts",
+              "last_ao_st": "",
+              "last_ao_w": "Watts (AO)",
+              "last_avg_duration": "Avg Duration",
+              "last_avg_monthly_KWH": "Avg kWh",
+              "last_avg_monthly_cost": "Avg Cost",
+              "last_avg_monthly_pct": "Avg Percent",
+              "last_avg_monthly_runs": "Avg Runs",
+              "last_avg_watts": "Avg Watts",
+              "last_current_ao_wattage": "Always On Wattage (Average)",
+              "last_current_month_KWH": "Current kWh",
+              "last_current_month_cost": "Current Cost",
+              "last_current_month_runs": "Current Runs",
+              "last_current_watts": "Watts (In Use)",
+              "last_e": "Who Knows",
+              "last_i": "Amps",
+              "last_icon": "Icon",
+              "last_info": "Info",
+              "last_last_state": "State",
+              "last_last_state_time": "Last State Time",
+              "last_last_state_time_epoch": "State Time",
+              "last_sd_current": "SD Current",
+              "last_sd_energy": "SD Energy",
+              "last_sd_voltage": "SD Voltage",
+              "last_sd_watts": "SD Watts",
+              "last_v": "Voltage",
+              "last_watts": "Watts",
+              "last_yearly_KWH": "Yearly kWh",
+              "last_yearly_cost": "Yearly Cost",
+              "last_yearly_text": "Yearly Text",
+              "name": "Name"
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "isNull",
+                  "options": {}
+                },
+                "fieldName": "State"
+              }
+            ],
+            "match": "any",
+            "type": "exclude"
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${data_source}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Icon"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "image"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "ac": {
+                        "index": 0,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04NC43LDUzLjdsLTE0LjgsNGwtNC4yLTIuNGMwLjYtMS43LDAuOS0zLjQsMC45LTUuMnMtMC40LTMuNi0wLjktNS4ybDQuMi0yLjRsMTQuOCw0bDEuNy02LjRsLTguMy0yLjIKCWw4LjItNC43TDgzLDI3LjFsLTguMiw0LjdsMi4yLTguM2wtNi40LTEuN2wtNCwxNC44TDYyLjQsMzljLTIuMy0yLjYtNS41LTQuNi05LjEtNS4zdi00LjhMNjQuMSwxOGwtNC43LTQuN2wtNi4xLDYuMVYxMGgtNi43djkuNAoJbC02LjEtNi4xTDM1LjksMThsMTAuOCwxMC44djQuOGMtMy42LDAuNy02LjcsMi43LTkuMSw1LjNsLTQuMi0yLjRsLTQtMTQuOEwyMywyMy41bDIuMiw4LjNMMTcsMjcuMWwtMy4zLDUuOGw4LjIsNC43bC04LjMsMi4yCglsMS43LDYuNGwxNC44LTRsNC4yLDIuNGMtMC42LDEuNy0wLjksMy40LTAuOSw1LjJzMC40LDMuNiwwLjksNS4yTDMwLDU3LjdsLTE0LjgtNGwtMS43LDYuNGw4LjMsMi4ybC04LjIsNC43bDMuMyw1LjhsOC4yLTQuNwoJTDIzLDc2LjVsNi40LDEuN2w0LTE0LjhsNC4yLTIuNGMyLjMsMi42LDUuNSw0LjYsOS4xLDUuM3Y0LjhMMzUuOSw4Mmw0LjcsNC43bDYuMS02LjFWOTBoNi43di05LjRsNi4xLDYuMWw0LjctNC43TDUzLjMsNzEuMXYtNC44CgljMy42LTAuNyw2LjctMi43LDkuMS01LjNsNC4yLDIuNGw0LDE0LjhsNi40LTEuN2wtMi4yLTguM2w4LjIsNC43bDMuMy01LjhsLTguMi00LjdsOC4zLTIuMkw4NC43LDUzLjd6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "always_on": {
+                        "index": 1,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04My4zLDEwSDE2LjdDMTMsMTAsMTAsMTMsMTAsMTYuN3Y2Ni43YzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjE2LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiBNNzguMyw4MGgtNi43di05LjJDNjYuMiw3Ni40LDU4LjUsODAsNTAsODBjLTE2LjYsMC0zMC0xMy40LTMwLTMwaDYuN2MwLDEyLjksMTAuNCwyMy4zLDIzLjMsMjMuMwoJYzYuNiwwLDEyLjYtMi44LDE2LjktNy4yaC05LjF2LTYuN2wxNy4yLDB2MGMxLjgsMCwzLjMsMS41LDMuMywzLjNWODB6IE03My4zLDUwYzAtMTIuOS0xMC40LTIzLjMtMjMuMy0yMy4zCgljLTYuNiwwLTEyLjYsMi44LTE2LjksNy4yaDkuMnY2LjdsLTE3LjIsMGwwLDBjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM1YyMGg2LjdsMCw5LjJDMzMuOCwyMy42LDQxLjUsMjAsNTAsMjBjMTYuNiwwLDMwLDEzLjQsMzAsMzAKCUg3My4zeiIvPgo8L3N2Zz4K"
+                      },
+                      "car": {
+                        "index": 2,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qxe2ZpbGw6IzQ2ODg2MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04My4zLDU2LjdsLTUuNi0xNi44Yy0wLjYtMS43LTIuNi0zLjItNC40LTMuMkg0Ni43bC0xMy4zLDIwbC0yMC4zLDguN0MxMS40LDY2LjEsMTAsNjguMiwxMCw3MHYxMy4zaDEwLjYKCWMxLjQsMy45LDUsNi43LDkuNCw2LjdzOC0yLjgsOS40LTYuN2gyNC42YzEuNCwzLjksNSw2LjcsOS40LDYuN2M0LjMsMCw4LTIuOCw5LjQtNi43SDkwdi0yMEM5MCw1OS43LDg3LDU2LjcsODMuMyw1Ni43eiBNMzAsODMuMwoJYy0xLjgsMC0zLjMtMS41LTMuMy0zLjNzMS41LTMuMywzLjMtMy4zczMuMywxLjUsMy4zLDMuM1MzMS44LDgzLjMsMzAsODMuM3ogTTU2LjcsNTYuN0g0MS4zbDguOS0xMy4zaDYuNEw1Ni43LDU2LjdMNTYuNyw1Ni43egoJIE02My4zLDU2LjdWNDMuM2g4LjVsNC40LDEzLjNINjMuM3ogTTczLjMsODMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuM2MxLjgsMCwzLjMsMS41LDMuMywzLjNTNzUuMiw4My4zLDczLjMsODMuMwoJeiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODMuMywxMHY4LjNjMCwxLjgtMS41LDMuMy0zLjMsMy4zSDM2Ljd2LTVjMC0zLjctMy02LjctNi43LTYuN0gyMHY1LjhoLTYuN2MtMS44LDAtMy4zLDEuNS0zLjMsMy4zCgljMCwxLjgsMS41LDMuMywzLjMsMy4zSDIwdjVoLTYuN2MtMS44LDAtMy4zLDEuNS0zLjMsMy4zYzAsMS44LDEuNSwzLjMsMy4zLDMuM0gyMFY0MGgxMGMzLjcsMCw2LjctMyw2LjctNi43di01SDgwCgljNS41LDAsMTAtNC41LDEwLTEwVjEwSDgzLjN6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "computer": {
+                        "index": 3,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMy4zLDgzLjNWOTBoMjBWMjMuM0gxNi43Yy0zLjcsMC02LjcsMy02LjcsNi43djQwYzAsMy43LDMsNi43LDYuNyw2LjdoMjB2Ni43SDIzLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik04My4zLDEwSDU2LjdDNTMsMTAsNTAsMTMsNTAsMTYuN3Y2Ni43YzAsMy43LDMsNi43LDYuNyw2LjdoMjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjE2LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiBNNzAsODMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuM3MzLjMsMS41LDMuMywzLjNTNzEuOCw4My4zLDcwLDgzLjN6IE04My4zLDQzLjNINTYuN3YtNi43CgloMjYuN1Y0My4zeiBNODMuMywzMEg1Ni43di02LjdoMjYuN1YzMHoiLz4KPC9zdmc+Cg=="
+                      },
+                      "dishes": {
+                        "index": 4,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMCwzMHY1My4zYzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjMwSDEweiBNNTAsODMuM2MtMTIuOSwwLTIzLjMtMTAuNC0yMy4zLTIzLjMKCVMzNy4xLDM2LjcsNTAsMzYuN2MxMi45LDAsMjMuMywxMC40LDIzLjMsMjMuM1M2Mi45LDgzLjMsNTAsODMuM3oiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTUwLDQzLjNjLTkuMiwwLTE2LjcsNy41LTE2LjcsMTYuN2MwLDkuMiw3LjUsMTYuNywxNi43LDE2LjdjOS4yLDAsMTYuNy03LjUsMTYuNy0xNi43CglDNjYuNyw1MC44LDU5LjIsNDMuMyw1MCw0My4zeiBNNTAsNzBjLTUuNSwwLTEwLTQuNS0xMC0xMGMwLTUuNSw0LjUtMTAsMTAtMTBzMTAsNC41LDEwLDEwQzYwLDY1LjUsNTUuNSw3MCw1MCw3MHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsMTBIMTYuN0MxMywxMCwxMCwxMywxMCwxNi43djYuN2gxMHYtNi43aDIwdjYuN2gyMHYtNi43aDYuN3Y2LjdoNi43di02LjdIODB2Ni43aDEwdi02LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiIvPgo8L3N2Zz4K"
+                      },
+                      "fridge": {
+                        "index": 5,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03My4zLDQzLjN2MjBoLTYuN3YtMjBIMjBWODBjMCw1LjUsNC41LDEwLDEwLDEwaDQwYzUuNSwwLDEwLTQuNSwxMC0xMFY0My4zSDczLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik02Ni43LDM2LjdWMjMuM2g2Ljd2MTMuM0g4MFYyMGMwLTUuNS00LjUtMTAtMTAtMTBIMzBjLTUuNSwwLTEwLDQuNS0xMCwxMHYxNi43SDY2Ljd6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "garage": {
+                        "index": 6,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qxe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qye2ZpbGw6Izc3RDM4RTt9Cjwvc3R5bGU+Cjxwb2x5Z29uIGNsYXNzPSJzdDAiIHBvaW50cz0iMTAsMzYuNyAxMCw5MCAyMCw5MCAyMCw0Ni43IDgwLDQ2LjcgODAsOTAgOTAsOTAgOTAsMzYuNyAiLz4KPHBvbHlnb24gY2xhc3M9InN0MSIgcG9pbnRzPSIyNi43LDUzLjMgMjYuNyw3MCA0Ni43LDcwIDQ2LjcsNjMuMyA1My4zLDYzLjMgNTMuMyw3MCA3My4zLDcwIDczLjMsNTMuMyAiLz4KPHBvbHlnb24gY2xhc3M9InN0MiIgcG9pbnRzPSI1MCwxMCAxMCwzMCA5MCwzMCAiLz4KPC9zdmc+Cg=="
+                      },
+                      "heat": {
+                        "index": 7,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01MCw3NWMtMTIsMC0yNC4yLTIuNS0zMS41LTcuNEMyMy4xLDgwLjYsMzUuNCw5MCw1MCw5MHMyNi45LTkuNCwzMS41LTIyLjRDNzQuMiw3Mi41LDYyLDc1LDUwLDc1eiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNNzYuMSw0OC40Yy0xLDQuNC0zLjIsOC41LTYuNCwxMS44bC0xLjUsMS41bC0zNi40LDBsLTEuNS0xLjVjLTMuMy0zLjMtNS41LTcuNC02LjQtMTEuOAoJYy00LjUsMi4zLTcuMiw1LjEtNy4yLDguM0MxNi43LDY0LDMxLjYsNzAsNTAsNzBzMzMuMy02LDMzLjMtMTMuM0M4My4zLDUzLjUsODAuNiw1MC43LDc2LjEsNDguNHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTMzLjksNTYuN2MtNy40LTcuNC03LjQtMTkuMywwLTI2LjdjMCw1LjUsNC41LDEwLDEwLDEwdi01LjZjMC05LjUsMy45LTE4LjEsMTAuMS0yNC40YzAsNC44LDEuOCw5LjYsNS41LDEzLjMKCWw2LjcsNi43YzcuNCw3LjQsNy40LDE5LjMsMCwyNi43TDMzLjksNTYuN3oiLz4KPC9zdmc+Cg=="
+                      },
+                      "modem": {
+                        "index": 8,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMyw0MC42Yy0yLTQuNy0zLTkuOS0zLTE1LjNjMC01LjQsMS4xLTEwLjYsMy0xNS4zbDYuMiwyLjZjLTEuNiwzLjktMi41LDguMi0yLjUsMTIuOGMwLDQuNSwwLjksOC44LDIuNSwxMi44CglMMTMsNDAuNnoiLz4KPHBhdGggY2xhc3M9InN0MCIgZD0iTTgwLjgsMTIuNmMxLjYsMy45LDIuNSw4LjIsMi41LDEyLjhjMCw0LjUtMC45LDguOC0yLjUsMTIuOGw2LjIsMi42YzItNC43LDMtOS45LDMtMTUuM2MwLTUuNC0xLjEtMTAuNi0zLTE1LjMKCUw4MC44LDEyLjZ6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik02NS40LDE4LjljMC44LDIsMS4zLDQuMSwxLjMsNi40YzAsMi4zLTAuNSw0LjQtMS4zLDYuNGw2LjIsMi42YzEuMS0yLjgsMS44LTUuOCwxLjgtOC45cy0wLjYtNi4yLTEuOC04LjkKCUw2NS40LDE4Ljl6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0zNC42LDMxLjdjLTAuOC0yLTEuMy00LjEtMS4zLTYuNGMwLTIuMywwLjUtNC40LDEuMy02LjRsLTYuMi0yLjZjLTEuMSwyLjgtMS44LDUuOC0xLjgsOC45czAuNiw2LjIsMS44LDguOQoJTDM0LjYsMzEuN3oiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsNTBoLTMwVjM0LjdjMy45LTEuNCw2LjctNSw2LjctOS40YzAtNS41LTQuNS0xMC0xMC0xMGMtNS41LDAtMTAsNC41LTEwLDEwYzAsNC40LDIuOCw4LDYuNyw5LjRWNTBoLTMwCglDMTMsNTAsMTAsNTMsMTAsNTYuN3YyMGMwLDMuNywzLDYuNyw2LjcsNi43VjkwaDYuN3YtNi43aDIwdi0yMEg1MHYyMGg2Ljd2LTIwaDYuN3YyMEg3MHYtMjBoNi43djIwVjkwaDYuN3YtNi43CgljMy43LDAsNi43LTMsNi43LTYuN3YtMjBDOTAsNTMsODcsNTAsODMuMyw1MHogTTM2LjcsNzBIMjMuM3YtNi43aDEzLjNWNzB6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "outlet": {
+                        "index": 9,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03Ny42LDIwbC01NS4yLDBjLTE2LjYsMTYuNi0xNi42LDQzLjQsMCw2MGw1NS4yLDBDOTQuMSw2My40LDk0LjEsMzYuNiw3Ny42LDIweiBNMzYuNyw1My4zSDMwdi0yMGg2LjdWNTMuM3oKCSBNNTYuNyw2Ni43SDQzLjNWNjBoMTMuM1Y2Ni43eiBNNzAsNTMuM2gtNi43di0yMEg3MFY1My4zeiIvPgo8L3N2Zz4K"
+                      },
+                      "settings": {
+                        "index": 10,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik04OS44LDUzLjNjMC4xLTEuMSwwLjItMi4yLDAuMi0zLjNjMC0xLjEtMC4xLTIuMi0wLjItMy4zaC02LjdjLTAuMi0yLjItMC42LTQuMy0xLjItNi4zbDYuMi0yLjYKCWMtMC43LTIuMS0xLjYtNC4yLTIuNi02LjFsLTYuMiwyLjZjLTEtMS45LTIuMi0zLjctMy42LTUuM2w0LjctNC43Yy0xLjQtMS43LTMtMy4zLTQuNy00LjdsLTQuNyw0LjdjLTEuNi0xLjQtMy40LTIuNS01LjMtMy42CglsMi42LTYuMmMtMi0xLTQtMS45LTYuMS0yLjZsLTIuNiw2LjJjLTItMC42LTQuMS0xLTYuMy0xLjJ2LTYuN0M1Mi4yLDEwLjEsNTEuMSwxMCw1MCwxMGMtMS4xLDAtMi4yLDAuMS0zLjMsMC4ydjYuNwoJYy0yLjIsMC4yLTQuMywwLjYtNi4zLDEuMmwtMi42LTYuMmMtMi4xLDAuNy00LjIsMS42LTYuMSwyLjZsMi42LDYuMmMtMS45LDEtMy43LDIuMi01LjMsMy42bC00LjctNC43Yy0xLjcsMS40LTMuMywzLTQuNyw0LjcKCWw0LjcsNC43Yy0xLjMsMS43LTIuNSwzLjQtMy42LDUuM2wtNi4yLTIuNmMtMSwyLTEuOSw0LTIuNiw2LjFsNi4yLDIuNmMtMC42LDItMSw0LjEtMS4yLDYuM2gtNi43QzEwLjEsNDcuOCwxMCw0OC45LDEwLDUwCgljMCwxLjEsMC4xLDIuMiwwLjIsMy4zaDYuN2MwLjIsMi4yLDAuNiw0LjMsMS4yLDYuM2wtNi4yLDIuNmMwLjcsMi4xLDEuNiw0LjIsMi42LDYuMWw2LjItMi42aDBjMSwxLjksMi4yLDMuNywzLjYsNS4zbDAsMAoJbC00LjcsNC43YzEuNCwxLjcsMywzLjMsNC43LDQuN2w0LjctNC43YzEuNiwxLjQsMy40LDIuNSw1LjMsMy42djBsLTIuNiw2LjJjMiwxLDQsMS45LDYuMSwyLjZsMi42LTYuMnYwYzIsMC42LDQuMSwxLDYuMywxLjN2Ni43CgljMS4xLDAuMSwyLjIsMC4yLDMuMywwLjJjMS4xLDAsMi4yLTAuMSwzLjMtMC4ydi02LjdjMi4yLTAuMiw0LjMtMC42LDYuMy0xLjNsMi42LDYuMmMyLjEtMC43LDQuMi0xLjYsNi4yLTIuNmwtMi42LTYuMgoJYzEuOS0xLDMuNy0yLjIsNS4zLTMuNmw0LjcsNC43YzEuNy0xLjQsMy4zLTMsNC43LTQuN2wtNC43LTQuN2MxLjQtMS42LDIuNS0zLjQsMy42LTUuM2gwbDYuMiwyLjZjMS0yLDEuOS00LDIuNi02LjFsLTYuMi0yLjYKCWMwLjYtMiwxLTQuMSwxLjMtNi4zTDg5LjgsNTMuM0w4OS44LDUzLjN6IE0zMCw1MGMwLTEwLjYsOC4zLTE5LjMsMTguNy0xOS45TDQwLDUzLjNoMTAuNGwtNS45LDE1LjlDMzYuMSw2Ni44LDMwLDU5LjEsMzAsNTB6CgkgTTUxLjMsNjkuOUw2MCw0Ni43SDQ5LjZsNi0xNS45QzYzLjksMzMuMiw3MCw0MC45LDcwLDUwQzcwLDYwLjYsNjEuNyw2OS4zLDUxLjMsNjkuOXoiLz4KPC9zdmc+Cg=="
+                      },
+                      "socket": {
+                        "index": 11,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+Cjxwb2x5Z29uIGNsYXNzPSJzdDAiIHBvaW50cz0iNTguMywyNi43IDU4LjMsMTAgNTEuNywxMCA1MS43LDI2LjcgMzUsMjYuNyAzNSwxMCAyOC4zLDEwIDI4LjMsMjYuNyAxNi43LDI2LjcgMTYuNyw0MCA3MCw0MCAKCTcwLDI2LjcgIi8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik01My4zLDgzLjNjLTMuNywwLTYuNy0zLTYuNy02LjdoMTBsNi43LTMwaC00MGw2LjcsMzBoMTBDNDAsODQsNDYsOTAsNTMuMyw5MGgzMHYtNi43SDUzLjN6Ii8+Cjwvc3ZnPgo="
+                      },
+                      "toaster_oven": {
+                        "index": 12,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6I0I3QjdCNzt9Cgkuc3Qze2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMy4zLDQwVjI2LjdjMC0xLjgsMS41LTMuMywzLjMtMy4zaDQwYzEuOCwwLDMuMywxLjUsMy4zLDMuM1Y0MEgyMy4zeiIvPgo8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODMuMyw1NXYtMy4zYzAtMy43LTMtNi43LTYuNy02LjdoLTYwQzEzLDQ1LDEwLDQ4LDEwLDUxLjd2MzEuN2g2LjdWOTBoNi43di02LjdINzBWOTBoNi43di02LjdoNi43di0yMEw5MCw2MAoJdi01SDgzLjN6IE01Ni43LDczLjNjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM2MwLTEuOCwxLjUtMy4zLDMuMy0zLjNjMS44LDAsMy4zLDEuNSwzLjMsMy4zQzYwLDcxLjgsNTguNSw3My4zLDU2LjcsNzMuM3ogTTcwLDczLjMKCWMtMS44LDAtMy4zLTEuNS0zLjMtMy4zYzAtMS44LDEuNS0zLjMsMy4zLTMuM3MzLjMsMS41LDMuMywzLjNDNzMuMyw3MS44LDcxLjgsNzMuMyw3MCw3My4zeiIvPgo8cmVjdCB4PSI0My4zIiB5PSIxMCIgY2xhc3M9InN0MiIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI4LjMiLz4KPHJlY3QgeD0iMzAiIHk9IjEwIiBjbGFzcz0ic3QzIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjguMyIvPgo8cmVjdCB4PSI1Ni43IiB5PSIxMCIgY2xhc3M9InN0MyIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI4LjMiLz4KPC9zdmc+Cg=="
+                      },
+                      "trash": {
+                        "index": 13,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6I0I3QjdCNzt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik05MCwzNi43VjMwYzAtMy43LTMtNi43LTYuNy02LjdIMTYuN2MtMy43LDAtNi43LDMtNi43LDYuN3Y2LjdIOTB6Ii8+CjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0xNi43LDQzLjN2NDBjMCwzLjcsMyw2LjcsNi43LDYuN2g1My4zYzMuNywwLDYuNy0zLDYuNy02Ljd2LTQwSDE2Ljd6IE0zNi43LDgwSDMwVjUzLjNoNi43VjgweiBNNTMuMyw4MGgtNi43CglWNTMuM2g2LjdWODB6IE03MCw4MGgtNi43VjUzLjNINzBWODB6Ii8+CjxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik02MCwxMEg0MGMtMy43LDAtNi43LDMtNi43LDYuN2gzMy4zQzY2LjcsMTMsNjMuNywxMCw2MCwxMHoiLz4KPC9zdmc+Cg=="
+                      },
+                      "tv": {
+                        "index": 14,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6Izc3RDM4RTt9Cgkuc3Qxe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qye2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik03MCw3OC4zVjkwaDEzLjNjMy43LDAsNi43LTMsNi43LTYuN3YtNUg3MHoiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTgzLjMsMzYuN0g3MHYzNi43aDIwdi0zMEM5MCwzOS43LDg3LDM2LjcsODMuMywzNi43eiBNODAsNjMuM2MtMS44LDAtMy4zLTEuNS0zLjMtMy4zczEuNS0zLjMsMy4zLTMuMwoJYzEuOCwwLDMuMywxLjUsMy4zLDMuM1M4MS44LDYzLjMsODAsNjMuM3ogTTgwLDUzLjNjLTEuOCwwLTMuMy0xLjUtMy4zLTMuM3MxLjUtMy4zLDMuMy0zLjNjMS44LDAsMy4zLDEuNSwzLjMsMy4zCglTODEuOCw1My4zLDgwLDUzLjN6Ii8+CjxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik02OCwxNC43TDYzLjMsMTBMNDAsMzMuM0wxNi43LDEwTDEyLDE0LjdsMjEuOSwyMkgxNi43Yy0zLjcsMC02LjcsMy02LjcsNi43djQwYzAsMy43LDMsNi43LDYuNyw2LjdINjVWMzYuNwoJSDQ2LjFMNjgsMTQuN3oiLz4KPC9zdmc+Cg=="
+                      },
+                      "voice_assistant": {
+                        "index": 15,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01MCwxMEwyMCwyNi43djQ2LjdMNTAsOTBsMzAtMTYuN1YyNi43TDUwLDEweiBNNDYuNyw4MC41bC0yMC0xMS4xdi00LjdsMjAsMTEuMVY4MC41eiBNNDYuNyw2OC4ybC0yMC0xMS4xCgl2LTcuNmwyMCwxMS4xVjY4LjJ6IE00Ni43LDUyLjlsLTIwLTExLjF2LTcuNmwyMCwxMS4xVjUyLjl6IE01MCwzNC44Yy01LjUsMC0xMC0yLjgtMTAtNi4yYzAtMy41LDQuNS02LjIsMTAtNi4yCgljNS41LDAsMTAsMi44LDEwLDYuMkM2MCwzMiw1NS41LDM0LjgsNTAsMzQuOHogTTY2LjcsNTMuMUw2MCw1Ni44di03LjZsNi43LTMuN1Y1My4xeiIvPgo8L3N2Zz4K"
+                      },
+                      "washer": {
+                        "index": 16,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzQ2ODg2MDt9Cgkuc3Qxe2ZpbGw6I0UzNTQzMTt9Cgkuc3Qye2ZpbGw6IzcwNzA3MDt9Cjwvc3R5bGU+CjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMCwzMHY1My4zYzAsMy43LDMsNi43LDYuNyw2LjdoNjYuN2MzLjcsMCw2LjctMyw2LjctNi43VjMwSDEweiBNNTAsODMuM2MtMTIuOSwwLTIzLjMtMTAuNC0yMy4zLTIzLjMKCVMzNy4xLDM2LjcsNTAsMzYuN2MxMi45LDAsMjMuMywxMC40LDIzLjMsMjMuM1M2Mi45LDgzLjMsNTAsODMuM3oiLz4KPHBhdGggY2xhc3M9InN0MSIgZD0iTTUwLDQzLjNjLTkuMiwwLTE2LjcsNy41LTE2LjcsMTYuN2MwLDkuMiw3LjUsMTYuNywxNi43LDE2LjdjOS4yLDAsMTYuNy03LjUsMTYuNy0xNi43CglDNjYuNyw1MC44LDU5LjIsNDMuMyw1MCw0My4zeiBNNTAsNzBjLTUuNSwwLTEwLTQuNS0xMC0xMGMwLTUuNSw0LjUtMTAsMTAtMTBzMTAsNC41LDEwLDEwQzYwLDY1LjUsNTUuNSw3MCw1MCw3MHoiLz4KPHBhdGggY2xhc3M9InN0MiIgZD0iTTgzLjMsMTBIMTYuN0MxMywxMCwxMCwxMywxMCwxNi43djYuN2gxMHYtNi43aDIwdjYuN2gyMHYtNi43aDYuN3Y2LjdoNi43di02LjdIODB2Ni43aDEwdi02LjcKCUM5MCwxMyw4NywxMCw4My4zLDEweiIvPgo8L3N2Zz4K"
+                      },
+                      "water_heater": {
+                        "index": 17,
+                        "text": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI1LjMuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMDAgMTAwOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzcwNzA3MDt9Cgkuc3Qxe2ZpbGw6I0I3QjdCNzt9Cgkuc3Qye2ZpbGw6Izc3RDM4RTt9Cgkuc3Qze2ZpbGw6IzQ2ODg2MDt9Cgkuc3Q0e2ZpbGw6I0UzNTQzMTt9Cjwvc3R5bGU+CjxyZWN0IHg9IjI2LjciIHk9IjcwIiBjbGFzcz0ic3QwIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjIwIi8+CjxyZWN0IHg9IjI2LjciIHk9IjUwIiBjbGFzcz0ic3QxIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjEzLjMiLz4KPHJlY3QgeD0iNDAiIHk9IjUwIiBjbGFzcz0ic3QyIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjIwIi8+CjxyZWN0IHg9IjQwIiB5PSI3Ni43IiBjbGFzcz0ic3QxIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjYuNyIvPgo8cmVjdCB4PSI1My4zIiB5PSI1MCIgY2xhc3M9InN0MCIgd2lkdGg9IjYuNyIgaGVpZ2h0PSI2LjciLz4KPHJlY3QgeD0iNTMuMyIgeT0iNjMuMyIgY2xhc3M9InN0MSIgd2lkdGg9IjYuNyIgaGVpZ2h0PSIxMy4zIi8+CjxyZWN0IHg9IjUzLjMiIHk9IjgzLjMiIGNsYXNzPSJzdDIiIHdpZHRoPSI2LjciIGhlaWdodD0iNi43Ii8+CjxyZWN0IHg9IjY2LjciIHk9IjUwIiBjbGFzcz0ic3QzIiB3aWR0aD0iNi43IiBoZWlnaHQ9IjEzLjMiLz4KPHJlY3QgeD0iNjYuNyIgeT0iNzAiIGNsYXNzPSJzdDEiIHdpZHRoPSI2LjciIGhlaWdodD0iMjAiLz4KPHBhdGggY2xhc3M9InN0NCIgZD0iTTUzLjMsMjAuM1YxMGgtNi43djEwLjNjLTExLjMsMS42LTIwLDExLjMtMjAsMjMuMWg0Ni43QzczLjMsMzEuNiw2NC42LDIxLjksNTMuMywyMC4zeiIvPgo8L3N2Zz4K"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 34
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "Idle": {
+                        "color": "#77d38e",
+                        "index": 2
+                      },
+                      "Off": {
+                        "color": "#707070",
+                        "index": 1
+                      },
+                      "On": {
+                        "color": "#e35431",
+                        "index": 0
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "color": "transparent",
+                        "index": 3
+                      }
+                    },
+                    "type": "special"
+                  }
+                ]
+              },
+              {
+                "id": "custom.align",
+                "value": "center"
+              },
+              {
+                "id": "custom.width",
+                "value": 37
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device Name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 250
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Yearly Cost"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Yearly kWh"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 10,
+        "x": 14,
+        "y": 28
+      },
+      "hideTimeOverride": true,
+      "id": 29,
+      "maxDataPoints": 1,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Yearly Cost"
+          }
+        ]
+      },
+      "pluginVersion": "11.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "query": "SELECT last(*) FROM \"sense_devices\" WHERE $timeFilter GROUP BY time(30d), \"device_name\"::tag",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "table"
+        }
+      ],
+      "timeFrom": "30d",
+      "title": "Device Details - Yearly",
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Last State Time",
+            "binary": {
+              "left": "last_last_state_time",
+              "operator": "*",
+              "right": "1000"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Last State Time": true,
+              "Time": true,
+              "last_always_on_state": true,
+              "last_always_on_watts": true,
+              "last_ao_st": true,
+              "last_ao_w": true,
+              "last_avg_duration": true,
+              "last_avg_monthly_KWH": true,
+              "last_avg_monthly_cost": true,
+              "last_avg_monthly_pct": true,
+              "last_avg_monthly_runs": true,
+              "last_avg_watts": true,
+              "last_current_ao_wattage": true,
+              "last_current_month_KWH": true,
+              "last_current_month_cost": true,
+              "last_current_month_runs": true,
+              "last_e": true,
+              "last_i": true,
+              "last_icon": false,
+              "last_info": true,
+              "last_last_state": false,
+              "last_last_state_time": true,
+              "last_last_state_time_epoch": false,
+              "last_sd_current": true,
+              "last_sd_energy": true,
+              "last_sd_voltage": true,
+              "last_sd_watts": true,
+              "last_v": true,
+              "last_watts": true,
+              "last_yearly_KWH": false,
+              "last_yearly_cost": false,
+              "last_yearly_text": false
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Last State Time": 4,
+              "Time": 0,
+              "device_name": 1,
+              "last_always_on_state": 24,
+              "last_always_on_watts": 25,
+              "last_avg_duration": 7,
+              "last_avg_monthly_KWH": 8,
+              "last_avg_monthly_cost": 9,
+              "last_avg_monthly_pct": 10,
+              "last_avg_monthly_runs": 11,
+              "last_avg_watts": 6,
+              "last_current_month_KWH": 12,
+              "last_current_month_cost": 13,
+              "last_current_month_runs": 14,
+              "last_icon": 2,
+              "last_info": 18,
+              "last_last_state": 3,
+              "last_last_state_time": 19,
+              "last_sd_current": 20,
+              "last_sd_energy": 21,
+              "last_sd_voltage": 22,
+              "last_sd_watts": 23,
+              "last_watts": 5,
+              "last_yearly_KWH": 15,
+              "last_yearly_cost": 16,
+              "last_yearly_text": 17
+            },
+            "renameByName": {
+              "Last State Time": "",
+              "device_name": "Device Name",
+              "last_always_on_state": "AO State",
+              "last_always_on_watts": "AO Watts",
+              "last_ao_st": "",
+              "last_ao_w": "Watts (AO)",
+              "last_avg_duration": "Avg Duration",
+              "last_avg_monthly_KWH": "Avg Monthly kWh",
+              "last_avg_monthly_cost": "Avg Monthly Cost",
+              "last_avg_monthly_pct": "Avg Monthly Percent",
+              "last_avg_monthly_runs": "Avg Monthly Runs",
+              "last_avg_watts": "Avg Watts",
+              "last_current_ao_wattage": "Always On Wattage (Average)",
+              "last_current_month_KWH": "Current Month kWh",
+              "last_current_month_cost": "Current Month Cost",
+              "last_current_month_runs": "Current Month Runs",
+              "last_current_watts": "Watts (In Use)",
+              "last_e": "Who Knows",
+              "last_i": "Amps",
+              "last_icon": "Icon",
+              "last_info": "Info",
+              "last_last_state": "State",
+              "last_last_state_time": "Last State Time",
+              "last_last_state_time_epoch": "State Time",
+              "last_sd_current": "SD Current",
+              "last_sd_energy": "SD Energy",
+              "last_sd_voltage": "SD Voltage",
+              "last_sd_watts": "SD Watts",
+              "last_v": "Voltage",
+              "last_watts": "Watts",
+              "last_yearly_KWH": "Yearly kWh",
+              "last_yearly_cost": "Yearly Cost",
+              "last_yearly_text": "Yearly Text",
+              "name": "Name"
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "config": {
+                  "id": "isNull",
+                  "options": {}
+                },
+                "fieldName": "State"
+              }
+            ],
+            "match": "any",
+            "type": "exclude"
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": true,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${data_source}"
+      },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 37
+      },
+      "id": 17,
+      "panels": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 2,
+                "gradientMode": "opacity",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": true,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  }
+                ]
+              },
+              "unit": "volt"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 13,
+            "w": 8,
+            "x": 0,
+            "y": 38
+          },
+          "id": 15,
+          "interval": "$interval",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "maxHeight": 600,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "8.0.4",
+          "targets": [
+            {
+              "alias": "$tag_device_name",
+              "datasource": {
+                "type": "influxdb",
+                "uid": "${data_source}"
+              },
+              "groupBy": [
+                {
+                  "params": [
+                    "$__interval"
+                  ],
+                  "type": "time"
+                },
+                {
+                  "params": [
+                    "device_name::tag"
+                  ],
+                  "type": "tag"
+                }
+              ],
+              "measurement": "sense_devices",
+              "orderByTime": "ASC",
+              "policy": "default",
+              "query": "SELECT mean(\"value\") FROM \"devices\" WHERE (\"name\" =~ /^$Device$/) AND $timeFilter GROUP BY time(3s), \"name\" fill(previous)",
+              "rawQuery": false,
+              "refId": "B",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "sd_voltage"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "mean"
+                  }
+                ]
+              ],
+              "tags": [
+                {
+                  "key": "device_name::tag",
+                  "operator": "=~",
+                  "value": "/^$plugs$/"
+                }
+              ]
+            }
+          ],
+          "title": "Smart Devices - Voltage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 2,
+                "gradientMode": "opacity",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": true,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  }
+                ]
+              },
+              "unit": "watt"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 13,
+            "w": 8,
+            "x": 8,
+            "y": 38
+          },
+          "id": 26,
+          "interval": "$interval",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "maxHeight": 600,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "8.0.4",
+          "targets": [
+            {
+              "alias": "$tag_device_name",
+              "datasource": {
+                "type": "influxdb",
+                "uid": "${data_source}"
+              },
+              "groupBy": [
+                {
+                  "params": [
+                    "$__interval"
+                  ],
+                  "type": "time"
+                },
+                {
+                  "params": [
+                    "device_name::tag"
+                  ],
+                  "type": "tag"
+                }
+              ],
+              "measurement": "sense_devices",
+              "orderByTime": "ASC",
+              "policy": "default",
+              "query": "SELECT mean(\"value\") FROM \"devices\" WHERE (\"name\" =~ /^$Device$/) AND $timeFilter GROUP BY time(3s), \"name\" fill(previous)",
+              "rawQuery": false,
+              "refId": "B",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "sd_watts"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "mean"
+                  }
+                ]
+              ],
+              "tags": [
+                {
+                  "key": "device_name::tag",
+                  "operator": "=~",
+                  "value": "/^$plugs$/"
+                }
+              ]
+            }
+          ],
+          "title": "Smart Devices - Watts",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 2,
+                "gradientMode": "opacity",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": true,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  }
+                ]
+              },
+              "unit": "amp"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 13,
+            "w": 8,
+            "x": 16,
+            "y": 38
+          },
+          "id": 27,
+          "interval": "$interval",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "maxHeight": 600,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "8.0.4",
+          "targets": [
+            {
+              "alias": "$tag_device_name",
+              "datasource": {
+                "type": "influxdb",
+                "uid": "${data_source}"
+              },
+              "groupBy": [
+                {
+                  "params": [
+                    "$__interval"
+                  ],
+                  "type": "time"
+                },
+                {
+                  "params": [
+                    "device_name::tag"
+                  ],
+                  "type": "tag"
+                }
+              ],
+              "measurement": "sense_devices",
+              "orderByTime": "ASC",
+              "policy": "default",
+              "query": "SELECT mean(\"value\") FROM \"devices\" WHERE (\"name\" =~ /^$Device$/) AND $timeFilter GROUP BY time(3s), \"name\" fill(previous)",
+              "rawQuery": false,
+              "refId": "B",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "sd_current"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "mean"
+                  }
+                ]
+              ],
+              "tags": [
+                {
+                  "key": "device_name::tag",
+                  "operator": "=~",
+                  "value": "/^$plugs$/"
+                }
+              ]
+            }
+          ],
+          "title": "Smart Devices - Current",
+          "type": "timeseries"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${data_source}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Smart Device Details",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${data_source}"
+      },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "id": 23,
+      "panels": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${data_source}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "green",
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "opacity",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  }
+                ]
+              },
+              "unit": "watt"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 39
+          },
+          "id": 21,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "maxHeight": 600,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "alias": "$tag_device_name",
+              "datasource": {
+                "type": "influxdb",
+                "uid": "${data_source}"
+              },
+              "groupBy": [
+                {
+                  "params": [
+                    "$__interval"
+                  ],
+                  "type": "time"
+                },
+                {
+                  "params": [
+                    "device_name::tag"
+                  ],
+                  "type": "tag"
+                },
+                {
+                  "params": [
+                    "previous"
+                  ],
+                  "type": "fill"
+                }
+              ],
+              "measurement": "sense_devices",
+              "orderByTime": "ASC",
+              "policy": "default",
+              "refId": "A",
+              "resultFormat": "time_series",
+              "select": [
+                [
+                  {
+                    "params": [
+                      "always_on_watts"
+                    ],
+                    "type": "field"
+                  },
+                  {
+                    "params": [],
+                    "type": "mean"
+                  }
+                ]
+              ],
+              "tags": [
+                {
+                  "key": "device_name::tag",
+                  "operator": "=~",
+                  "value": "/^$devices$/"
+                }
+              ]
+            }
+          ],
+          "title": "Always On Watts",
+          "type": "timeseries"
+        }
+      ],
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${data_source}"
+          },
+          "refId": "A"
+        }
+      ],
+      "title": "Always On Devices",
+      "type": "row"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": [
+    "influxdb",
+    "sense-collector"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "InfluxDB",
+          "value": "uDxwFcOGz"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "data_source",
+        "options": [],
+        "query": "influxdb",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source}"
+        },
+        "definition": "SHOW TAG VALUES FROM \"sense_devices\" WITH KEY = \"device_name\"",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Device",
+        "multi": true,
+        "name": "devices",
+        "options": [],
+        "query": "SHOW TAG VALUES FROM \"sense_devices\" WITH KEY = \"device_name\"",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 5,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${data_source}"
+        },
+        "definition": "SHOW TAG VALUES FROM \"sense_devices\" WITH KEY = \"device_name\" WHERE \"is_plug\" = 'true'",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Plugs",
+        "multi": true,
+        "name": "plugs",
+        "options": [],
+        "query": "SHOW TAG VALUES FROM \"sense_devices\" WITH KEY = \"device_name\" WHERE \"is_plug\" = 'true'",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 5,
+        "tagValuesQuery": "",
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "auto": false,
+        "auto_count": 30,
+        "auto_min": "10s",
+        "current": {
+          "selected": false,
+          "text": "1d",
+          "value": "1d"
+        },
+        "hide": 2,
+        "label": "Expand Events",
+        "name": "expand_from_events",
+        "options": [
+          {
+            "selected": false,
+            "text": "5m",
+            "value": "5m"
+          },
+          {
+            "selected": false,
+            "text": "1h",
+            "value": "1h"
+          },
+          {
+            "selected": false,
+            "text": "12h",
+            "value": "12h"
+          },
+          {
+            "selected": true,
+            "text": "1d",
+            "value": "1d"
+          },
+          {
+            "selected": false,
+            "text": "2d",
+            "value": "2d"
+          },
+          {
+            "selected": false,
+            "text": "3d",
+            "value": "3d"
+          },
+          {
+            "selected": false,
+            "text": "7d",
+            "value": "7d"
+          },
+          {
+            "selected": false,
+            "text": "14d",
+            "value": "14d"
+          },
+          {
+            "selected": false,
+            "text": "30d",
+            "value": "30d"
+          }
+        ],
+        "query": "5m,1h,12h,1d,2d,3d,7d,14d,30d",
+        "queryValue": "",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "interval"
+      },
+      {
+        "auto": true,
+        "auto_count": 4,
+        "auto_min": "5s",
+        "current": {
+          "selected": false,
+          "text": "1m",
+          "value": "1m"
+        },
+        "hide": 0,
+        "label": "Interval",
+        "name": "interval",
+        "options": [
+          {
+            "selected": false,
+            "text": "auto",
+            "value": "$__auto_interval_interval"
+          },
+          {
+            "selected": false,
+            "text": "1s",
+            "value": "1s"
+          },
+          {
+            "selected": false,
+            "text": "5s",
+            "value": "5s"
+          },
+          {
+            "selected": false,
+            "text": "10s",
+            "value": "10s"
+          },
+          {
+            "selected": false,
+            "text": "15s",
+            "value": "15s"
+          },
+          {
+            "selected": false,
+            "text": "30s",
+            "value": "30s"
+          },
+          {
+            "selected": true,
+            "text": "1m",
+            "value": "1m"
+          },
+          {
+            "selected": false,
+            "text": "5m",
+            "value": "5m"
+          },
+          {
+            "selected": false,
+            "text": "10m",
+            "value": "10m"
+          },
+          {
+            "selected": false,
+            "text": "15m",
+            "value": "15m"
+          },
+          {
+            "selected": false,
+            "text": "1h",
+            "value": "1h"
+          },
+          {
+            "selected": false,
+            "text": "3h",
+            "value": "3h"
+          }
+        ],
+        "query": "1s,5s,10s,15s,30s,1m,5m,10m,15m,1h,3h",
+        "queryValue": "",
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "interval"
+      }
+    ]
+  },
+  "time": {
+    "from": "now/d",
+    "to": "now"
+  },
+  "timeRangeUpdatedDuringEditOrView": false,
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "",
+  "title": "Sense Collector - Device Overview",
+  "uid": "sense-collector-device-overview",
+  "version": 84,
+  "weekStart": ""
+}

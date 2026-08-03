@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "sense-collector"
+version = "2026.8.0"
+description = "Data collection service for the Sense home energy monitor — streams the Sense cloud WebSocket/API, resolves devices, and writes energy metrics to InfluxDB."
+authors = ["luxardolabs"]
+license = "AGPL-3.0-only"
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.14"
+httpx = {extras = ["http2"], version = "^0.28.1"}
+websockets = "^16.1"
+aiofiles = "^25.1.0"
+influxdb-client = {extras = ["async"], version = "^1.50.0"}
+python-dateutil = "^2.9.0"
+pytz = "^2026.2"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.15.21"
+mypy = "^2.2.0"
+pytest = "^9.1.1"
+pytest-asyncio = "^1.4.0"
+pytest-mock = "^3.14.0"
+types-aiofiles = "^25.1.0"
+types-python-dateutil = "^2.9.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+# Lint (ruff) + type (mypy) + test-runner (pytest) config is owned by luxlint — the canonical fleet
+# configs ship in the luxlint image, byte-identical fleet-wide. This repo carries no [tool.ruff] /
+# [tool.mypy] / [tool.pytest.ini_options]; that per-repo drift is exactly what luxlint's
+# no_local_ruff_config / no_local_mypy_config / no_local_pytest_config flag. `make lint` runs the
+# ruff+mypy checks; `make test` runs the canonical pytest config as a tail (--emit-config pytest).
+# Editor parity: docker run --rm $(LUXLINT_IMAGE) --emit-config ruff > .ruff.local.toml  (gitignored)

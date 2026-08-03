@@ -1,0 +1,63 @@
+# --- Secrets / environment (only *.example is committed) ---
+.env
+.env.dev
+.env.prod
+.env.local
+.env.*.local
+
+# --- Local Makefile overrides (private registry hosts — see Makefile.local.example) ---
+Makefile.local
+
+# --- luxlint: emitted canonical config (editor/pre-commit parity) + transient mypy config ---
+.ruff.local.toml
+.luxlint.mypy.ini
+.luxlint.pytest.ini
+
+# --- lean test-deps image build stamp (Dockerfile.test; keyed on poetry.lock) ---
+.test-image.stamp
+
+# --- Legacy secret-bearing files quarantined during the fleet-standard scrub ---
+# (set_environment*.sh, compose.*.yaml, real captures) — kept locally, never committed.
+output/
+
+# --- Runtime output (WebSocket/device JSON dumps; bind-mounted, never committed) ---
+src/output/
+/app/output/
+export/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Tooling caches ---
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Editors / OS ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.nfs*
+.vscode/
+.idea/
+
+# --- Claude local settings (settings.json IS committed; local is not) ---
+.claude/settings.local.json
+**/.claude/settings.local.json

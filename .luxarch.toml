@@ -1,0 +1,4 @@
+[[target]]
+kind = "collector"
+app = "app"
+source_client = ["collector/client.py"]

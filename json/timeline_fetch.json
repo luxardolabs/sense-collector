@@ -1,0 +1,557 @@
+{
+    "more_items": true,
+    "sticky_items": [
+      {
+        "time": "2024-06-21T00:50:12.672Z",
+        "type": "Info",
+        "subtype": "NewDeviceFound",
+        "icon": "plug",
+        "body": "Sense found your TP-Link Kasa HS300s.",
+        "destination": "devicelist",
+        "show_action": false,
+        "allow_sticky": true,
+        "guid": "ed2c9e02-f542-4d3d-85f0-0ea95fcee264"
+      }
+    ],
+    "user_id": 1476,
+    "items": [
+      {
+        "time": "2024-06-21T05:55:29.122Z",
+        "type": "DeviceWasOn",
+        "icon": "plug",
+        "body": "Garage Refrigerator was on for 21 minutes, now idle",
+        "destination": "device:X8FFhXMx",
+        "start_time": "2024-06-21T05:34:26.160Z",
+        "device_id": "X8FFhXMx",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "children": [
+          {
+            "time": "2024-06-21T05:55:29.122Z",
+            "type": "DeviceIdle",
+            "body": "idle at 12:55 AM",
+            "device_id": "X8FFhXMx",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "ed9971ab-bc11-4e30-a19e-ad4c6ef1adf8"
+          },
+          {
+            "time": "2024-06-21T05:34:26.160Z",
+            "type": "DeviceOn",
+            "body": "on at 12:34 AM",
+            "device_id": "X8FFhXMx",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "3b5acd1e-2aca-449d-90b6-cf28c020bba3"
+          }
+        ],
+        "allow_sticky": false,
+        "guid": "3b5acd1e-2aca-449d-90b6-cf28c020bba3",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T05:12:49.481Z",
+        "type": "DeviceOff",
+        "icon": "water_heater",
+        "body": "Water Heater turned off",
+        "destination": "device:A4RHIBrO",
+        "device_id": "A4RHIBrO",
+        "device_state": "DeviceOff",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "feab7d8e-19b5-436f-a083-3ff5a9b463ed",
+        "user_device_type": "WaterHeater"
+      },
+      {
+        "time": "2024-06-21T05:10:53.252Z",
+        "type": "DeviceIdle",
+        "icon": "plug",
+        "body": "Garage Refrigerator went idle",
+        "destination": "device:X8FFhXMx",
+        "device_id": "X8FFhXMx",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "f2a29090-4e99-4ba5-99bf-50b65307f371",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T05:10:29.703Z",
+        "type": "DeviceOn",
+        "icon": "water_heater",
+        "body": "Water Heater turned on",
+        "destination": "device:A4RHIBrO",
+        "device_id": "A4RHIBrO",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "f9b5ee97-4a13-4788-b39c-e5f33b052dfb",
+        "user_device_type": "WaterHeater"
+      },
+      {
+        "time": "2024-06-21T04:48:00.411Z",
+        "type": "DeviceOn",
+        "icon": "plug",
+        "body": "Garage Refrigerator turned on",
+        "destination": "device:X8FFhXMx",
+        "device_id": "X8FFhXMx",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "80bae5e9-9a86-48fc-8687-4e4f4e26f9e4",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T04:24:53.075Z",
+        "type": "DeviceWasOn",
+        "icon": "plug",
+        "body": "Garage Refrigerator was on for 22 minutes, now idle",
+        "destination": "device:X8FFhXMx",
+        "start_time": "2024-06-21T04:02:23.904Z",
+        "device_id": "X8FFhXMx",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "children": [
+          {
+            "time": "2024-06-21T04:24:53.075Z",
+            "type": "DeviceIdle",
+            "body": "idle at 11:24 PM",
+            "device_id": "X8FFhXMx",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "25ae7fb4-717e-4deb-bb45-665580477b0a"
+          },
+          {
+            "time": "2024-06-21T04:02:23.904Z",
+            "type": "DeviceOn",
+            "body": "on at 11:02 PM",
+            "device_id": "X8FFhXMx",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "94bc5553-911a-4d1f-a14b-6826b29c2909"
+          }
+        ],
+        "allow_sticky": false,
+        "guid": "94bc5553-911a-4d1f-a14b-6826b29c2909",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T03:39:51.696Z",
+        "type": "DeviceIdle",
+        "icon": "plug",
+        "body": "Garage Refrigerator went idle",
+        "destination": "device:X8FFhXMx",
+        "device_id": "X8FFhXMx",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "7cb142d3-31d6-47dd-9b8e-165f5da6cc70",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T03:38:36.543Z",
+        "type": "DeviceOn",
+        "icon": "plug",
+        "body": "Basement Tenlog turned on",
+        "destination": "device:tjMEysbH",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "46c29548-584f-4de0-8558-13cc4b304cd9",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T03:20:25.492Z",
+        "type": "DeviceWasOn",
+        "icon": "water_heater",
+        "body": "Water Heater was on for 2 minutes",
+        "destination": "device:A4RHIBrO",
+        "start_time": "2024-06-21T03:18:01.611Z",
+        "device_id": "A4RHIBrO",
+        "device_state": "DeviceOff",
+        "show_action": false,
+        "children": [
+          {
+            "time": "2024-06-21T03:20:25.492Z",
+            "type": "DeviceOff",
+            "body": "off at 10:20 PM",
+            "device_id": "A4RHIBrO",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "87cfbc53-8dcd-49fb-b944-9c9fce92ac9a"
+          },
+          {
+            "time": "2024-06-21T03:18:01.611Z",
+            "type": "DeviceOn",
+            "body": "on at 10:18 PM",
+            "device_id": "A4RHIBrO",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "01626424-2872-4bd8-97ff-ad70565bccfc"
+          }
+        ],
+        "allow_sticky": false,
+        "guid": "01626424-2872-4bd8-97ff-ad70565bccfc",
+        "user_device_type": "WaterHeater"
+      },
+      {
+        "time": "2024-06-21T03:16:17.477Z",
+        "type": "DeviceOn",
+        "icon": "plug",
+        "body": "Garage Refrigerator turned on",
+        "destination": "device:X8FFhXMx",
+        "device_id": "X8FFhXMx",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "d1237ead-d32d-49ab-afa1-de107857e146",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T03:12:03.333Z",
+        "type": "DeviceOff",
+        "icon": "water_heater",
+        "body": "Water Heater turned off",
+        "destination": "device:A4RHIBrO",
+        "device_id": "A4RHIBrO",
+        "device_state": "DeviceOff",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "a4b66755-4117-4773-b4bb-54b1c86aa45e",
+        "user_device_type": "WaterHeater"
+      },
+      {
+        "time": "2024-06-21T03:10:30.093Z",
+        "type": "DeviceOff",
+        "icon": "plug",
+        "body": "Basement Server Overhead turned off",
+        "destination": "device:xTogiJOu",
+        "device_id": "xTogiJOu",
+        "device_state": "DeviceOff",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "2a5aa059-d0a3-459b-a23b-135a51709fd4",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T03:09:10.403Z",
+        "type": "DeviceOn",
+        "icon": "water_heater",
+        "body": "Water Heater turned on",
+        "destination": "device:A4RHIBrO",
+        "device_id": "A4RHIBrO",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "21e0a021-afe3-4c8b-93c6-8959dbe75964",
+        "user_device_type": "WaterHeater"
+      },
+      {
+        "time": "2024-06-21T03:06:53.007Z",
+        "type": "DeviceIdle",
+        "icon": "plug",
+        "body": "Basement Tenlog went idle",
+        "destination": "device:tjMEysbH",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "ede36d27-44d8-4346-b28b-fbda4bbf55a8",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:54:09.750Z",
+        "type": "DeviceIdle",
+        "icon": "plug",
+        "body": "Garage Refrigerator went idle",
+        "destination": "device:X8FFhXMx",
+        "device_id": "X8FFhXMx",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "4871beb2-d799-430d-a371-ce79c921df77",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:53:43.464Z",
+        "type": "DeviceOn",
+        "icon": "plug",
+        "body": "Basement Tenlog turned on",
+        "destination": "device:tjMEysbH",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "e640a4ac-69fe-41c3-a34f-c78d6861900b",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:51:28.812Z",
+        "type": "DeviceWasOn",
+        "icon": "microwave",
+        "body": "Microwave was on for 40 seconds",
+        "destination": "device:d2429e3a",
+        "start_time": "2024-06-21T02:50:48.638Z",
+        "device_id": "d2429e3a",
+        "device_state": "DeviceOff",
+        "show_action": false,
+        "children": [
+          {
+            "time": "2024-06-21T02:51:28.812Z",
+            "type": "DeviceOff",
+            "body": "off at 9:51 PM",
+            "device_id": "d2429e3a",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "e46861f5-d0ba-4397-8025-bbfbbc1d5242"
+          },
+          {
+            "time": "2024-06-21T02:50:48.638Z",
+            "type": "DeviceOn",
+            "body": "on at 9:50 PM",
+            "device_id": "d2429e3a",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "5511d436-140c-440a-8a0c-a3b75fc465e9"
+          }
+        ],
+        "allow_sticky": false,
+        "guid": "5511d436-140c-440a-8a0c-a3b75fc465e9",
+        "user_device_type": "Microwave"
+      },
+      {
+        "time": "2024-06-21T02:49:09.625Z",
+        "type": "DeviceWasOn",
+        "icon": "plug",
+        "body": "Basement Tenlog was on for 60 seconds, now idle",
+        "destination": "device:tjMEysbH",
+        "start_time": "2024-06-21T02:48:09.996Z",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "children": [
+          {
+            "time": "2024-06-21T02:49:09.625Z",
+            "type": "DeviceIdle",
+            "body": "idle at 9:49 PM",
+            "device_id": "tjMEysbH",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "5c4f0334-43ca-41d4-9352-b28733ccf580"
+          },
+          {
+            "time": "2024-06-21T02:48:09.996Z",
+            "type": "DeviceOn",
+            "body": "on at 9:48 PM",
+            "device_id": "tjMEysbH",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "1f2c58ae-03ad-4079-9945-800bd13632dc"
+          }
+        ],
+        "allow_sticky": false,
+        "guid": "1f2c58ae-03ad-4079-9945-800bd13632dc",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:45:40.957Z",
+        "type": "DeviceOff",
+        "icon": "water_heater",
+        "body": "Water Heater turned off",
+        "destination": "device:A4RHIBrO",
+        "device_id": "A4RHIBrO",
+        "device_state": "DeviceOff",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "97aae001-60e8-4b7f-8f8f-46df33900a6c",
+        "user_device_type": "WaterHeater"
+      },
+      {
+        "time": "2024-06-21T02:43:30.670Z",
+        "type": "DeviceIdle",
+        "icon": "plug",
+        "body": "Basement Tenlog went idle",
+        "destination": "device:tjMEysbH",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "77c992d1-defe-4580-99e1-f7375f323176",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:43:10.160Z",
+        "type": "DeviceOn",
+        "icon": "water_heater",
+        "body": "Water Heater turned on",
+        "destination": "device:A4RHIBrO",
+        "device_id": "A4RHIBrO",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "195e5f4b-c77f-4f02-94f5-5e918d86e4cd",
+        "user_device_type": "WaterHeater"
+      },
+      {
+        "time": "2024-06-21T02:39:46.540Z",
+        "type": "DeviceOn",
+        "icon": "plug",
+        "body": "Basement Tenlog turned on",
+        "destination": "device:tjMEysbH",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "106a3589-0936-4153-9f6d-92ff1db04c6e",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:39:45.313Z",
+        "type": "DeviceIdle",
+        "icon": "plug",
+        "body": "Office Echo went idle",
+        "destination": "device:eb3zFmQP",
+        "device_id": "eb3zFmQP",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "ff312f5f-ca05-408a-91c2-2c5ddbb2cdb6",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:29:51.860Z",
+        "type": "DeviceOn",
+        "icon": "plug",
+        "body": "Garage Refrigerator turned on",
+        "destination": "device:X8FFhXMx",
+        "device_id": "X8FFhXMx",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "50b09528-96e8-47a1-9780-e602fbbc74d2",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:29:08.283Z",
+        "type": "DeviceWasOn",
+        "icon": "water_heater",
+        "body": "Water Heater was on for 3 minutes",
+        "destination": "device:A4RHIBrO",
+        "start_time": "2024-06-21T02:26:23.166Z",
+        "device_id": "A4RHIBrO",
+        "device_state": "DeviceOff",
+        "show_action": false,
+        "children": [
+          {
+            "time": "2024-06-21T02:29:08.283Z",
+            "type": "DeviceOff",
+            "body": "off at 9:29 PM",
+            "device_id": "A4RHIBrO",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "cd04c19b-f448-4f16-8724-cfb691666fa9"
+          },
+          {
+            "time": "2024-06-21T02:26:23.166Z",
+            "type": "DeviceOn",
+            "body": "on at 9:26 PM",
+            "device_id": "A4RHIBrO",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "53dba13a-208f-4786-a668-dcfb41d68b38"
+          }
+        ],
+        "allow_sticky": false,
+        "guid": "53dba13a-208f-4786-a668-dcfb41d68b38",
+        "user_device_type": "WaterHeater"
+      },
+      {
+        "time": "2024-06-21T02:20:12.422Z",
+        "type": "DeviceWasOn",
+        "icon": "plug",
+        "body": "Basement Tenlog was on for 35 seconds, now idle",
+        "destination": "device:tjMEysbH",
+        "start_time": "2024-06-21T02:19:37.787Z",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "children": [
+          {
+            "time": "2024-06-21T02:20:12.422Z",
+            "type": "DeviceIdle",
+            "body": "idle at 9:20 PM",
+            "device_id": "tjMEysbH",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "86f4faa9-4567-443c-a9f0-32250edf272e"
+          },
+          {
+            "time": "2024-06-21T02:19:37.787Z",
+            "type": "DeviceOn",
+            "body": "on at 9:19 PM",
+            "device_id": "tjMEysbH",
+            "show_action": false,
+            "allow_sticky": false,
+            "guid": "89ec9f88-3f69-43dc-847d-8e57ad092a9a"
+          }
+        ],
+        "allow_sticky": false,
+        "guid": "89ec9f88-3f69-43dc-847d-8e57ad092a9a",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:18:34.073Z",
+        "type": "DeviceIdle",
+        "icon": "plug",
+        "body": "Basement Tenlog went idle",
+        "destination": "device:tjMEysbH",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "d7603974-31eb-4cde-8f21-dbd16914794b",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:17:46.329Z",
+        "type": "DeviceOff",
+        "icon": "water_heater",
+        "body": "Water Heater turned off",
+        "destination": "device:A4RHIBrO",
+        "device_id": "A4RHIBrO",
+        "device_state": "DeviceOff",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "3b5a1d0a-93ab-49bc-a2f8-d8398066ef39",
+        "user_device_type": "WaterHeater"
+      },
+      {
+        "time": "2024-06-21T02:17:14.239Z",
+        "type": "DeviceOn",
+        "icon": "plug",
+        "body": "Basement Tenlog turned on",
+        "destination": "device:tjMEysbH",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceOn",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "b915bb87-187d-41bf-853b-34d26ae28c71",
+        "user_device_type": "SmartPlug"
+      },
+      {
+        "time": "2024-06-21T02:16:12.211Z",
+        "type": "DeviceIdle",
+        "icon": "plug",
+        "body": "Basement Tenlog went idle",
+        "destination": "device:tjMEysbH",
+        "device_id": "tjMEysbH",
+        "device_state": "DeviceIdle",
+        "show_action": false,
+        "allow_sticky": false,
+        "guid": "8d2cb642-c295-4923-9316-8e0e4fdbb41c",
+        "user_device_type": "SmartPlug"
+      }
+    ]
+  }
+  

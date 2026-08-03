@@ -1,0 +1,86 @@
+name: sense-collector-demo
+
+# DEMO stack — "click go", no Sense account, no hardware. Same bundled InfluxDB +
+# pre-provisioned Grafana as the dev stack, but the collector authenticates against a
+# FAKE Sense endpoint (the harness emulator) and streams its realtime feed, so the
+# dashboards populate out of the box. Bring up with `make demo-up`, open Grafana at
+# http://localhost:3000 (admin/admin). Everything is on the default bridge network;
+# the collector reaches the fake + InfluxDB by service name. Config in .env.demo.
+# Override the collector image with SENSE_IMAGE=<tag> to demo a local build.
+
+services:
+  sense_influxdb:
+    image: influxdb:2.7
+    container_name: sense_influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - sense_influxdb_data:/var/lib/influxdb2
+      - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
+    ports:
+      - "${INFLUX_PORT:-8086}:8086"
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  sense_grafana:
+    image: grafana/grafana:11.3.0
+    container_name: sense_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Panel plugins the bundled dashboards use but that aren't Grafana core.
+      GF_INSTALL_PLUGINS: digrich-bubblechart-panel
+      INFLUX_BUCKET: ${INFLUX_BUCKET}
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
+      - sense_grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      sense_influxdb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Fake Sense cloud endpoint (emulator) — no account/hardware needed ---
+  sense_fake:
+    build: ./harness
+    container_name: sense_fake
+    environment:
+      SENSE_FAKE_PORT: "8080"
+      SENSE_FAKE_MONITOR_ID: "12345"
+      SENSE_FAKE_BASE_W: "1450"
+      SENSE_FAKE_INTERVAL: "2.0"
+    restart: unless-stopped
+
+  sense-collector:
+    image: ${SENSE_IMAGE:-sense-collector:local}
+    container_name: sense-collector
+    env_file:
+      - .env.demo
+    environment:
+      # Target the fake Sense endpoint instead of the real cloud.
+      SENSE_COLLECTOR_API_BASE_URL: http://sense_fake:8080
+      SENSE_COLLECTOR_WS_BASE_URL: ws://sense_fake:8080
+      SENSE_COLLECTOR_INFLUXDB_URL: http://sense_influxdb:8086
+    restart: unless-stopped
+    depends_on:
+      sense_influxdb:
+        condition: service_healthy
+      sense_fake:
+        condition: service_started
+
+volumes:
+  sense_influxdb_data:
+  sense_grafana_data:

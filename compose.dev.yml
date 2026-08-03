@@ -1,0 +1,73 @@
+name: sense-collector-dev
+
+# DEV stack — your daily local driver. The collector authenticates against the REAL
+# Sense cloud (account creds from the optional, gitignored .env.dev.local) and writes
+# to a bundled InfluxDB + pre-provisioned Grafana (datasource + dashboards). Bring up
+# with `make dev-up`, open Grafana at http://localhost:3000 (admin/admin). Bundled-infra
+# config is in .env.demo. Run `make dev-build-push` first to build the :dev image
+# (or set SENSE_IMAGE=<tag>). Everything is on the default bridge network — the
+# collector reaches the bundled InfluxDB by service name (no host networking needed).
+
+services:
+  sense_influxdb:
+    image: influxdb:2.7
+    container_name: sense_influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - sense_influxdb_data:/var/lib/influxdb2
+      - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
+    ports:
+      - "${INFLUX_PORT:-8086}:8086"
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  sense_grafana:
+    image: grafana/grafana:11.3.0
+    container_name: sense_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Panel plugins the bundled dashboards use but that aren't Grafana core.
+      GF_INSTALL_PLUGINS: digrich-bubblechart-panel
+      INFLUX_BUCKET: ${INFLUX_BUCKET}
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
+      - sense_grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      sense_influxdb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  sense-collector:
+    image: ${SENSE_IMAGE:-sense-collector:local}
+    container_name: sense-collector
+    env_file:
+      # .env.demo = bundled InfluxDB/Grafana config. .env.dev.local (gitignored,
+      # optional) adds your REAL Sense account creds — see .env.dev.local.example.
+      # Later file wins on shared keys.
+      - .env.demo
+      - path: .env.dev.local
+        required: false
+    restart: unless-stopped
+    depends_on:
+      sense_influxdb:
+        condition: service_healthy
+
+volumes:
+  sense_influxdb_data:
+  sense_grafana_data:

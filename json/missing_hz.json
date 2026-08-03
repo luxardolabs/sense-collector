@@ -1,0 +1,899 @@
+{
+  "frame": 17560860,
+  "devices": [
+    {
+      "id": "15f8e2ce",
+      "name": "AC",
+      "icon": "ac",
+      "tags": {
+        "Alertable": "true",
+        "AlwaysOn": "false",
+        "CombinedDevices": "c24647f0,d8e98ff5",
+        "DateCreated": "2022-10-17T04:49:41.000Z",
+        "DateFirstUsage": "2021-05-31",
+        "DefaultUserDeviceType": "AC",
+        "DeployToMonitor": "true",
+        "DeviceListAllowed": "true",
+        "ModelCreatedVersion": "124",
+        "ModelUpdatedVersion": "152",
+        "name_useredit": "false",
+        "OriginalName": "AC",
+        "PeerNames": [
+          {
+            "Name": "AC",
+            "UserDeviceType": "AC",
+            "Percent": 85.0,
+            "Icon": "ac",
+            "UserDeviceTypeDisplayString": "AC"
+          },
+          {
+            "Name": "HVAC",
+            "UserDeviceType": "AC",
+            "Percent": 7.0,
+            "Icon": "ac",
+            "UserDeviceTypeDisplayString": "AC"
+          },
+          {
+            "Name": "Heat pump",
+            "UserDeviceType": "HeatPump",
+            "Percent": 7.0,
+            "Icon": "heat",
+            "UserDeviceTypeDisplayString": "Heat Pump"
+          }
+        ],
+        "Pending": "false",
+        "PreselectionIndex": 0,
+        "Revoked": "false",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "false",
+        "Type": "AC",
+        "UserDeletable": "true",
+        "UserDeviceType": "AC",
+        "UserDeviceTypeDisplayString": "AC",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "true",
+        "UserShowInDeviceList": "true"
+      },
+      "attrs": [],
+      "w": 5026.6284
+    },
+    {
+      "id": "4xANDCuJ",
+      "name": "Basement Rack B1",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "40:3F:8C:F1:B2:A1",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Basement Rack B1",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa KP115",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "40:3F:8C:F1:B2:A1"
+      },
+      "attrs": [],
+      "w": 697.081,
+      "sd": {
+        "w": 697.081,
+        "i": 6.405,
+        "v": 119.55,
+        "e": 246.009
+      },
+      "ao_w": 695.0,
+      "ao_st": true
+    },
+    {
+      "id": "always_on",
+      "name": "Always On",
+      "icon": "alwayson",
+      "tags": {
+        "DefaultUserDeviceType": "AlwaysOn",
+        "DeviceListAllowed": "true",
+        "SSIEnabled": "false",
+        "TimelineAllowed": "false",
+        "UserDeviceType": "AlwaysOn",
+        "UserDeviceTypeDisplayString": "Always On",
+        "UserEditable": "false",
+        "UserShowBubble": "true",
+        "UserShowInDeviceList": "true"
+      },
+      "attrs": [],
+      "w": 1439.4943
+    },
+    {
+      "id": "6fe46f1b",
+      "name": "Samsung TV",
+      "icon": "tv",
+      "tags": {
+        "Alertable": "true",
+        "AlwaysOn": "false",
+        "DateCreated": "2021-02-04T18:16:51.000Z",
+        "DateFirstUsage": "2020-08-06",
+        "DefaultMake": "Samsung Electronics",
+        "DefaultModel": "UN75MU9000",
+        "DefaultUserDeviceType": "TV",
+        "DeployToMonitor": "true",
+        "DeviceListAllowed": "true",
+        "DUID": "84:c0:ef:e9:58:4e",
+        "ModelCreatedVersion": "79",
+        "ModelUpdatedVersion": "152",
+        "name_useredit": "false",
+        "OriginalName": "Samsung TV",
+        "PeerNames": [
+          {
+            "Name": "Samsung TV",
+            "UserDeviceType": "TV",
+            "Make": "Samsung",
+            "Percent": 100.0,
+            "Icon": "tv",
+            "UserDeviceTypeDisplayString": "TV/Monitor"
+          }
+        ],
+        "Pending": "false",
+        "PreselectionIndex": 0,
+        "Revoked": "false",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "Type": "SamsungTV",
+        "UserDeletable": "true",
+        "UserDeviceType": "TV",
+        "UserDeviceTypeDisplayString": "TV/Monitor",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "true",
+        "UserShowBubble": "true",
+        "UserShowInDeviceList": "true"
+      },
+      "make": "Samsung Electronics",
+      "model": "UN75MU9000",
+      "attrs": [],
+      "w": 408.08914,
+      "given_make": "Samsung Electronics",
+      "given_model": "UN75MU9000"
+    },
+    {
+      "id": "unknown",
+      "name": "Other",
+      "icon": "home",
+      "tags": {
+        "DefaultUserDeviceType": "Unknown",
+        "DeviceListAllowed": "true",
+        "SSIEnabled": "false",
+        "TimelineAllowed": "false",
+        "UserDeviceType": "Unknown",
+        "UserDeviceTypeDisplayString": "Unknown",
+        "UserEditable": "false",
+        "UserShowBubble": "true",
+        "UserShowInDeviceList": "true"
+      },
+      "attrs": [],
+      "w": 220.63402
+    },
+    {
+      "id": "RxhfJlFg",
+      "name": "Kitchen Refrigerator",
+      "icon": "fridge",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "C0:C9:E3:0E:61:45",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "MergedDevices": "AHYXk2U0,eabb5dde",
+        "name_useredit": "false",
+        "OriginalName": "Kitchen Refrigerator",
+        "OtherSuperseded": "false",
+        "PeerNames": [],
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa KP115",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "Fridge",
+        "UserDeviceTypeDisplayString": "Fridge",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "C0:C9:E3:0E:61:45",
+        "Virtual": "true"
+      },
+      "attrs": [],
+      "w": 118.015,
+      "sd": {
+        "w": 118.015,
+        "i": 1.024,
+        "v": 119.411,
+        "e": 29.909
+      },
+      "ao_w": 7.0,
+      "ao_st": false
+    },
+    {
+      "id": "lVN9DMz1",
+      "name": "Office Lava Lamp",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "00:5F:67:AE:69:4F",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Office Lava Lamp",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa KP115",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "00:5F:67:AE:69:4F"
+      },
+      "attrs": [],
+      "w": 95.581,
+      "sd": {
+        "w": 95.581,
+        "i": 0.803,
+        "v": 118.581,
+        "e": 15.516
+      }
+    },
+    {
+      "id": "fhq5v3Kx",
+      "name": "Office Acer Monitor",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "80069529CE19CBDB8472685933F715AB1DFE666303",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Office Acer Monitor",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa HS300",
+        "SmartPlugName": "Office Acer Monitor (Outlet 4)",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "80069529CE19CBDB8472685933F715AB1DFE666303"
+      },
+      "attrs": [],
+      "w": 86.565,
+      "sd": {
+        "w": 86.565,
+        "i": 0.758,
+        "v": 118.373,
+        "e": 42.361
+      },
+      "ao_w": 16.0,
+      "ao_st": false
+    },
+    {
+      "id": "kZQeqlNt",
+      "name": "Basement Rack A1",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "40:3F:8C:F1:B1:58",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Basement Rack A1",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa KP115",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "40:3F:8C:F1:B1:58"
+      },
+      "attrs": [],
+      "w": 73.56,
+      "sd": {
+        "w": 73.56,
+        "i": 1.12,
+        "v": 120.493,
+        "e": 48.005
+      },
+      "ao_w": 73.0,
+      "ao_st": true
+    },
+    {
+      "id": "WtkhAOFY",
+      "name": "Media Lounge AV",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "C0:C9:E3:0E:6E:4E",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Media Lounge AV",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa KP115",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "C0:C9:E3:0E:6E:4E"
+      },
+      "attrs": [],
+      "w": 53.938,
+      "sd": {
+        "w": 53.938,
+        "i": 0.744,
+        "v": 120.014,
+        "e": 12.801
+      },
+      "ao_w": 29.0,
+      "ao_st": false
+    },
+    {
+      "id": "IfAOSYjA",
+      "name": "Nook iMac",
+      "icon": "computer",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "C0:C9:E3:0E:63:08",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Nook iMac",
+        "OtherSuperseded": "true",
+        "OtherSupersededType": "Computer",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa KP115",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "Computer",
+        "UserDeviceTypeDisplayString": "Computer",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "C0:C9:E3:0E:63:08"
+      },
+      "attrs": [],
+      "w": 27.758,
+      "sd": {
+        "w": 27.758,
+        "i": 0.28,
+        "v": 119.446,
+        "e": 10.744
+      },
+      "ao_w": 23.0,
+      "ao_st": true
+    },
+    {
+      "id": "tjMEysbH",
+      "name": "Basement Tenlog",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "800636339AF6ED84AD6B3B555412F8301D16126400",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Basement Tenlog",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa HS300",
+        "SmartPlugName": "Basement Tenlog (Outlet 1)",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "800636339AF6ED84AD6B3B555412F8301D16126400"
+      },
+      "attrs": [],
+      "w": 7.957,
+      "sd": {
+        "w": 7.957,
+        "i": 0.106,
+        "v": 119.897,
+        "e": 6.95
+      },
+      "ao_w": 7.0,
+      "ao_st": true
+    },
+    {
+      "id": "dGwM5nQ2",
+      "name": "Basement 6",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "800636339AF6ED84AD6B3B555412F8301D16126405",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Basement 6",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa HS300",
+        "SmartPlugName": "Basement 6 (Outlet 6)",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "800636339AF6ED84AD6B3B555412F8301D16126405"
+      },
+      "attrs": [
+        "Idle"
+      ],
+      "w": 5.512,
+      "sd": {
+        "w": 5.512,
+        "i": 0.1,
+        "v": 119.913,
+        "e": 5.142
+      },
+      "ao_w": 6.0,
+      "ao_st": true
+    },
+    {
+      "id": "Q1F3vnrp",
+      "name": "Basement Playbar",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "80063B7EC93299EC846744446EF16E2521DF2EF902",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Basement Playbar",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa HS300",
+        "SmartPlugName": "Basement Playbar (Outlet 3)",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "80063B7EC93299EC846744446EF16E2521DF2EF902"
+      },
+      "attrs": [
+        "Idle"
+      ],
+      "w": 5.37,
+      "sd": {
+        "w": 5.37,
+        "i": 0.097,
+        "v": 120.432,
+        "e": 2.381
+      },
+      "ao_w": 5.0,
+      "ao_st": true
+    },
+    {
+      "id": "3g81zBef",
+      "name": "Office USB Power",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "80069529CE19CBDB8472685933F715AB1DFE666301",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Office USB Power",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa HS300",
+        "SmartPlugName": "Office USB Power (Outlet 2)",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "80069529CE19CBDB8472685933F715AB1DFE666301"
+      },
+      "attrs": [
+        "Idle"
+      ],
+      "w": 2.673,
+      "sd": {
+        "w": 2.673,
+        "i": 0.037,
+        "v": 118.472,
+        "e": 1.229
+      }
+    },
+    {
+      "id": "eb3zFmQP",
+      "name": "Office Echo",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "80069529CE19CBDB8472685933F715AB1DFE666304",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Office Echo",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa HS300",
+        "SmartPlugName": "Office Echo (Outlet 5)",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "80069529CE19CBDB8472685933F715AB1DFE666304"
+      },
+      "attrs": [
+        "Idle"
+      ],
+      "w": 1.854,
+      "sd": {
+        "w": 1.854,
+        "i": 0.028,
+        "v": 118.472,
+        "e": 0.757
+      }
+    },
+    {
+      "id": "7pImRMCI",
+      "name": "Laundry Washing Machine",
+      "icon": "washer",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "C0:C9:E3:0E:42:47",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "MergedDevices": "HUkiCjuZ,b46a2600",
+        "name_useredit": "false",
+        "OriginalName": "Laundry Washing Machine",
+        "OtherSuperseded": "false",
+        "PeerNames": [],
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa KP115",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "Washer",
+        "UserDeviceTypeDisplayString": "Washer",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "C0:C9:E3:0E:42:47",
+        "Virtual": "true"
+      },
+      "attrs": [
+        "Idle"
+      ],
+      "w": 1.771,
+      "sd": {
+        "w": 1.771,
+        "i": 0.053,
+        "v": 119.633,
+        "e": 1.324
+      },
+      "ao_w": 2.0,
+      "ao_st": true
+    },
+    {
+      "id": "I9bj74wU",
+      "name": "Office WeatherFX",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "80069529CE19CBDB8472685933F715AB1DFE666302",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Office WeatherFX",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa HS300",
+        "SmartPlugName": "Office WeatherFX (Outlet 3)",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "80069529CE19CBDB8472685933F715AB1DFE666302"
+      },
+      "attrs": [
+        "Idle"
+      ],
+      "w": 1.471,
+      "sd": {
+        "w": 1.471,
+        "i": 0.028,
+        "v": 118.389,
+        "e": 1.428
+      },
+      "ao_w": 1.0,
+      "ao_st": true
+    },
+    {
+      "id": "uUUD8y7M",
+      "name": "Office iMac",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "80069529CE19CBDB8472685933F715AB1DFE666300",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Office iMac",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa HS300",
+        "SmartPlugName": "Office iMac (Outlet 1)",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "80069529CE19CBDB8472685933F715AB1DFE666300"
+      },
+      "attrs": [
+        "Idle"
+      ],
+      "w": 1.42,
+      "sd": {
+        "w": 1.42,
+        "i": 0.022,
+        "v": 118.439,
+        "e": 1.878
+      },
+      "ao_w": 1.0,
+      "ao_st": true
+    },
+    {
+      "id": "affGYi1w",
+      "name": "Suntan Booth",
+      "icon": "plug",
+      "tags": {
+        "Alertable": "true",
+        "ControlCapabilities": [
+          "OnOff",
+          "StandbyThreshold"
+        ],
+        "DateCreated": "2024-06-21T00:50:10.000Z",
+        "DefaultUserDeviceType": "SmartPlug",
+        "DeviceListAllowed": "true",
+        "DUID": "80063B7EC93299EC846744446EF16E2521DF2EF905",
+        "IntegratedDeviceType": "IntegratedSmartPlug",
+        "IntegrationType": "TPLink",
+        "name_useredit": "false",
+        "OriginalName": "Suntan Booth",
+        "Revoked": "false",
+        "SmartPlugModel": "TP-Link Kasa HS300",
+        "SmartPlugName": "Suntan Booth (Outlet 6)",
+        "SSIEnabled": "true",
+        "SSIModel": "SelfReporting",
+        "TimelineAllowed": "true",
+        "TimelineDefault": "true",
+        "UserDeletable": "false",
+        "UserDeviceType": "SmartPlug",
+        "UserDeviceTypeDisplayString": "Smart Plug",
+        "UserEditable": "true",
+        "UserEditableMeta": "true",
+        "UserMergeable": "false",
+        "UserShowInDeviceList": "true",
+        "UserVisibleDeviceId": "80063B7EC93299EC846744446EF16E2521DF2EF905"
+      },
+      "attrs": [
+        "Idle"
+      ],
+      "w": 1.047,
+      "sd": {
+        "w": 1.047,
+        "i": 0.033,
+        "v": 120.672,
+        "e": 0.713
+      },
+      "ao_w": 1.0,
+      "ao_st": true
+    }
+  ],
+  "deltas": [],
+  "defaultCost": 12.58,
+  "w": 7447.646454578266,
+  "c": 93,
+  "grid_w": 7224,
+  "_stats": {
+    "brcv": 1719246982.9984365,
+    "mrcv": 1719246983.156,
+    "msnd": 1719246983.157
+  },
+  "power_flow": {
+    "grid": [
+      "home"
+    ]
+  },
+  "d_w": 7448,
+  "epoch": 1719246979
+}

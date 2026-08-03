@@ -1,0 +1,56 @@
+name: sense-collector-e2e
+
+# Hardware-free end-to-end test harness. Everything is on the default bridge network
+# and NO host ports are published, so it never collides and runs in CI. The fake Sense
+# endpoint serves the auth + REST API and streams the realtime WebSocket; the collector
+# targets it via API/WS base-url overrides and writes to a throwaway InfluxDB. Driven by
+# `make test-e2e`, which builds the collector image from CURRENT source and sets
+# SENSE_IMAGE. All values here are fixed test values, not secrets.
+
+services:
+  sense_influxdb:
+    image: influxdb:2.7
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: sense
+      DOCKER_INFLUXDB_INIT_PASSWORD: sense-e2e-password
+      DOCKER_INFLUXDB_INIT_ORG: sense
+      DOCKER_INFLUXDB_INIT_BUCKET: sense
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: sense-e2e-token
+    volumes:
+      - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  sense_fake:
+    build: ./harness
+    environment:
+      SENSE_FAKE_PORT: "8080"
+      SENSE_FAKE_MONITOR_ID: "12345"
+      SENSE_FAKE_BASE_W: "1200"
+      SENSE_FAKE_INTERVAL: "1.0"
+
+  sense-collector:
+    image: ${SENSE_IMAGE:-luxardolabs/sense-collector:latest}
+    environment:
+      SENSE_COLLECTOR_API_USERNAME: e2e@example.com
+      SENSE_COLLECTOR_API_PASSWORD: e2e-password
+      SENSE_COLLECTOR_API_BASE_URL: http://sense_fake:8080
+      SENSE_COLLECTOR_WS_BASE_URL: ws://sense_fake:8080
+      SENSE_COLLECTOR_INFLUXDB_URL: http://sense_influxdb:8086
+      SENSE_COLLECTOR_INFLUXDB_ORG: sense
+      SENSE_COLLECTOR_INFLUXDB_BUCKET: sense
+      SENSE_COLLECTOR_INFLUXDB_TOKEN: sense-e2e-token
+      SENSE_COLLECTOR_MONITOR_STATUS_INTERVAL: "30"
+      SENSE_COLLECTOR_OUTPUT_RECEIVED_DATA: "False"
+      SENSE_COLLECTOR_LOG_LEVEL_GENERAL: INFO
+      SENSE_COLLECTOR_LOG_LEVEL_API: INFO
+      SENSE_COLLECTOR_LOG_LEVEL_STORAGE: INFO
+    depends_on:
+      sense_influxdb:
+        condition: service_healthy
+      sense_fake:
+        condition: service_started

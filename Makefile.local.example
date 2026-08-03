@@ -1,0 +1,16 @@
+# Local, uncommitted build/registry overrides — kept OUT of public git.
+#
+# Copy to Makefile.local (gitignored), then set your private registry host:
+#
+#   cp Makefile.local.example Makefile.local
+#
+# The Makefile `-include`s Makefile.local before its `?=` defaults, so these win.
+# Without Makefile.local the hosts stay empty: `make arch` / `make lint` skip luxarch / luxlint
+# and the registry push/deploy targets are unavailable — but build-local / demo-up / test-e2e
+# still work (they use local image tags), so external contributors get a working repo.
+#
+# LUXLINT_REGISTRY and LUXAUDIT_REGISTRY default to LUXARCH_REGISTRY (same private registry); set
+# them below only if those images live on a different host.
+
+REGISTRY         ?= docker.<private-registry>:5000
+LUXARCH_REGISTRY ?= docker.<private-registry>:5000

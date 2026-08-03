@@ -1,0 +1,37 @@
+# Lean test-DEPS image — dependencies only, built FROM the lock (poetry install), NEVER from :dev.
+#
+# Per the fleet Build & Deploy standard (luxarch --doc FLEET-BUILD-DEPLOY-STANDARD): a test env built
+# FROM :dev inherits a stale deploy artifact and goes quietly false. Decouple by ingredient instead:
+#   - deps   → HERE, from poetry.lock; the Makefile stamp rebuilds this image ONLY when the lock changes.
+#   - source → over-mounted at run (never baked), so a code edit needs no rebuild.
+#   - config → the canonical pytest.ini, emitted by luxlint (--emit-config pytest), mounted at run.
+# ruff runs mount-only in the luxlint image; mypy in a fresh python:slim tail — neither tool lives here.
+#
+# Build:  docker build -f Dockerfile.test -t sense-collector-test .   (driven by `make test`)
+FROM python:3.14-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_VERSION=2.4.1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry with pip (pinned; pip verifies wheel hashes).
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+
+WORKDIR /app
+# ONLY the lock + pyproject enter the deps layer — the source is mounted at run, never baked here.
+# --with dev pulls pytest/pytest-asyncio/pytest-mock alongside the app's locked runtime deps.
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --no-root --with dev
+
+# Run the suite as the SAME non-root user the app runs as in prod (uid 1000, base image's appuser).
+# Tests must match the deploy user: running as root lets it write anywhere and silently skips
+# permission-dependent paths — e.g. config's unwritable-export-folder fallback (test_export_folder_
+# fallback), which only exercises when the folder is genuinely unwritable, as it is for uid 1000.
+RUN useradd -m -u 1000 appuser
+USER appuser

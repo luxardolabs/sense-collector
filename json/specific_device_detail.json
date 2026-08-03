@@ -1,0 +1,93 @@
+{
+    "alerts": {
+        "allowed": false,
+        "enabled": false
+    },
+    "notes": null,
+    "usage": {
+        "current_month_runs": 0,
+        "current_month_KWH": 0.0,
+        "avg_monthly_runs": 0,
+        "avg_monthly_KWH": 0.0,
+        "avg_monthly_pct": 0.0,
+        "avg_watts": 0.0,
+        "avg_duration": 0.0,
+        "yearly_KWH": 0.0,
+        "yearly_text": "Not enough data",
+        "yearly_cost": 0,
+        "current_month_cost": 0,
+        "avg_monthly_cost": 0
+    },
+    "timeline": {
+        "visible": true,
+        "allowed": false
+    },
+    "device": {
+        "id": "6e8b3c9b",
+        "name": "Dryer",
+        "icon": "washer",
+        "monitor_id": 53997,
+        "tags": {
+            "Alertable": "false",
+            "AlwaysOn": "false",
+            "DateCreated": "2019-09-04T20:37:06.000Z",
+            "DateFirstUsage": "2019-08-15",
+            "DefaultUserDeviceType": "Dryer",
+            "DeployToMonitor": "true",
+            "DeviceListAllowed": "false",
+            "ModelCreatedVersion": "19",
+            "ModelUpdatedVersion": "33",
+            "name_useredit": "false",
+            "OriginalName": "Dryer",
+            "PeerNames": [
+                {
+                    "Name": "Dryer",
+                    "UserDeviceType": "Dryer",
+                    "Percent": 97.0,
+                    "Icon": "washer",
+                    "UserDeviceTypeDisplayString": "Dryer"
+                },
+                {
+                    "Name": "Washer",
+                    "UserDeviceType": "Washer",
+                    "Percent": 1.0,
+                    "Icon": "washer",
+                    "UserDeviceTypeDisplayString": "Washer"
+                },
+                {
+                    "Name": "Stove",
+                    "UserDeviceType": "StoveTop",
+                    "Percent": 1.0,
+                    "Icon": "stove",
+                    "UserDeviceTypeDisplayString": "Stove Top"
+                },
+                {
+                    "Name": "Water heater",
+                    "UserDeviceType": "WaterHeater",
+                    "Percent": 1.0,
+                    "Icon": "water_heater",
+                    "UserDeviceTypeDisplayString": "Water Heater"
+                }
+            ],
+            "Pending": "false",
+            "Revoked": "false",
+            "SSIEnabled": "false",
+            "TimelineAllowed": "false",
+            "TimelineDefault": "false",
+            "Type": "ElectricDryer",
+            "UserDeletable": "true",
+            "UserDeleted": "true",
+            "UserEditable": "false",
+            "UserEditableMeta": "true",
+            "UserMergeable": "true",
+            "UserShowBubble": "true",
+            "UserShowInDeviceList": "true",
+            "UserDeviceTypeDisplayString": "Dryer",
+            "UserDeviceType": "Dryer",
+            "PreselectionIndex": 0
+        },
+        "last_state": "On",
+        "last_state_time": "2022-02-14T19:34:47.000Z"
+    },
+    "info": "A typical electric dryer uses between 1,800 and 5,000 watts while in use.To keep your dryer running efficiently and safely, be sure to clean the lint filter regularly."
+}
