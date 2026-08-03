@@ -72,6 +72,16 @@ docker logs -f sense-collector               # watch it authenticate, connect th
 
 Within a minute you should see mains data (`sense_mains`) and your devices (`sense_devices`) landing in InfluxDB. What each measurement contains is described in [COLLECTOR-DETAILS.md](COLLECTOR-DETAILS.md).
 
+## Try the full stack
+
+To see a correctly wired end-to-end stack — collector, InfluxDB, and Grafana with the data source, DBRP mapping, and dashboards all provisioned — clone the repo and run the self-contained demo (no Sense account needed; it uses a built-in emulator):
+
+```bash
+make demo-up      # fake Sense + bundled InfluxDB + Grafana on http://localhost:3000
+```
+
+This is a working reference you can compare your own Grafana setup against. `make dev-up` is the same bundled stack but pointed at your real Sense account.
+
 ## Next steps
 
 - [GRAFANA.md](GRAFANA.md) — add the InfluxQL data source and import the dashboards
