@@ -32,13 +32,13 @@ PUBLIC_IMAGE := $(EXTERNAL_REGISTRY)/luxardolabs/sense-collector
 # is supplied via Makefile.local; `make arch` skips gracefully when it is unset. Bump
 # LUXARCH_VERSION to adopt newer rules.
 LUXARCH_REGISTRY ?=
-LUXARCH_VERSION  ?= 0.19.0
+LUXARCH_VERSION  ?= 0.21.1
 
 # Style guard (luxlint) — same private registry as luxarch, supplied out-of-tree via
 # Makefile.local. LUXLINT_REGISTRY defaults to LUXARCH_REGISTRY; `make lint` skips gracefully
 # when unset. luxlint owns the canonical ruff+mypy config (this repo carries none).
 LUXLINT_REGISTRY ?= $(LUXARCH_REGISTRY)
-LUXLINT_VERSION  ?= 0.9.0
+LUXLINT_VERSION  ?= 0.10.0
 LUXLINT_IMAGE     = $(LUXLINT_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
 
 # Dependency-vulnerability guard (luxaudit) — same private registry, out-of-tree via Makefile.local.
@@ -371,9 +371,9 @@ gitleaks-staged: ## Pre-commit secret scan of staged changes (canonical fleet co
 	  protect --staged --source /repo --config /cfg/gl.toml --redact -v; rc=$$?; \
 	rm -rf $$d; exit $$rc
 
-hooks: ## Install the committed git hooks (.githooks/) — pre-commit secret scan via gitleaks-staged
-	git config core.hooksPath .githooks
-	@echo "core.hooksPath -> .githooks (pre-commit runs 'make gitleaks-staged')"
+hooks: ## Install the committed git hooks (hooks/) — gitleaks on every commit + push (luxlint --emit-hooks)
+	@if [ -z "$(LUXLINT_REGISTRY)" ]; then echo "luxlint: LUXLINT_REGISTRY unset — skipping"; exit 0; fi; \
+	docker run --rm $(LUXLINT_IMAGE) --emit-hooks | sh
 
 ##@ Utilities
 
