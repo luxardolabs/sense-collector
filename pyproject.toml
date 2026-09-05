@@ -36,6 +36,25 @@ influxdb-client = {extras = ["async"], version = "^1.50.0"}
 python-dateutil = "^2.9.0"
 pytz = "^2026.2"
 
+# --- Transitive security floors (luxaudit) ---
+# These are pulled in by influxdb-client[async] (aiohttp) and httpx[http2] (h2), whose
+# ranges are unbounded above — so a plain re-lock resolves straight back to the vulnerable
+# version and "re-locked = patched" is a trap. The floor has to be declared HERE, in our own
+# manifest, so the lock cannot pick below the fix.
+#
+# aiohttp: the async transport for every InfluxDB write (InfluxDBClientAsync).
+#   CVE-2026-69244 out-of-bounds heap read in the C response parser while building an error
+#     message for a malformed response — reachable from a misbehaving/compromised InfluxDB.
+#   CVE-2026-69243 request smuggling via WebSocket upgrades.
+#   CVE-2026-59881 client decompresses RSV1 frames even when permessage-deflate was never
+#     negotiated.
+#   All fixed in 3.14.3.
+aiohttp = ">=3.14.3"
+# h2: the HTTP/2 stack behind httpx[http2], which talks to the Sense cloud API.
+#   CVE-2026-71554 multiple Host headers accepted and all forwarded to the consumer, enabling
+#     request smuggling where HTTP/2 is downgraded to HTTP/1.1. Fixed in 4.4.1.
+h2 = ">=4.4.1"
+
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.15.21"
 mypy = "^2.2.0"
