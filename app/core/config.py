@@ -2,6 +2,12 @@ import logging
 import os
 from pathlib import Path
 
+# Module logger, never the root logger: a bare `logging.warning(...)` module-level call goes
+# to the root logger, which installs a default handler on first use and so bypasses the per-area
+# levels this module itself configures (LOG_LEVEL_GENERAL / _API / _STORAGE). Records from
+# here then ignore the app's logging config and can't be filtered by source.
+logger = logging.getLogger(__name__)
+
 
 class ConfigValidator:
     """Validates configuration values."""
@@ -23,7 +29,7 @@ class ConfigValidator:
             return num
         except (ValueError, TypeError) as e:
             if default is not None:
-                logging.warning(
+                logger.warning(
                     "Invalid integer value '%s', using default %s: %s",
                     value,
                     default,
@@ -49,7 +55,7 @@ class ConfigValidator:
             return num
         except (ValueError, TypeError) as e:
             if default is not None:
-                logging.warning(
+                logger.warning(
                     "Invalid float value '%s', using default %s: %s", value, default, e
                 )
                 return default
@@ -63,7 +69,7 @@ class ConfigValidator:
         elif value.lower() in ("false", "0", "no", "off"):
             return False
         elif default is not None:
-            logging.warning(
+            logger.warning(
                 "Invalid boolean value '%s', using default %s", value, default
             )
             return default
@@ -78,7 +84,7 @@ class ConfigValidator:
         if upper_value in valid_levels:
             return upper_value
         else:
-            logging.warning("Invalid log level '%s', using default %s", value, default)
+            logger.warning("Invalid log level '%s', using default %s", value, default)
             return default
 
 
@@ -348,12 +354,12 @@ try:
         ) from e
 
 except Exception as e:
-    logging.exception("Failed to create or validate export folder: %s", e)
+    logger.exception("Failed to create or validate export folder: %s", e)
     # Use temp directory as fallback
     import tempfile
 
     EXPORT_FOLDER = tempfile.mkdtemp(prefix="sense_collector_")
-    logging.warning("Using temporary export folder: %s", EXPORT_FOLDER)
+    logger.warning("Using temporary export folder: %s", EXPORT_FOLDER)
 
 # Health heartbeat — the collector touches this file (throttled) as WebSocket data flows;
 # the Docker healthcheck (app/health/check.py) asserts it stays fresh. Defined after

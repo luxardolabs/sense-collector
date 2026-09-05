@@ -1,9 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from influxdb_client import Point
 from influxdb_client.client.exceptions import InfluxDBError
 
-from app.storage.influxdb import InfluxDBStorage, DeviceDataQueue
+from app.storage.influxdb import DeviceDataQueue, InfluxDBStorage
 
 
 @pytest.fixture
@@ -197,7 +198,10 @@ async def test_persist_device_data_regular(influxdb_params, mock_influxdb_client
             "last_state": "on",
             "last_state_time": "2024-01-01T12:00:00Z",
         },
-        "usage": {"avg_monthly_KWH": 50.5, "yearly_cost": 12000},  # Will be divided by 100
+        "usage": {
+            "avg_monthly_KWH": 50.5,
+            "yearly_cost": 12000,
+        },  # Will be divided by 100
     }
 
     await storage.persist_device_data("monitor1", device_data)
@@ -222,7 +226,9 @@ async def test_persist_device_data_always_on(influxdb_params, mock_influxdb_clie
                 "cohort": {"id": "cohort1", "state": "CA"},
             },
         },
-        "always_on": {"devices": [{"id": "ao_device1", "w": 10}, {"id": "ao_device2", "w": 20}]},
+        "always_on": {
+            "devices": [{"id": "ao_device1", "w": 10}, {"id": "ao_device2", "w": 20}]
+        },
     }
 
     await storage.persist_device_data("monitor1", device_data)

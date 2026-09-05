@@ -19,7 +19,7 @@ Configuration:
 
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 MAX_AGE_SECONDS = int(os.getenv("SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE", "120"))
@@ -37,7 +37,9 @@ def check_heartbeat() -> tuple[bool, str]:
         # HEALTHCHECK --start-period covers that window.
         return False, f"no heartbeat file at {HEARTBEAT_FILE} yet"
 
-    age = datetime.now() - datetime.fromtimestamp(hb.stat().st_mtime)
+    # Both sides aware in UTC: st_mtime is an epoch instant, and subtracting two naive
+    # local readings silently breaks by an hour across a DST boundary.
+    age = datetime.now(UTC) - datetime.fromtimestamp(hb.stat().st_mtime, UTC)
     if age > timedelta(seconds=MAX_AGE_SECONDS):
         return (
             False,

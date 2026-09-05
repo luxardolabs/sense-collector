@@ -3,7 +3,7 @@ import contextlib
 import json
 import time
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aiofiles
@@ -243,7 +243,8 @@ class WebSocketHandler:
 
     async def _handle_reconnection_delay(self, delay: float) -> None:
         """Handle reconnection delay with logging."""
-        next_reconnect_time = datetime.now() + timedelta(seconds=delay)
+        # Aware in UTC, rendered in the container's zone — this value is only ever logged.
+        next_reconnect_time = datetime.now(UTC).astimezone() + timedelta(seconds=delay)
         api_logger.info(
             "Reconnecting in %ss at %s",
             delay,

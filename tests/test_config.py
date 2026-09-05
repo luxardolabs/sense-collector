@@ -1,17 +1,18 @@
-import pytest
 import os
+import sys
 import tempfile
 from unittest.mock import patch
-import sys
+
+import pytest
 
 # Add the src/app directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "app"))
 
 from app.core.config import (
     ConfigValidator,
-    get_env_int,
-    get_env_float,
     get_env_bool,
+    get_env_float,
+    get_env_int,
     get_env_log_level,
 )
 
@@ -178,6 +179,7 @@ class TestConfigModule:
             with patch.dict(os.environ, {"SENSE_COLLECTOR_EXPORT_FOLDER": test_export}):
                 # Re-import config to trigger folder creation
                 import importlib
+
                 import app.core.config as config
 
                 importlib.reload(config)
@@ -189,17 +191,20 @@ class TestConfigModule:
     def test_export_folder_fallback(self):
         """Test fallback to temp directory on permission error."""
         # Try to use a read-only directory
-        with patch.dict(os.environ, {"SENSE_COLLECTOR_EXPORT_FOLDER": "/root/no_permission"}):
+        with patch.dict(
+            os.environ, {"SENSE_COLLECTOR_EXPORT_FOLDER": "/root/no_permission"}
+        ):
             import importlib
+
             import app.core.config as config
 
             # This should not raise an exception
             importlib.reload(config)
 
             # Should fall back to temp directory
-            assert config.EXPORT_FOLDER.startswith("/tmp") or config.EXPORT_FOLDER.startswith(
-                "/var/folders"
-            )
+            assert config.EXPORT_FOLDER.startswith(
+                "/tmp"
+            ) or config.EXPORT_FOLDER.startswith("/var/folders")
             assert "sense_collector_" in config.EXPORT_FOLDER
 
 

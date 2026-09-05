@@ -1,0 +1,14 @@
+# luxaudit — fleet dependency-vulnerability guard (sibling of .luxarch.toml / .luxlint.toml).
+# Carries only WHERE the pinned dependency set lives + what's deferred; the scanner, the
+# pinned pip-audit and the fleet ignore policy all live in the image. The OSV + PyPA
+# advisory feed is fetched LIVE on every run, so the same pinned image gives a new answer
+# after a CVE drops — this is why `make audit` runs on a cadence, not only on code change.
+
+[source]
+# poetry.lock is the single dependency source of truth (there is no requirements.txt).
+# It would auto-detect, but declaring it makes the audited surface explicit and means a
+# future second lock file can't silently go unscanned.
+paths = ["poetry.lock"]
+
+# [[ignore]] — owner's ratchet dial: defer ONE vuln by id/alias with a mandatory reason.
+# A deferred vuln is REPORTED as deferred, never hidden. Empty: every finding stays lit.

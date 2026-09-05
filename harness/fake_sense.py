@@ -23,6 +23,7 @@ SENSE_FAKE_BASE_W (1200), SENSE_FAKE_INTERVAL (1.0), SENSE_FAKE_HZ (60.0).
 """
 
 import base64
+import contextlib
 import hashlib
 import json
 import math
@@ -31,6 +32,8 @@ import struct
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from io import BufferedIOBase
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 PORT = int(os.getenv("SENSE_FAKE_PORT", "8080"))
@@ -45,11 +48,33 @@ VOLTAGE = 120.0
 # RFC 6455 magic GUID for the Sec-WebSocket-Accept handshake.
 WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
+
+class FakeDevice(TypedDict):
+    """One simulated device in the fake home.
+
+    Typed rather than a bare dict literal so `frac` stays a float and `plug` a bool:
+    a heterogeneous dict literal infers `object` for every value, which silently makes
+    the load arithmetic below (`BASE_W * d["frac"] * wobble`) unchecked.
+    """
+
+    id: str
+    name: str
+    icon: str
+    frac: float
+    plug: bool
+
+
 # The simulated home: a mix of plug-metered (sd) and inferred (no sd) devices, so the
 # collector exercises both the is_plug and non-plug branches of persist_realtime_data.
-DEVICES = [
+DEVICES: list[FakeDevice] = [
     {"id": "ac", "name": "AC Unit", "icon": "ac", "frac": 0.45, "plug": False},
-    {"id": "fridge", "name": "Refrigerator", "icon": "fridge", "frac": 0.12, "plug": True},
+    {
+        "id": "fridge",
+        "name": "Refrigerator",
+        "icon": "fridge",
+        "frac": 0.12,
+        "plug": True,
+    },
     {"id": "oven", "name": "Oven", "icon": "stove", "frac": 0.20, "plug": False},
     {"id": "washer", "name": "Washer", "icon": "washer", "frac": 0.08, "plug": True},
 ]
@@ -61,7 +86,8 @@ def _now() -> int:
 
 # ----- JSON payload builders (shapes mirror the real Sense API) --------------
 
-def auth_response() -> dict:
+
+def auth_response() -> dict[str, Any]:
     return {
         "authorized": True,
         "account_id": ACCOUNT_ID,
@@ -83,12 +109,12 @@ def auth_response() -> dict:
     }
 
 
-def device_list() -> list:
+def device_list() -> list[dict[str, Any]]:
     # The client accepts a bare list (see fetch_devices).
     return [{"id": d["id"], "name": d["name"], "icon": d["icon"]} for d in DEVICES]
 
 
-def device_detail(device_id: str) -> dict:
+def device_detail(device_id: str) -> dict[str, Any]:
     d = next((x for x in DEVICES if x["id"] == device_id), None)
     name = d["name"] if d else device_id
     icon = d["icon"] if d else ""
@@ -99,28 +125,46 @@ def device_detail(device_id: str) -> dict:
             "icon": icon,
             "tags": {"DeviceListAllowed": "true"},
         },
-        "usage": {"avg_monthly_KWH": 12.3, "avg_monthly_cost": 1500, "yearly_KWH": 148.0},
+        "usage": {
+            "avg_monthly_KWH": 12.3,
+            "avg_monthly_cost": 1500,
+            "yearly_KWH": 148.0,
+        },
     }
 
 
-def monitor_status() -> dict:
+def monitor_status() -> dict[str, Any]:
     return {
         "monitor_id": MONITOR_ID,
         "signals": {"progress": 100, "status": "OK"},
-        "device_detection": {"in_progress": [], "found": len(DEVICES), "num_detected": len(DEVICES)},
-        "monitor_info": {"online": True, "version": "1.0-fake", "ssid": "fake-wifi", "signal": -55},
+        "device_detection": {
+            "in_progress": [],
+            "found": len(DEVICES),
+            "num_detected": len(DEVICES),
+        },
+        "monitor_info": {
+            "online": True,
+            "version": "1.0-fake",
+            "ssid": "fake-wifi",
+            "signal": -55,
+        },
     }
 
 
-def realtime_payload(t: float) -> dict:
+def realtime_payload(t: float) -> dict[str, Any]:
     """Build a realtime_update payload with smoothly-varying per-device load."""
-    devices = []
+    devices: list[dict[str, Any]] = []
     total = 0.0
     for i, d in enumerate(DEVICES):
         wobble = 0.6 + 0.8 * (0.5 * (1 + math.sin(t / 7.0 + i)))
         w = round(BASE_W * d["frac"] * wobble, 1)
         total += w
-        entry = {"id": d["id"], "name": d["name"], "icon": d["icon"], "w": w}
+        entry: dict[str, Any] = {
+            "id": d["id"],
+            "name": d["name"],
+            "icon": d["icon"],
+            "w": w,
+        }
         if d["plug"]:
             entry["sd"] = {
                 "w": w,
@@ -145,6 +189,7 @@ def realtime_payload(t: float) -> dict:
 
 # ----- Minimal RFC 6455 WebSocket framing (server side, unmasked out) --------
 
+
 def ws_frame(payload: bytes, opcode: int = 0x1) -> bytes:
     """Frame a server->client message (FIN set, never masked)."""
     header = bytearray([0x80 | opcode])
@@ -160,7 +205,7 @@ def ws_frame(payload: bytes, opcode: int = 0x1) -> bytes:
     return bytes(header) + payload
 
 
-def ws_read_frame(rfile):
+def ws_read_frame(rfile: BufferedIOBase) -> tuple[int | None, bytes | None]:
     """Read one client->server frame. Returns (opcode, payload) or (None, None) on EOF."""
     hdr = rfile.read(2)
     if len(hdr) < 2:
@@ -183,10 +228,10 @@ def ws_read_frame(rfile):
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
-    def log_message(self, *args):  # silence per-request logging
+    def log_message(self, *args: Any) -> None:  # silence per-request logging
         pass
 
-    def _json(self, obj, code: int = 200) -> None:
+    def _json(self, obj: Any, code: int = 200) -> None:
         body = json.dumps(obj).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
@@ -206,7 +251,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
-        if "/realtimefeed" in path and self.headers.get("Upgrade", "").lower() == "websocket":
+        if (
+            "/realtimefeed" in path
+            and self.headers.get("Upgrade", "").lower() == "websocket"
+        ):
             self._serve_ws()
             return
         if path.endswith("/devices"):
@@ -220,7 +268,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def _serve_ws(self) -> None:
         key = self.headers.get("Sec-WebSocket-Key", "")
-        accept = base64.b64encode(hashlib.sha1((key + WS_GUID).encode()).digest()).decode()
+        accept = base64.b64encode(
+            hashlib.sha1((key + WS_GUID).encode()).digest()
+        ).decode()
         self.send_response(101)
         self.send_header("Upgrade", "websocket")
         self.send_header("Connection", "Upgrade")
@@ -231,12 +281,14 @@ class Handler(BaseHTTPRequestHandler):
         send_lock = threading.Lock()
         stop = threading.Event()
 
-        def send(msg_obj=None, *, opcode=0x1, raw=None):
+        def send(
+            msg_obj: Any = None, *, opcode: int = 0x1, raw: bytes | None = None
+        ) -> None:
             payload = raw if raw is not None else json.dumps(msg_obj).encode()
             with send_lock:
                 sock.sendall(ws_frame(payload, opcode=opcode))
 
-        def reader():
+        def reader() -> None:
             # Respond to client WS ping frames with pongs; exit on close/EOF.
             try:
                 while not stop.is_set():
@@ -258,32 +310,49 @@ class Handler(BaseHTTPRequestHandler):
             frame = 0
             t0 = time.time()
             while not stop.is_set():
-                send({"type": "realtime_update", "payload": realtime_payload(time.time() - t0)})
+                send(
+                    {
+                        "type": "realtime_update",
+                        "payload": realtime_payload(time.time() - t0),
+                    }
+                )
                 frame += 1
                 if frame == 3:
-                    send({
-                        "type": "device_states",
-                        "payload": {
-                            "update_type": "initial",
-                            "states": [{"device_id": "fridge", "mode": "active", "state": "on"}],
-                        },
-                    })
+                    send(
+                        {
+                            "type": "device_states",
+                            "payload": {
+                                "update_type": "initial",
+                                "states": [
+                                    {
+                                        "device_id": "fridge",
+                                        "mode": "active",
+                                        "state": "on",
+                                    }
+                                ],
+                            },
+                        }
+                    )
                 if frame == 6:
-                    send({
-                        "type": "new_timeline_event",
-                        "payload": {
-                            "items_added": [{
-                                "device_id": "ac",
-                                "device_name": "AC Unit",
-                                "type": "DeviceOn",
-                                "time": _now(),
-                                "body": "AC Unit turned on",
-                                "icon": "ac",
-                            }]
-                        },
-                    })
+                    send(
+                        {
+                            "type": "new_timeline_event",
+                            "payload": {
+                                "items_added": [
+                                    {
+                                        "device_id": "ac",
+                                        "device_name": "AC Unit",
+                                        "type": "DeviceOn",
+                                        "time": _now(),
+                                        "body": "AC Unit turned on",
+                                        "icon": "ac",
+                                    }
+                                ]
+                            },
+                        }
+                    )
                 stop.wait(INTERVAL)
-        except (BrokenPipeError, ConnectionResetError, OSError):
+        except BrokenPipeError, ConnectionResetError, OSError:
             pass
         finally:
             stop.set()
@@ -291,11 +360,12 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
-    print(f"fake-sense: listening on :{PORT} (monitor {MONITOR_ID}, {len(DEVICES)} devices)", flush=True)
-    try:
+    print(
+        f"fake-sense: listening on :{PORT} (monitor {MONITOR_ID}, {len(DEVICES)} devices)",
+        flush=True,
+    )
+    with contextlib.suppress(KeyboardInterrupt):
         server.serve_forever()
-    except KeyboardInterrupt:
-        pass
 
 
 if __name__ == "__main__":

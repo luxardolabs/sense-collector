@@ -1,11 +1,31 @@
-[tool.poetry]
+[project]
 name = "sense-collector"
-version = "2026.8.0"
+# The VERSION file is the ONE version literal in the repo (repo.version_single_source) —
+# hatchling reads it straight from there, so the pyproject/VERSION drift that a second
+# hardcoded `version = "..."` invites cannot happen.
+dynamic = ["version"]
 description = "Data collection service for the Sense home energy monitor — streams the Sense cloud WebSocket/API, resolves devices, and writes energy metrics to InfluxDB."
-authors = ["luxardolabs"]
+authors = [{ name = "Luxardo Labs" }]
 license = "AGPL-3.0-only"
 readme = "README.md"
-packages = [{include = "app"}]
+requires-python = ">=3.14,<4.0"
+
+# The fleet build backend is hatchling (repo.hatchling_build_backend). Poetry remains the
+# DEPENDENCY MANAGER and poetry.lock is untouched — this is a build-system change only.
+# Every install path (Dockerfile, Dockerfile.test, `make poetry-install`) runs
+# `poetry install --no-root`, so the backend is never exercised at image-build time.
+[tool.hatch.version]
+path = "VERSION"
+pattern = "(?P<version>.+)"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# Poetry runs in non-package mode: it manages dependencies, it does not build or version
+# this project. Package mode would demand a `[tool.poetry] version = "..."` literal — i.e.
+# exactly the second version declaration repo.version_single_source exists to prevent.
+[tool.poetry]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.14"
@@ -26,8 +46,8 @@ types-aiofiles = "^25.1.0"
 types-python-dateutil = "^2.9.0"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 # Lint (ruff) + type (mypy) + test-runner (pytest) config is owned by luxlint — the canonical fleet
 # configs ship in the luxlint image, byte-identical fleet-wide. This repo carries no [tool.ruff] /

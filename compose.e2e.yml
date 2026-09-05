@@ -19,6 +19,12 @@ services:
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: sense-e2e-token
     volumes:
       - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
+    # The e2e stack's InfluxDB data is THROWAWAY — assert it into tmpfs rather than letting
+    # the image's implicit VOLUME mint a fresh ANONYMOUS volume on every `up` and abandon it
+    # on every `down` (the disk-filler). tmpfs is faster and leaves zero orphans. The dev and
+    # demo stacks keep their data, so they use NAMED volumes instead.
+    tmpfs:
+      - /var/lib/influxdb2
     healthcheck:
       test: ["CMD", "influx", "ping"]
       interval: 3s

@@ -1,12 +1,12 @@
-import pytest
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
-from datetime import datetime, UTC
 
-# Add the src/app directory to Python path
-
-from app.storage.influxdb import InfluxDBStorage, DeviceDataQueue
+import pytest
 from influxdb_client import Point
 from influxdb_client.client.exceptions import InfluxDBError
+
+# Add the src/app directory to Python path
+from app.storage.influxdb import DeviceDataQueue, InfluxDBStorage
 
 
 class TestDeviceDataQueue:
@@ -108,7 +108,9 @@ class TestInfluxDBStorage:
         # Missing required param — raised in _validate_params.
         invalid_params = influxdb_params.copy()
         del invalid_params["url"]
-        with pytest.raises(ValueError, match="Missing required InfluxDB parameter: url"):
+        with pytest.raises(
+            ValueError, match="Missing required InfluxDB parameter: url"
+        ):
             InfluxDBStorage(invalid_params)
 
         # Invalid URL
@@ -136,7 +138,14 @@ class TestInfluxDBStorage:
         ]
 
         await storage.persist_realtime_data(
-            "test_monitor", 60.0, 15.5, 1860.0, epoch, [120.1, 119.9], devices, [930.0, 930.0]
+            "test_monitor",
+            60.0,
+            15.5,
+            1860.0,
+            epoch,
+            [120.1, 119.9],
+            devices,
+            [930.0, 930.0],
         )
 
         storage.write_points.assert_called_once()
@@ -151,7 +160,9 @@ class TestInfluxDBStorage:
         client = AsyncMock()
         storage.client = client
 
-        await storage.device_queue.add_device_data("device1", "monitor1", 100.0, 1234567890)
+        await storage.device_queue.add_device_data(
+            "device1", "monitor1", 100.0, 1234567890
+        )
 
         await storage.close()
 
@@ -169,8 +180,12 @@ class TestInfluxDBStorage:
         await storage.device_queue.set_device_name("device2", "Device Two")
 
         # Add items to queue
-        await storage.device_queue.add_device_data("device1", "monitor1", 100.0, 1234567890)
-        await storage.device_queue.add_device_data("device2", "monitor1", 200.0, 1234567891)
+        await storage.device_queue.add_device_data(
+            "device1", "monitor1", 100.0, 1234567890
+        )
+        await storage.device_queue.add_device_data(
+            "device2", "monitor1", 200.0, 1234567891
+        )
 
         # Process batch manually
         batch = []

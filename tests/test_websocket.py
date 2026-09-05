@@ -37,7 +37,8 @@ class TestWebSocketHandler:
     async def test_connect_success(self, handler):
         mock_ws = MockWS()
         with patch(
-            "app.collector.websocket.websockets.connect", AsyncMock(return_value=mock_ws)
+            "app.collector.websocket.websockets.connect",
+            AsyncMock(return_value=mock_ws),
         ) as conn:
             result = await handler.connect()
         assert result is True
@@ -93,7 +94,8 @@ class TestWebSocketHandler:
         with (
             patch("app.core.config.EXPORT_FOLDER", "/tmp"),
             patch(
-                "app.utils.file_validator.FilePathValidator.get_safe_export_path", return_value=None
+                "app.utils.file_validator.FilePathValidator.get_safe_export_path",
+                return_value=None,
             ) as mock_validator,
         ):
             await handler._write_received_data_async({"type": "test"})

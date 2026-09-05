@@ -1,7 +1,38 @@
 # luxlint — fleet code-style + type standard (sibling of luxarch/.luxarch.toml).
 # Carries only where to look + what's deferred; the ruff/mypy config lives in the image.
 [source]
-paths = ["app"]
+# Every first-party .py must be COVERED (lint.source_declared) — a file outside this list
+# and outside tests/ is silently unlinted, which reads as green having scanned nothing.
+# harness/ is the pure-stdlib fake-Sense emulator the demo/e2e stacks build: first-party
+# code the gate must hold to the same bar as app/.
+paths = ["app", "harness"]
+
+# Evidence-backed carve-outs for GENUINE false positives. Scoped to code+file+match, so a
+# NEW violation of the same code anywhere else still reds, and a carve-out that stops
+# suppressing anything is itself a red — it can never bless forever. This is the per-SITE
+# lever (rule stays live everywhere else); it is NOT [rules.deferred], which hides a whole
+# rule and is the owner's call.
+#
+# The two T201 entries are the class luxlint already recognises for `.claude/hooks/**`
+# (0.39.1): "printing to stdout IS the protocol." T20 bans print in APPLICATION code
+# because it bypasses the log aggregator — correct, and enforced everywhere else here.
+[[allowlist.ruff]]
+code     = "T201"
+file     = "check.py"
+match    = "print("
+evidence = "Docker HEALTHCHECK entrypoint (`python -m app.health.check`, per the fleet collector layout). Its interface is an exit code plus stdout, which Docker captures into `docker inspect .State.Health.Log` — that text is what an operator reads when the container is unhealthy. Routing it to the logger would empty the healthcheck output. Same category as the `.claude/hooks/**` carve-out (luxlint 0.39.1); the healthcheck entrypoint is the documented fleet collector pattern, so a fleet-wide T20 path carve-out is escalated rather than solved per-repo."
+
+[[allowlist.ruff]]
+code     = "T201"
+file     = "fake_sense.py"
+match    = "print("
+evidence = "Standalone Sense-cloud emulator started as a container CMD (harness/Dockerfile); the one startup banner (flush=True) is read via `docker logs` by the e2e harness. The module configures no logging at all — stdout is deliberately its only output, the 'standalone script whose purpose is stdout' class the T20 carve-out already describes for scripts/ and ops/. Never reached by application code."
+
+[[allowlist.ruff]]
+code     = "S324"
+file     = "fake_sense.py"
+match    = "hashlib.sha1"
+evidence = "RFC 6455 §4.2.2 defines the WebSocket opening handshake as base64(SHA-1(Sec-WebSocket-Key + 258EAFA5-E914-47DA-95CA-C5AB0DC85B11)). SHA-1 is the wire protocol here, not a security choice — the value is a handshake accept token, never a digest of a secret, and any other hash makes the emulator fail the handshake the real Sense endpoint performs. S324 stays live for every other hashlib call in the repo."
 
 [python]
 # sense-collector runs Python 3.14 — ruff/mypy check against it (the rule set stays

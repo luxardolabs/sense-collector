@@ -1,7 +1,8 @@
-import pytest
-import tempfile
-import sys
 import os
+import sys
+import tempfile
+
+import pytest
 
 # Add the src/app directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "app"))
@@ -24,7 +25,9 @@ class TestFilePathValidator:
         ]
 
         for device_id in valid_ids:
-            assert FilePathValidator.is_safe_device_id(device_id), f"Should accept: {device_id}"
+            assert FilePathValidator.is_safe_device_id(device_id), (
+                f"Should accept: {device_id}"
+            )
 
     def test_unsafe_device_ids(self):
         """Test that dangerous device IDs are rejected."""
@@ -44,7 +47,9 @@ class TestFilePathValidator:
         ]
 
         for device_id in unsafe_ids:
-            assert not FilePathValidator.is_safe_device_id(device_id), f"Should reject: {device_id}"
+            assert not FilePathValidator.is_safe_device_id(device_id), (
+                f"Should reject: {device_id}"
+            )
 
     def test_sanitize_device_id(self):
         """Test device ID sanitization."""
@@ -81,7 +86,9 @@ class TestFilePathValidator:
             assert "etc" not in str(path.parent)
 
             # Invalid export folder
-            path = FilePathValidator.get_safe_export_path("/nonexistent/folder", "device123")
+            path = FilePathValidator.get_safe_export_path(
+                "/nonexistent/folder", "device123"
+            )
             assert path is None
 
             # Custom extension
@@ -90,7 +97,9 @@ class TestFilePathValidator:
             assert path.suffix == ".txt"
 
             # Invalid extension
-            path = FilePathValidator.get_safe_export_path(temp_dir, "device123", "../../bad")
+            path = FilePathValidator.get_safe_export_path(
+                temp_dir, "device123", "../../bad"
+            )
             assert path is None
 
 

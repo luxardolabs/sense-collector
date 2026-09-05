@@ -3,7 +3,7 @@ import contextlib
 import os
 import signal
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.collector.client import SenseCollector
 from app.core import config
@@ -132,7 +132,10 @@ async def run_collector_tasks(
 
 async def main() -> None:
     """Main application entry point."""
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Create aware in UTC, convert to the container's zone only for display (the log
+    # line an operator reads). A bare datetime.now() is naive-local: no offset, so the
+    # same value means a different instant to anything that consumes it.
+    current_time = datetime.now(UTC).astimezone().strftime("%Y-%m-%d %H:%M:%S")
     logger.info("Welcome to Sense Collector! Current time: %s", current_time)
     logger.info("Build Version: %s", config.BUILD_VERSION)
     logger.info("Build Timestamp: %s", config.BUILD_TIMESTAMP)
