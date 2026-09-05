@@ -5,38 +5,13 @@
   "packages": 43,
   "source": "poetry.lock",
   "summary": {
-    "PASS": 39,
-    "FAIL": 4,
+    "PASS": 43,
+    "FAIL": 0,
     "XFAIL": 0
   },
-  "vulnerable": [
-    {
-      "package": "aiohttp",
-      "version": "3.14.1",
-      "vuln_id": "PYSEC-2026-3545",
-      "fix": "3.14.3"
-    },
-    {
-      "package": "aiohttp",
-      "version": "3.14.1",
-      "vuln_id": "PYSEC-2026-3546",
-      "fix": "3.14.2"
-    },
-    {
-      "package": "aiohttp",
-      "version": "3.14.1",
-      "vuln_id": "PYSEC-2026-3547",
-      "fix": "3.14.2"
-    },
-    {
-      "package": "h2",
-      "version": "4.3.0",
-      "vuln_id": "PYSEC-2026-3628",
-      "fix": "4.4.1"
-    }
-  ],
+  "vulnerable": [],
   "deferred": [],
   "not_audited": [],
-  "commit": "08559a68b300121e233f859b1a6ab2b643b7a1e1",
-  "generated_at": "2026-09-05T23:13:23Z"
+  "commit": "030c326d2173c44791dfc742b32901c7a3c24e24",
+  "generated_at": "2026-09-05T23:17:21Z"
 }
