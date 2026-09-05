@@ -7,6 +7,14 @@
 # code the gate must hold to the same bar as app/.
 paths = ["app", "harness"]
 
+# DO NOT "fix" the standing lint.source_declared red by adding `exclude = ["output"]`.
+# output/ is gitignored and untracked, so that exclude matches nothing on a clean clone and
+# reds there instead ("stale exclude is a silent hole") — proven both ways against a
+# `git archive` checkout. The rule has no green path here; it is a guard bug (luxlint does
+# not respect .gitignore the way luxarch has since 0.73.0). Tracked as SENSECOLLE-37 and
+# escalated to the luxlint maintainer; kidde-collector already carries the latent clean-clone
+# red from exactly this workaround. Leave the red lit until the guard is fixed.
+
 # Evidence-backed carve-outs for GENUINE false positives. Scoped to code+file+match, so a
 # NEW violation of the same code anywhere else still reds, and a carve-out that stops
 # suppressing anything is itself a red — it can never bless forever. This is the per-SITE
