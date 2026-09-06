@@ -522,6 +522,8 @@ class SenseCollector:
                 api_logger.error("Cannot create safe path for device list export")
                 return
 
+                # blocking-io: aiofiles.open is the async file API (thread-pool backed),
+                # not pathlib.Path.open — the write is already off the event loop.
             async with aiofiles.open(safe_path, "w") as f:
                 await f.write(json.dumps(devices, indent=2))
 
@@ -567,6 +569,8 @@ class SenseCollector:
                 api_logger.error("Cannot create safe path for device %s", device_id)
                 return
 
+                # blocking-io: aiofiles.open is the async file API (thread-pool backed),
+                # not pathlib.Path.open — the write is already off the event loop.
             async with aiofiles.open(safe_path, "w") as f:
                 await f.write(json.dumps(data, indent=2))
 

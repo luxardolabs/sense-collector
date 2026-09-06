@@ -111,6 +111,8 @@ class WebSocketHandler:
                 api_logger.error("Cannot create safe path for received data")
                 return
 
+                # blocking-io: aiofiles.open is the async file API (thread-pool backed),
+                # not pathlib.Path.open — the write is already off the event loop.
             async with aiofiles.open(safe_path, "a") as f:
                 await f.write(json.dumps(data) + "\n")
         except Exception as e:

@@ -7,29 +7,17 @@
 # code the gate must hold to the same bar as app/.
 paths = ["app", "harness"]
 
-# DO NOT "fix" the standing lint.source_declared red by adding `exclude = ["output"]`.
-# output/ is gitignored and untracked, so that exclude matches nothing on a clean clone and
-# reds there instead ("stale exclude is a silent hole") — proven both ways against a
-# `git archive` checkout. The rule has no green path here; it is a guard bug (luxlint does
-# not respect .gitignore the way luxarch has since 0.73.0). Tracked as SENSECOLLE-37 and
-# escalated to the luxlint maintainer; kidde-collector already carries the latent clean-clone
-# red from exactly this workaround. Leave the red lit until the guard is fixed.
-
 # Evidence-backed carve-outs for GENUINE false positives. Scoped to code+file+match, so a
 # NEW violation of the same code anywhere else still reds, and a carve-out that stops
 # suppressing anything is itself a red — it can never bless forever. This is the per-SITE
 # lever (rule stays live everywhere else); it is NOT [rules.deferred], which hides a whole
 # rule and is the owner's call.
 #
-# The two T201 entries are the class luxlint already recognises for `.claude/hooks/**`
-# (0.39.1): "printing to stdout IS the protocol." T20 bans print in APPLICATION code
-# because it bypasses the log aggregator — correct, and enforced everywhere else here.
-[[allowlist.ruff]]
-code     = "T201"
-file     = "check.py"
-match    = "print("
-evidence = "Docker HEALTHCHECK entrypoint (`python -m app.health.check`, per the fleet collector layout). Its interface is an exit code plus stdout, which Docker captures into `docker inspect .State.Health.Log` — that text is what an operator reads when the container is unhealthy. Routing it to the logger would empty the healthcheck output. Same category as the `.claude/hooks/**` carve-out (luxlint 0.39.1); the healthcheck entrypoint is the documented fleet collector pattern, so a fleet-wide T20 path carve-out is escalated rather than solved per-repo."
-
+# The T201 entry is the class luxlint recognises for `.claude/hooks/**` (0.39.1) and, since
+# 0.42.0, for `health/check.py` fleet-wide: "printing to stdout IS the protocol." T20 bans
+# print in APPLICATION code because it bypasses the log aggregator — correct, and enforced
+# everywhere else here. (The check.py carve-out that used to sit here was removed when 0.42.0
+# made it a fleet path-ignore — a carve-out that suppresses nothing is itself a red.)
 [[allowlist.ruff]]
 code     = "T201"
 file     = "fake_sense.py"
