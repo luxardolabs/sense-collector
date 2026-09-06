@@ -105,4 +105,4 @@ Required: `API_USERNAME`, `API_PASSWORD`, `INFLUXDB_URL`, `INFLUXDB_TOKEN`, `INF
 1. **Docker**: four-stage `Dockerfile` (builder → builder-dev → base → dev). Prod pulls `:latest`; dev/demo/test pull/build `:dev`. `Dockerfile.lint` overlays current source for lint/test.
 1. **NO AI attribution** in commits/PRs (house rule — no Co-Authored-By, "Generated with", robot emoji).
 
-Version history prior to the fleet-standard migration lives in the LuxPM "Changelog" page (project `SENSECOLLE`); migration chunks are tracked as LuxPM issues.
+Release notes live in `CHANGELOG.md` at the repo root (Keep a Changelog, CalVer) — it is the public record and the source for the GitHub release body. Pre-fleet-standard history (`2025.7.x`) stays on the LuxPM "Changelog" page (project `SENSECOLLE`); work items are tracked as LuxPM issues.
