@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.135.0",
+  "guard_version": "0.136.0",
   "repo": "/repo",
   "targets": [
     {
@@ -296,6 +296,6 @@
     "XPASS": 0,
     "INERT": 2
   },
-  "commit": "5c5519a112d2330ebb687d6b3c3457c55059f3f3",
-  "generated_at": "2026-09-06T17:28:44Z"
+  "commit": "f235d2a6036002f4e6c4362dc4f3b0a200ea7bae",
+  "generated_at": "2026-09-06T17:42:14Z"
 }
