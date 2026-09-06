@@ -19,10 +19,18 @@ make test-e2e        # hardware-free end-to-end: fake Sense -> collector -> Infl
 make demo-up         # self-contained demo: fake Sense + bundled InfluxDB + Grafana (localhost:3000)
 make dev-up          # dev stack: real Sense account + bundled InfluxDB + Grafana
 
-make lint            # luxlint: canonical ruff (mount-only) + mypy --strict tail (.luxlint.toml)
+make check           # THE gate: guard-version-check honest lint mypy test arch audit gitleaks
+make plan            # THE worklist: reds + sweep TRIAGE + inert AUDIT (start here, not `check`)
+make guard-version-check  # FATAL: fails if any guard pin is behind :latest (first step of check)
+make guard-upgrade   # bump every guard pin to latest + print what newly bites
+make honest          # honesty gate: luxarch --assert-scans + luxlint --preflight
+make lint            # ruff via luxlint (mount-only, canonical config)
+make mypy            # mypy via luxlint (mount-only; fleet typed deps baked — no in-repo tail)
+make format          # THE canonical fixer (luxlint --format) — never a bare ruff/mdformat
 make arch            # architecture conformance via the pinned luxarch container (.luxarch.toml)
-make test            # pytest suite (needs the :dev image; dev-build-push first, or run locally)
-make check           # lint + arch + test
+make test            # pytest + the [test].coverage_min ratchet (lock-built image, mounted source)
+make status          # regenerate the committed .lux*-status.json (commit them)
+make onboard-check   # proves all three guards are wired + honest (NOT that they are green)
 make poetry-lock     # regenerate poetry.lock (poetry-in-docker; no host poetry needed)
 make release         # build + push :VERSION + :latest (multi-arch) to the private registry
 make release-public  # promote that released image to ghcr.io/luxardolabs/<collector> by digest
@@ -32,7 +40,9 @@ python -m app.main
 python -m app.health.check   # container healthcheck
 ```
 
-Dependencies are managed with **Poetry** (`pyproject.toml` + committed `poetry.lock`). There is no `requirements.txt`. `make lint`/`make test` build a fresh image from CURRENT source (never exec into the baked container — stale code).
+Dependencies are managed with **Poetry** (`pyproject.toml` + committed `poetry.lock`). There is no `requirements.txt`. The **build backend is hatchling** and the version is `dynamic` from the `VERSION` file — Poetry stays the dependency manager in `package-mode = false`, so the lockfile and every `poetry install --no-root` path are unaffected. `make lint`/`make mypy` run **mount-only inside the luxlint image** (the repo installs nothing); `make test` builds from the lock and mounts current source — never exec into the baked container (stale code).
+
+**Guard pins move often** — read `--changelog --since <pin>` and `--new-rules --since <pin>` before `make guard-upgrade`. A clean `--new-rules` is *not* "no impact": a tightened rule fires without being a new rule. `make check` is a pass/fail gate that stops at the first failure; **`make plan` is the full board** and includes work that does not turn the gate red (sweep findings, inert rules, un-adopted overlays).
 
 ## Architecture Overview
 
@@ -91,7 +101,7 @@ Required: `API_USERNAME`, `API_PASSWORD`, `INFLUXDB_URL`, `INFLUXDB_TOKEN`, `INF
 1. **Rate limiting**: strict Sense API limits — device names cached ~15 min to minimize calls.
 1. **Device name resolution**: devices are queued for lookup when discovered; cache respects rate limits.
 1. **InfluxDB writes** (fleet ingestion standard): the asyncio-native `InfluxDBClientAsync` (aiohttp), opened in `connect()`; each poll cycle's points are written as ONE `await write_api.write(...)` — no batch/flush knobs, no background buffer to flush. `ping()` fails fast on an unreachable server; auth/bucket errors (401/404) are logged and retried next cycle.
-1. **Lifecycle & error handling** (fleet canonical spine): long-lived clients open in `connect()` and close in `close()` (never a fresh client/session per request); shutdown is `loop.add_signal_handler` + an `asyncio.Event` threaded into the periodic loops (interruptible `asyncio.wait_for(shutdown.wait(), timeout=…)` sleeps); env is read via `ConfigValidator` and logged once through `config.describe_settings()`; **every log call uses lazy `%s` args, never f-strings** (ruff `G` fails lint on a violation). The app logs-and-continues on individual failures. `make arch` (folded into `make check`) statically guards these so they can't drift.
+1. **Lifecycle & error handling** (fleet canonical spine): long-lived clients open in `connect()` and close in `close()` (never a fresh client/session per request); shutdown is `loop.add_signal_handler` + an `asyncio.Event` threaded into the periodic loops (interruptible `asyncio.wait_for(shutdown.wait(), timeout=…)` sleeps); env is read via `ConfigValidator` and logged once through `config.describe_settings()`; **every log call uses lazy `%s` args, never f-strings** (ruff `G` fails lint on a violation). The app logs-and-continues on individual failures — but the catches are **narrowed** to what can actually fail at each site (`MALFORMED_PAYLOAD` / `EXPORT_WRITE_ERRORS` per module), so a bare `except Exception` no longer hides an `AttributeError` from a real bug; the six genuine last-resort nets carry an inline `# swallowed-exceptions: <reason>` waiver. Do not widen these back. `make arch` (folded into `make check`) statically guards these so they can't drift.
 1. **Docker**: four-stage `Dockerfile` (builder → builder-dev → base → dev). Prod pulls `:latest`; dev/demo/test pull/build `:dev`. `Dockerfile.lint` overlays current source for lint/test.
 1. **NO AI attribution** in commits/PRs (house rule — no Co-Authored-By, "Generated with", robot emoji).
 
