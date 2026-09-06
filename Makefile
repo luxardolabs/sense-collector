@@ -41,7 +41,7 @@ LUXLINT_REGISTRY  ?= $(LUXARCH_REGISTRY)
 LUXAUDIT_REGISTRY ?= $(LUXARCH_REGISTRY)
 
 LUXARCH_VERSION  := 0.141.0
-LUXLINT_VERSION  := 0.44.1
+LUXLINT_VERSION  := 0.44.2
 LUXAUDIT_VERSION := 0.4.0
 
 LUXARCH_IMAGE  = $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
@@ -367,6 +367,11 @@ format: ## THE canonical fixer (luxlint --format) — safe autofixes + canonical
 	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
 	docker run --rm --user $(REPO_UID):$(REPO_GID) -v $(PWD):/repo $(LUXLINT_IMAGE) --format
 
+# COVERAGE_CORE=sysmon is the canonical measurement core (luxlint 0.44.2): coverage's default
+# C tracer under-records lines inside some `async def` bodies, and since the ratchet is
+# monotonic-up a too-low measurement would lock in a too-low floor. This app is async
+# end-to-end, so it is exactly the exposed shape. (On Python 3.14 the two cores agree —
+# verified here, 78% either way — but the recipe is prescribed fleet-wide.)
 # COVERAGE_FILE lives outside /app: the source mounts are read-only, so coverage cannot
 # write its sqlite data file next to them. The run is piped through
 # `luxlint --coverage-ratchet`, which passes the report through and then enforces the
@@ -377,7 +382,7 @@ test: .test-image.stamp ## Canonical pytest suite + coverage floor (lock-built d
 	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
 	$(GUARD_RUN) $(LUXLINT_IMAGE) --emit-config pytest > .luxlint.pytest.ini; \
 	set -o pipefail; \
-	docker run --rm -w /app -e COVERAGE_FILE=/tmp/.coverage \
+	docker run --rm -w /app -e COVERAGE_FILE=/tmp/.coverage -e COVERAGE_CORE=sysmon \
 	  -v $(PWD)/app:/app/app:ro -v $(PWD)/tests:/app/tests:ro \
 	  -v $(PWD)/.luxlint.pytest.ini:/cfg/pytest.ini:ro $(TEST_IMAGE) \
 	  pytest -c /cfg/pytest.ini -p no:cacheprovider tests -q \
