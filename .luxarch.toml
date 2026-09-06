@@ -2,3 +2,22 @@
 kind = "collector"
 app = "app"
 source_client = ["collector/client.py"]
+
+# The observability overlay (obs.*) is deliberately NOT adopted, confirmed rather than
+# left silent (luxarch --plan lists an un-adopted overlay as an audit item).
+#
+# Evidence: the pack enforces an OpenTelemetry trace tree — create_service_span /
+# start_as_current_span / record_exception_in_span across a Router -> View -> Core -> Client
+# call graph. This repo has no OpenTelemetry dependency (absent from pyproject.toml and
+# poetry.lock), none of those helpers, and no request tree to trace: it is a headless
+# collector whose work is a WebSocket stream and a periodic poll, not a served request.
+#
+# Its observability is a different mechanism, not a missing one — the sense_o11y measurement
+# (config.MEASUREMENT_O11Y) reports the collector's own operation into InfluxDB alongside the
+# energy data, read in Grafana, plus the per-area structured logging in app/utils/logging.py.
+# Turning the overlay on would red 13 rules against helpers this repo has no reason to adopt.
+#
+# Revisit if the fleet moves collectors onto OTel; at that point this becomes an adoption
+# task, not an exemption.
+[observability]
+enabled = false
