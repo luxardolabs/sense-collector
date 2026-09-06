@@ -3,21 +3,24 @@ kind = "collector"
 app = "app"
 source_client = ["collector/client.py"]
 
-# The observability overlay (obs.*) is deliberately NOT adopted, confirmed rather than
-# left silent (luxarch --plan lists an un-adopted overlay as an audit item).
+# The observability overlay (obs.*) is deliberately NOT adopted. Recorded as a first-class
+# disposition via exempt_reason (luxarch 0.135.0) rather than left as silent config, so
+# --plan can tell "reviewed and deliberately exempt" from "nobody looked".
 #
-# Evidence: the pack enforces an OpenTelemetry trace tree — create_service_span /
-# start_as_current_span / record_exception_in_span across a Router -> View -> Core -> Client
-# call graph. This repo has no OpenTelemetry dependency (absent from pyproject.toml and
-# poetry.lock), none of those helpers, and no request tree to trace: it is a headless
-# collector whose work is a WebSocket stream and a periodic poll, not a served request.
+# This is a CHOICE, not a non-applicability: the maintainer confirmed the overlay is opt-in
+# across kinds and can trace a collector's core + client calls, so a collector is not
+# auto-N/A. We are choosing not to instrument. Evidence: there is no OpenTelemetry
+# dependency (absent from pyproject.toml and poetry.lock) and none of the pack's helpers
+# (create_service_span / start_as_current_span / record_exception_in_span); adopting it
+# means taking on an OTel stack and a collector to export to, which this deployment does
+# not have.
 #
-# Its observability is a different mechanism, not a missing one — the sense_o11y measurement
-# (config.MEASUREMENT_O11Y) reports the collector's own operation into InfluxDB alongside the
-# energy data, read in Grafana, plus the per-area structured logging in app/utils/logging.py.
-# Turning the overlay on would red 13 rules against helpers this repo has no reason to adopt.
+# What we do instead: the sense_o11y measurement (config.MEASUREMENT_O11Y) reports the
+# collector's own operation into InfluxDB alongside the energy data and is read in Grafana,
+# plus the per-area structured logging in app/utils/logging.py.
 #
-# Revisit if the fleet moves collectors onto OTel; at that point this becomes an adoption
-# task, not an exemption.
+# Revisit when the fleet stands up an OTel collector — at that point this becomes an
+# adoption task, not an exemption.
 [observability]
 enabled = false
+exempt_reason = "headless collector with no OTel stack to export to: no opentelemetry dependency and none of the pack's span helpers. Self-reports operational metrics via the sense_o11y InfluxDB measurement (read in Grafana) plus per-area structured logging. Revisit when the fleet runs an OTel collector."
