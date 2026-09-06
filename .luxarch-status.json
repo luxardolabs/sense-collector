@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.127.0",
+  "guard_version": "0.130.0",
   "repo": "/repo",
   "targets": [
     {
@@ -155,6 +155,15 @@
         "inert_reason": "no alembic migration chain (no alembic.ini, no versions/ dir) \u2014 there is no chain to build-verify; a create_all-only or non-relational repo has nothing here to check. Standing up alembic just to satisfy this would be a hollow green \u2014 don't."
       },
       {
+        "rule": "repo.schema_from_migrations",
+        "status": "PASS",
+        "since": "0.130.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
         "rule": "repo.compose_conventions",
         "status": "PASS",
         "since": "0.37.0",
@@ -264,7 +273,7 @@
       }
     ],
     "summary": {
-      "PASS": 19,
+      "PASS": 20,
       "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
@@ -272,12 +281,12 @@
     }
   },
   "summary": {
-    "PASS": 25,
+    "PASS": 26,
     "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 2
   },
-  "commit": "b9fb3b986ff441cf585a5ebed3b931ea3f8c47a5",
-  "generated_at": "2026-09-05T23:28:58Z"
+  "commit": "92a494a71330c14280a8719dfd8d63c167fb8484",
+  "generated_at": "2026-09-06T03:10:22Z"
 }
