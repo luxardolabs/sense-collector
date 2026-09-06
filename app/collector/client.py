@@ -18,6 +18,16 @@ from app.utils.file_validator import FilePathValidator
 from app.utils.logging import api_logger
 from app.utils.time import convert_to_epoch
 
+# Expected failures when handling an untrusted Sense cloud payload: a missing or renamed
+# key, a wrong-shaped value, a short list. Deliberately EXCLUDES AttributeError and friends
+# — those mean the collector itself is broken and must surface loudly rather than vanish
+# into one log line, which is the swallow `--sweep swallowed-exceptions` exists to catch.
+MALFORMED_PAYLOAD = (KeyError, IndexError, TypeError, ValueError)
+
+# Expected failures when writing an export file: the filesystem, or a payload that will not
+# serialize to JSON.
+EXPORT_WRITE_ERRORS = (OSError, TypeError, ValueError)
+
 
 async def authenticate_with_sense(
     client: httpx.AsyncClient, username: str, password: str
@@ -333,7 +343,7 @@ class SenseCollector:
         self._last_heartbeat = now
         try:
             Path(config.HEALTH_HEARTBEAT_FILE).touch()
-        except Exception as e:
+        except OSError as e:
             api_logger.debug("Failed to update heartbeat file: %s", e)
 
     async def process_websocket_data(self, data: dict[str, Any]) -> None:
@@ -370,6 +380,10 @@ class SenseCollector:
             else:
                 api_logger.debug("Unhandled message type: %s", message_type)
 
+        # swallowed-exceptions: outermost per-message net. Every handler it
+        # dispatches to already logs-and-continues, so what reaches here is a
+        # dispatch-level surprise; letting it escape would kill the WS reader and
+        # spin the reconnect loop on a payload the server will keep resending.
         except Exception as e:
             api_logger.error("Error processing WebSocket data: %s", e)
 
@@ -508,7 +522,7 @@ class SenseCollector:
                 if config.OUTPUT_RECEIVED_DATA:
                     await self.export_device_list(devices)
 
-        except Exception as e:
+        except MALFORMED_PAYLOAD as e:
             api_logger.error("Error fetching devices: %s", e)
 
     async def export_device_list(self, devices: list[dict[str, Any]]) -> None:
@@ -522,14 +536,14 @@ class SenseCollector:
                 api_logger.error("Cannot create safe path for device list export")
                 return
 
-                # blocking-io: aiofiles.open is the async file API (thread-pool backed),
-                # not pathlib.Path.open — the write is already off the event loop.
+            # blocking-io: aiofiles.open is the async file API (thread-pool backed),
+            # not pathlib.Path.open — the write is already off the event loop.
             async with aiofiles.open(safe_path, "w") as f:
                 await f.write(json.dumps(devices, indent=2))
 
             api_logger.info("Exported %s devices to %s", len(devices), safe_path)
 
-        except Exception as e:
+        except EXPORT_WRITE_ERRORS as e:
             api_logger.error("Error exporting device list: %s", e)
 
     async def fetch_device_data(self, device_id: str) -> None:
@@ -555,7 +569,7 @@ class SenseCollector:
                 if config.OUTPUT_RECEIVED_DATA and isinstance(response, dict):
                     await self.export_device_data(device_id, response)
 
-        except Exception as e:
+        except MALFORMED_PAYLOAD as e:
             api_logger.error("Error fetching data for device %s: %s", device_id, e)
 
     async def export_device_data(self, device_id: str, data: dict[str, Any]) -> None:
@@ -569,12 +583,12 @@ class SenseCollector:
                 api_logger.error("Cannot create safe path for device %s", device_id)
                 return
 
-                # blocking-io: aiofiles.open is the async file API (thread-pool backed),
-                # not pathlib.Path.open — the write is already off the event loop.
+            # blocking-io: aiofiles.open is the async file API (thread-pool backed),
+            # not pathlib.Path.open — the write is already off the event loop.
             async with aiofiles.open(safe_path, "w") as f:
                 await f.write(json.dumps(data, indent=2))
 
-        except Exception as e:
+        except EXPORT_WRITE_ERRORS as e:
             api_logger.error("Error exporting device data: %s", e)
 
     async def fetch_monitor_status(self) -> None:
@@ -590,7 +604,7 @@ class SenseCollector:
                     self.monitor_id, response
                 )
 
-        except Exception as e:
+        except MALFORMED_PAYLOAD as e:
             api_logger.error("Error fetching monitor status: %s", e)
 
     async def handle_realtime_update(self, payload: dict[str, Any]) -> None:
@@ -627,7 +641,7 @@ class SenseCollector:
                 devices=payload.get("devices", []),
                 channels=payload.get("channels", []),
             )
-        except Exception as e:
+        except MALFORMED_PAYLOAD as e:
             api_logger.error("Error persisting realtime data: %s", e)
 
     async def handle_timeline_event(self, payload: dict[str, Any]) -> None:
@@ -685,7 +699,7 @@ class SenseCollector:
                     "device_transition_from_state", ""
                 ),
             )
-        except Exception as e:
+        except MALFORMED_PAYLOAD as e:
             api_logger.error("Error processing timeline item: %s", e)
 
     async def _persist_device_states(self, states: list[Any]) -> None:
@@ -722,7 +736,7 @@ class SenseCollector:
                     device_state=device_state,
                     timestamp=timestamp,
                 )
-            except Exception as e:
+            except MALFORMED_PAYLOAD as e:
                 api_logger.error(
                     "Error persisting device state for %s: %s", device_id, e
                 )
@@ -754,7 +768,7 @@ class SenseCollector:
             )
             self.activity_stats["device_state_changes"] += len(states)
             await self._persist_device_states(states)
-        except Exception as e:
+        except MALFORMED_PAYLOAD as e:
             api_logger.error("Error handling device states: %s", e)
 
     async def handle_data_change(self, payload: dict[str, Any]) -> None:
@@ -774,7 +788,7 @@ class SenseCollector:
             if timestamp_str:
                 try:
                     epoch_timestamp = convert_to_epoch(timestamp_str)
-                except Exception as e:
+                except (ValueError, TypeError) as e:
                     api_logger.warning("Failed to parse timestamp: %s", e)
 
             # Handle user_version properly - preserve integer type when possible
@@ -793,7 +807,7 @@ class SenseCollector:
                 epoch_timestamp=epoch_timestamp,
                 influxdb_timestamp=int(datetime.now(UTC).timestamp()),
             )
-        except Exception as e:
+        except MALFORMED_PAYLOAD as e:
             api_logger.error("Error handling data change: %s", e)
 
     async def handle_hello(self, payload: dict[str, Any]) -> None:
@@ -808,7 +822,7 @@ class SenseCollector:
 
             api_logger.info("Hello event - Monitor online: %s", online)
 
-        except Exception as e:
+        except MALFORMED_PAYLOAD as e:
             api_logger.error("Error handling hello event: %s", e)
 
     async def shutdown(self) -> None:

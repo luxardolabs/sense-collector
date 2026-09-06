@@ -114,7 +114,7 @@ class FilePathValidator:
                     export_folder,
                 )
                 return None
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logger.error("Invalid export folder path: %s", e)
             return None
 
@@ -142,7 +142,7 @@ class FilePathValidator:
             if not resolved_path.is_relative_to(export_path):
                 logger.error("Path traversal detected: %s", file_path)
                 return None
-        except Exception as e:
+        except (OSError, ValueError) as e:
             logger.error("Error resolving file path: %s", e)
             return None
 

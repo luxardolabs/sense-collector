@@ -15,6 +15,14 @@ from influxdb_client.client.write_api_async import WriteApiAsync
 from app.core import config
 from app.utils.logging import storage_logger
 
+# Expected failures when turning an untrusted payload into points: a missing or renamed key,
+# a wrong-shaped value, a short list. Excludes AttributeError and friends on purpose — a
+# broken collector must surface, not disappear into a log line.
+MALFORMED_PAYLOAD = (KeyError, IndexError, TypeError, ValueError)
+
+# The above plus what an actual InfluxDB write can fail with.
+WRITE_ERRORS = (*MALFORMED_PAYLOAD, OSError, InfluxDBError)
+
 
 class DeviceDataQueue:
     """Manages device data queue with size limits and proper async handling."""
@@ -138,7 +146,9 @@ class InfluxDBStorage:
     async def _close_client(self) -> None:
         """Close the async client if open (releases the aiohttp session), ignoring errors."""
         if self.client is not None:
-            with contextlib.suppress(Exception):
+            # swallowed-exceptions: best-effort release of the aiohttp session on shutdown;
+            # a failure here must not stop the rest of the teardown from running.
+            with contextlib.suppress(OSError, InfluxDBError):
                 await self.client.close()
             self.client = None
             self.write_api = None
@@ -372,7 +382,7 @@ class InfluxDBStorage:
 
             await self.write_points(points)
 
-        except Exception as e:
+        except WRITE_ERRORS as e:
             storage_logger.error("Error preparing realtime data points: %s", e)
 
     async def persist_device_data(
@@ -410,7 +420,7 @@ class InfluxDBStorage:
                     device_id, device_name, device_data, timestamp, monitor_id, icon
                 )
 
-        except Exception as e:
+        except MALFORMED_PAYLOAD as e:
             storage_logger.error("Error in persist_device_data: %s", e)
 
     async def process_regular_device(
@@ -451,7 +461,7 @@ class InfluxDBStorage:
                 device_detail_point.field(
                     "last_state_time", last_state_timestamp_seconds
                 )
-            except Exception as e:
+            except (ValueError, TypeError, OverflowError) as e:
                 storage_logger.error("Error parsing last_state_time: %s", e)
 
         # Add usage data
@@ -830,7 +840,7 @@ class InfluxDBStorage:
             if points:
                 await self.write_points(points)
 
-        except Exception as e:
+        except WRITE_ERRORS as e:
             storage_logger.error("Error in persist_monitor_status: %s", e)
 
     async def close(self) -> None:

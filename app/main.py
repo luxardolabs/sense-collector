@@ -166,6 +166,8 @@ async def main() -> None:
         logger.info("Starting all Sense Collector tasks")
         await run_collector_tasks(collector, shutdown_event)
 
+    # swallowed-exceptions: top-level fatal handler — it logs the full
+    # traceback and exits non-zero, which IS handling; the container restarts.
     except Exception as e:
         logger.error("Fatal error in main: %s", e, exc_info=True)
         sys.exit(1)
@@ -177,12 +179,16 @@ async def main() -> None:
             try:
                 await collector.close()
                 logger.info("Collector session closed")
+            # swallowed-exceptions: teardown must not abort the rest of
+            # cleanup; InfluxDB still needs closing after this.
             except Exception as e:
                 logger.error("Error closing collector session: %s", e)
 
         if influxdb_storage:
             try:
                 await influxdb_storage.close()
+            # swallowed-exceptions: last step of teardown on the way out of the process;
+            # there is nothing left to protect and the exit path must not raise.
             except Exception as e:
                 logger.error("Error shutting down InfluxDB storage: %s", e)
 

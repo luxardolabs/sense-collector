@@ -50,7 +50,7 @@ class WebSocketHandler:
                 self.reconnect_count + 1,
             )
             return True
-        except Exception as e:
+        except (OSError, WebSocketException, TimeoutError) as e:
             api_logger.error("Failed to connect WebSocket: %s", e)
             return False
 
@@ -64,7 +64,7 @@ class WebSocketHandler:
             await self.ws.send(json.dumps({"type": "ping"}))
             api_logger.debug("Ping sent successfully")
             return True
-        except Exception as e:
+        except (OSError, WebSocketException) as e:
             api_logger.error("Failed to send ping: %s", e)
             return False
 
@@ -94,7 +94,7 @@ class WebSocketHandler:
         except json.JSONDecodeError as e:
             api_logger.error("Failed to decode WebSocket message: %s", e)
             return True
-        except Exception as e:
+        except (KeyError, IndexError, TypeError, ValueError) as e:
             api_logger.error("Error processing WebSocket message: %s", e)
             return True
 
@@ -111,11 +111,11 @@ class WebSocketHandler:
                 api_logger.error("Cannot create safe path for received data")
                 return
 
-                # blocking-io: aiofiles.open is the async file API (thread-pool backed),
-                # not pathlib.Path.open — the write is already off the event loop.
+            # blocking-io: aiofiles.open is the async file API (thread-pool backed),
+            # not pathlib.Path.open — the write is already off the event loop.
             async with aiofiles.open(safe_path, "a") as f:
                 await f.write(json.dumps(data) + "\n")
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             api_logger.error("Failed to write received data to file: %s", e)
 
     async def monitor_connection_health(self) -> bool:
@@ -152,7 +152,7 @@ class WebSocketHandler:
 
                 await asyncio.sleep(config.WS_HEALTH_CHECK_INTERVAL)
 
-            except Exception as e:
+            except (OSError, WebSocketException) as e:
                 api_logger.error("Error in connection health monitor: %s", e)
                 return False
 
@@ -185,6 +185,9 @@ class WebSocketHandler:
                                 api_logger.info(
                                     "Connection closed, preparing to reconnect..."
                                 )
+                        # swallowed-exceptions: awaits an arbitrary child task; the
+                        # supervisor's job is to log the child's failure and let
+                        # the reconnect loop decide, not to die with it.
                         except Exception as e:
                             api_logger.error("Task error: %s", e)
 
@@ -194,6 +197,9 @@ class WebSocketHandler:
                 self.is_shutting_down = True
                 raise
 
+            # swallowed-exceptions: reconnect supervisor's last-resort net.
+            # This loop IS the collector's availability; escaping here ends the
+            # process. CancelledError is re-raised above, so shutdown still works.
             except Exception as e:
                 api_logger.error("Unexpected error in WebSocket handler: %s", e)
 
@@ -209,7 +215,9 @@ class WebSocketHandler:
                 if cleanup_tasks:
                     await asyncio.gather(*cleanup_tasks, return_exceptions=True)
                 if self.ws is not None:
-                    with contextlib.suppress(Exception):
+                    # swallowed-exceptions: best-effort close of a connection we are already
+                    # abandoning — it is frequently half-dead, which is why we are here.
+                    with contextlib.suppress(OSError, WebSocketException):
                         await self.ws.close()
                     self.ws = None
 
@@ -237,7 +245,7 @@ class WebSocketHandler:
         except WebSocketException as e:
             api_logger.error("WebSocket error: %s", e)
             return False
-        except Exception as e:
+        except (KeyError, IndexError, TypeError, ValueError) as e:
             api_logger.error("Error in message handler: %s", e)
             return False
 

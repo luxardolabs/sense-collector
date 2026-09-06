@@ -2,6 +2,7 @@ import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from websockets.exceptions import InvalidHandshake
 
 from app.collector.websocket import WebSocketHandler
 
@@ -46,14 +47,41 @@ class TestWebSocketHandler:
         conn.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_connect_failure(self, handler):
+    @pytest.mark.parametrize(
+        "failure",
+        [
+            OSError("connection refused"),  # DNS / refused / reset
+            InvalidHandshake("bad upgrade"),  # a WebSocketException subclass
+            TimeoutError("handshake timed out"),
+        ],
+        ids=["oserror", "handshake", "timeout"],
+    )
+    async def test_connect_failure(self, handler, failure):
+        """A real transport failure is caught: connect() reports False, ws stays unset."""
         with patch(
             "app.collector.websocket.websockets.connect",
-            AsyncMock(side_effect=Exception("Connection failed")),
+            AsyncMock(side_effect=failure),
         ):
             result = await handler.connect()
         assert result is False
         assert handler.ws is None
+
+    @pytest.mark.asyncio
+    async def test_connect_does_not_swallow_unexpected_errors(self, handler):
+        """A non-transport error is a collector bug and must propagate, not read as False.
+
+        connect() narrowed its catch to (OSError, WebSocketException, TimeoutError) so a
+        genuine defect — e.g. an AttributeError from a renamed attribute — surfaces instead
+        of being logged and reported as an ordinary connection failure.
+        """
+        with (
+            patch(
+                "app.collector.websocket.websockets.connect",
+                AsyncMock(side_effect=AttributeError("renamed attribute")),
+            ),
+            pytest.raises(AttributeError),
+        ):
+            await handler.connect()
 
     @pytest.mark.asyncio
     async def test_send_ping_success(self, handler):
