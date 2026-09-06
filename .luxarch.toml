@@ -9,18 +9,22 @@ source_client = ["collector/client.py"]
 #
 # This is a CHOICE, not a non-applicability: the maintainer confirmed the overlay is opt-in
 # across kinds and can trace a collector's core + client calls, so a collector is not
-# auto-N/A. We are choosing not to instrument. Evidence: there is no OpenTelemetry
-# dependency (absent from pyproject.toml and poetry.lock) and none of the pack's helpers
-# (create_service_span / start_as_current_span / record_exception_in_span); adopting it
-# means taking on an OTel stack and a collector to export to, which this deployment does
-# not have.
+# auto-N/A. Parts of the fleet DO run it (luxwx, open-claim and www enable the overlay;
+# luxanalytics, open-claim and silencetosound depend on opentelemetry), so adopting here is
+# possible, not blocked — we are choosing not to.
+#
+# Verified evidence: no opentelemetry dependency (absent from pyproject.toml and
+# poetry.lock) and none of the pack's helpers (create_service_span /
+# start_as_current_span / record_exception_in_span). Instrumenting would mean adding the
+# OTel client stack and export config to a headless collector whose failure modes are
+# already visible in the two channels below.
 #
 # What we do instead: the sense_o11y measurement (config.MEASUREMENT_O11Y) reports the
 # collector's own operation into InfluxDB alongside the energy data and is read in Grafana,
 # plus the per-area structured logging in app/utils/logging.py.
 #
-# Revisit when the fleet stands up an OTel collector — at that point this becomes an
-# adoption task, not an exemption.
+# Revisit if this collector's failures stop being diagnosable from those two channels, or
+# if the fleet standardises tracing across collectors — then it is an adoption task.
 [observability]
 enabled = false
-exempt_reason = "headless collector with no OTel stack to export to: no opentelemetry dependency and none of the pack's span helpers. Self-reports operational metrics via the sense_o11y InfluxDB measurement (read in Grafana) plus per-area structured logging. Revisit when the fleet runs an OTel collector."
+exempt_reason = "deliberate non-adoption, not non-applicability: no opentelemetry dependency and none of the pack's span helpers, and a headless collector's failures are already diagnosable from the sense_o11y InfluxDB measurement (read in Grafana) plus per-area structured logging. Parts of the fleet do run the overlay, so this is a choice to revisit if tracing is standardised across collectors."
