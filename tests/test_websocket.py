@@ -1,10 +1,34 @@
+import asyncio
 import json
+import time
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from websockets.exceptions import InvalidHandshake
+from websockets.exceptions import InvalidHandshake, WebSocketException
 
-from app.collector.websocket import WebSocketHandler
+from app.collector.websocket import WebSocketHandler, handle_websocket_connection
+from app.core import config
+
+
+class _IterableWS:
+    """A socket that yields a fixed list of frames, optionally raising at the end."""
+
+    def __init__(self, frames, raises=None):
+        self._frames = list(frames)
+        self._raises = raises
+        self.closed = False
+
+    def __aiter__(self):
+        return self._gen()
+
+    async def _gen(self):
+        for f in self._frames:
+            yield f
+        if self._raises:
+            raise self._raises
+
+    async def close(self):
+        self.closed = True
 
 
 class MockWS:
@@ -23,16 +47,18 @@ class MockWS:
         self.open = False
 
 
+@pytest.fixture
+def handler():
+    """A fresh handler per test — shared by every class in this module."""
+    return WebSocketHandler(
+        "wss://test.example.com/ws",
+        {"Authorization": "Bearer test_token"},
+        AsyncMock(),
+    )
+
+
 class TestWebSocketHandler:
     """Exercises the websockets-based WebSocketHandler (post aiohttp migration)."""
-
-    @pytest.fixture
-    def handler(self):
-        return WebSocketHandler(
-            "wss://test.example.com/ws",
-            {"Authorization": "Bearer test_token"},
-            AsyncMock(),
-        )
 
     @pytest.mark.asyncio
     async def test_connect_success(self, handler):
@@ -135,3 +161,172 @@ class TestWebSocketHandler:
         await handler.shutdown()
         assert handler.is_shutting_down is True
         assert handler.ws.closed is True
+
+
+class TestMonitorConnectionHealth:
+    """The health monitor is what notices a connection that is up but no longer delivering."""
+
+    @pytest.mark.asyncio
+    async def test_a_silent_connection_triggers_a_reconnect(self, handler):
+        """Past WS_HEARTBEAT_TIMEOUT with no frames, the socket is dead to us."""
+        handler.ws = MockWS(open_=True)
+        handler.last_message_time = time.time() - (config.WS_HEARTBEAT_TIMEOUT + 5)
+        assert await handler.monitor_connection_health() is False
+
+    @pytest.mark.asyncio
+    async def test_a_failed_ping_triggers_a_reconnect(self, handler):
+        """Quiet but not yet timed out: we ping, and a failed ping ends the connection."""
+        handler.ws = MockWS(open_=True)
+        handler.last_message_time = time.time() - (config.WS_HEARTBEAT_INTERVAL + 1)
+        with patch.object(handler, "send_ping", AsyncMock(return_value=False)):
+            assert await handler.monitor_connection_health() is False
+
+    @pytest.mark.asyncio
+    async def test_a_healthy_connection_keeps_monitoring_until_shutdown(self, handler):
+        """A fresh connection must NOT be torn down — it keeps looping until shutdown."""
+        handler.ws = MockWS(open_=True)
+        handler.last_message_time = time.time()
+
+        async def stop(_delay):
+            handler.is_shutting_down = True
+
+        with patch(
+            "app.collector.websocket.asyncio.sleep", AsyncMock(side_effect=stop)
+        ):
+            assert await handler.monitor_connection_health() is True
+
+    @pytest.mark.asyncio
+    async def test_a_transport_error_ends_the_connection(self, handler):
+        handler.ws = MockWS(open_=True)
+        handler.last_message_time = time.time()
+        with patch(
+            "app.collector.websocket.asyncio.sleep",
+            AsyncMock(side_effect=OSError("reset")),
+        ):
+            assert await handler.monitor_connection_health() is False
+
+
+class TestHandleMessages:
+    @pytest.mark.asyncio
+    async def test_no_socket_is_not_an_error(self, handler):
+        handler.ws = None
+        assert await handler._handle_messages() is False
+
+    @pytest.mark.asyncio
+    async def test_decodes_bytes_frames(self, handler):
+        """The server may frame text as bytes; both must reach the callback identically."""
+        handler.ws = _IterableWS([b'{"type":"hello"}'])
+        with patch.object(handler, "handle_message", AsyncMock(return_value=True)) as h:
+            await handler._handle_messages()
+        h.assert_awaited_once_with('{"type":"hello"}')
+
+    @pytest.mark.asyncio
+    async def test_stops_when_a_message_reports_failure(self, handler):
+        handler.ws = _IterableWS(['{"a":1}', '{"b":2}'])
+        with patch.object(
+            handler, "handle_message", AsyncMock(return_value=False)
+        ) as h:
+            assert await handler._handle_messages() is False
+        assert h.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_stops_promptly_on_shutdown(self, handler):
+        handler.ws = _IterableWS(['{"a":1}', '{"b":2}', '{"c":3}'])
+
+        async def first_then_shutdown(_msg):
+            handler.is_shutting_down = True
+            return True
+
+        with patch.object(
+            handler, "handle_message", AsyncMock(side_effect=first_then_shutdown)
+        ) as h:
+            assert await handler._handle_messages() is False
+        assert h.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_a_websocket_error_ends_the_loop(self, handler):
+        handler.ws = _IterableWS([], raises=WebSocketException("gone"))
+        assert await handler._handle_messages() is False
+
+
+class TestReconnectionDelay:
+    @pytest.mark.asyncio
+    async def test_sleeps_for_the_requested_delay(self, handler):
+        with patch("app.collector.websocket.asyncio.sleep", AsyncMock()) as sleep:
+            await handler._handle_reconnection_delay(7)
+        sleep.assert_awaited_once_with(7)
+
+
+class TestShutdown:
+    @pytest.mark.asyncio
+    async def test_shutdown_closes_the_socket_and_sets_the_flag(self, handler):
+        ws = MockWS(open_=True)
+        handler.ws = ws
+        await handler.shutdown()
+        assert handler.is_shutting_down is True
+        assert ws.closed is True
+
+    @pytest.mark.asyncio
+    async def test_shutdown_without_a_socket_is_safe(self, handler):
+        handler.ws = None
+        await handler.shutdown()
+        assert handler.is_shutting_down is True
+
+
+class TestRunLoop:
+    @pytest.mark.asyncio
+    async def test_a_failed_connect_backs_off_and_retries(self, handler):
+        """Backoff must grow rather than hot-looping against a down endpoint."""
+        delays = []
+
+        async def record(delay):
+            delays.append(delay)
+            if len(delays) == 3:
+                handler.is_shutting_down = True
+
+        with (
+            patch.object(handler, "connect", AsyncMock(return_value=False)),
+            patch.object(
+                handler, "_handle_reconnection_delay", AsyncMock(side_effect=record)
+            ),
+        ):
+            await asyncio.wait_for(handler.run(), timeout=5)
+
+        assert delays == sorted(delays), "backoff must be non-decreasing"
+        assert delays[-1] > delays[0], "backoff must actually grow"
+        assert handler.reconnect_count == 3
+
+    @pytest.mark.asyncio
+    async def test_backoff_is_capped(self, handler):
+        delays = []
+
+        async def record(delay):
+            delays.append(delay)
+            if len(delays) >= 12:
+                handler.is_shutting_down = True
+
+        with (
+            patch.object(handler, "connect", AsyncMock(return_value=False)),
+            patch.object(
+                handler, "_handle_reconnection_delay", AsyncMock(side_effect=record)
+            ),
+        ):
+            await asyncio.wait_for(handler.run(), timeout=10)
+
+        assert max(delays) <= config.WS_RECONNECT_DELAY_CAP
+
+    @pytest.mark.asyncio
+    async def test_shutdown_skips_the_reconnection_delay(self, handler):
+        """SIGTERM must not stall for up to WS_RECONNECT_DELAY_CAP."""
+        handler.is_shutting_down = True
+        with patch.object(handler, "_handle_reconnection_delay", AsyncMock()) as delay:
+            await asyncio.wait_for(handler.run(), timeout=5)
+        delay.assert_not_called()
+
+
+class TestHandleWebSocketConnection:
+    @pytest.mark.asyncio
+    async def test_builds_a_handler_and_runs_it(self):
+        with patch("app.collector.websocket.WebSocketHandler.run", AsyncMock()) as run:
+            await handle_websocket_connection("ws://x", {"A": "b"}, AsyncMock())
+        run.assert_awaited_once()

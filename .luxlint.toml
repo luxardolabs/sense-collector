@@ -35,7 +35,7 @@ evidence = "RFC 6455 §4.2.2 defines the WebSocket opening handshake as base64(S
 # honest measured total when coverage was first wired (it had never been measured: 41%,
 # with the core client.py at 0%).
 [test]
-coverage_min = 70
+coverage_min = 78
 
 [python]
 # sense-collector runs Python 3.14 — ruff/mypy check against it (the rule set stays

@@ -351,3 +351,123 @@ async def test_shutdown(influxdb_params):
     assert storage.is_shutting_down is True
     storage._process_device_batch.assert_called_once()
     client.close.assert_awaited_once()
+
+
+# --------------------------------------------------- connection + write error branches
+
+
+@pytest.mark.asyncio
+async def test_connect_exits_when_influxdb_is_unreachable(
+    influxdb_params, mock_influxdb_client
+):
+    """An unreachable InfluxDB must fail fast at startup, not silently drop every write."""
+    mock_influxdb_client.ping = AsyncMock(side_effect=OSError("connection refused"))
+    storage = InfluxDBStorage(influxdb_params)
+    with pytest.raises(SystemExit):
+        await storage.connect()
+    # the half-open client is released rather than leaked
+    assert storage.client is None
+
+
+@pytest.mark.asyncio
+async def test_connect_exits_when_the_health_check_reports_unhealthy(
+    influxdb_params, mock_influxdb_client
+):
+    mock_influxdb_client.ping = AsyncMock(return_value=False)
+    storage = InfluxDBStorage(influxdb_params)
+    with pytest.raises(SystemExit):
+        await storage.connect()
+    assert storage.client is None
+
+
+@pytest.mark.asyncio
+async def test_connect_starts_the_queue_processor_once(
+    influxdb_params, mock_influxdb_client
+):
+    storage = InfluxDBStorage(influxdb_params)
+    await storage.connect()
+    first = storage.queue_processor_task
+    await storage.connect()
+    assert storage.queue_processor_task is first
+    storage.is_shutting_down = True
+    await storage.close()
+
+
+def _influx_error(status):
+    err = InfluxDBError(message="boom")
+    err.response = MagicMock()
+    err.response.status = status
+    return err
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        (401, "401 Unauthorized"),
+        (404, "404 Not Found"),
+        (500, "InfluxDB write failed"),
+    ],
+    ids=["unauthorized", "missing-bucket", "other"],
+)
+def test_write_error_guidance_is_actionable(influxdb_params, caplog, status, expected):
+    """A 401/404 is an operator misconfiguration — the log must say which, not just 'failed'."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage._log_write_error(_influx_error(status))
+    assert expected in caplog.text
+
+
+def test_write_error_guidance_names_the_bucket_and_org(influxdb_params, caplog):
+    storage = InfluxDBStorage(influxdb_params)
+    storage._log_write_error(_influx_error(401))
+    assert "test-bucket" in caplog.text
+    assert "test-org" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_write_points_counts_failures(influxdb_params):
+    """A failed batch must be counted, so the periodic summary reports real data loss."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_api = AsyncMock()
+    storage.write_api.write = AsyncMock(side_effect=_influx_error(401))
+    await storage.write_points([Point("m").field("v", 1), Point("m").field("v", 2)])
+    assert storage.write_stats["failed"] == 2
+    assert storage.write_stats["successful"] == 0
+
+
+@pytest.mark.asyncio
+async def test_write_points_without_a_write_api_is_a_noop(influxdb_params):
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_api = None
+    await storage.write_points([Point("m").field("v", 1)])
+    assert storage.write_stats["successful"] == 0
+
+
+@pytest.mark.asyncio
+async def test_write_points_survives_a_non_influx_error(influxdb_params):
+    """Anything the client raises must be counted and logged, never propagated."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_api = AsyncMock()
+    storage.write_api.write = AsyncMock(side_effect=OSError("socket reset"))
+    await storage.write_points([Point("m").field("v", 1)])
+    assert storage.write_stats["failed"] == 1
+
+
+@pytest.mark.asyncio
+async def test_close_client_is_idempotent(influxdb_params, mock_influxdb_client):
+    storage = InfluxDBStorage(influxdb_params)
+    await storage.connect()
+    storage.is_shutting_down = True
+    await storage._close_client()
+    await storage._close_client()
+    assert storage.client is None
+    assert storage.write_api is None
+
+
+@pytest.mark.asyncio
+async def test_close_client_survives_a_failing_close(influxdb_params):
+    """Teardown must continue even if releasing the session raises."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.client = MagicMock()
+    storage.client.close = AsyncMock(side_effect=OSError("already gone"))
+    await storage._close_client()
+    assert storage.client is None
