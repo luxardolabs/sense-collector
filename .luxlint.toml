@@ -30,6 +30,13 @@ file     = "fake_sense.py"
 match    = "hashlib.sha1"
 evidence = "RFC 6455 §4.2.2 defines the WebSocket opening handshake as base64(SHA-1(Sec-WebSocket-Key + 258EAFA5-E914-47DA-95CA-C5AB0DC85B11)). SHA-1 is the wire protocol here, not a security choice — the value is a handshake accept token, never a digest of a secret, and any other hash makes the emulator fail the handshake the real Sense endpoint performs. S324 stays live for every other hashlib call in the repo."
 
+# Coverage floor for `make test` (luxlint --coverage-ratchet). Monotonic UP: a drop below
+# this is RED — add tests, never lower the floor. Raise it when you improve. Set from the
+# honest measured total when coverage was first wired (it had never been measured: 41%,
+# with the core client.py at 0%).
+[test]
+coverage_min = 70
+
 [python]
 # sense-collector runs Python 3.14 — ruff/mypy check against it (the rule set stays
 # fleet-canonical; only the target version is a per-repo fact). Defaults to the py313 floor.

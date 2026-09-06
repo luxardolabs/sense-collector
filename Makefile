@@ -41,7 +41,7 @@ LUXLINT_REGISTRY  ?= $(LUXARCH_REGISTRY)
 LUXAUDIT_REGISTRY ?= $(LUXARCH_REGISTRY)
 
 LUXARCH_VERSION  := 0.130.0
-LUXLINT_VERSION  := 0.44.0
+LUXLINT_VERSION  := 0.44.1
 LUXAUDIT_VERSION := 0.4.0
 
 LUXARCH_IMAGE  = $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
@@ -367,13 +367,22 @@ format: ## THE canonical fixer (luxlint --format) — safe autofixes + canonical
 	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
 	docker run --rm --user $(REPO_UID):$(REPO_GID) -v $(PWD):/repo $(LUXLINT_IMAGE) --format
 
-test: .test-image.stamp ## Canonical pytest suite: lock-built deps image + over-mounted source (no :dev)
+# COVERAGE_FILE lives outside /app: the source mounts are read-only, so coverage cannot
+# write its sqlite data file next to them. The run is piped through
+# `luxlint --coverage-ratchet`, which passes the report through and then enforces the
+# [test].coverage_min floor — monotonic UP, and loud (never silently green) if the
+# measurement is missing. PIPESTATUS keeps pytest's own exit code authoritative: a failing
+# suite must fail `make test` even when the ratchet is satisfied.
+test: .test-image.stamp ## Canonical pytest suite + coverage floor (lock-built deps image, mounted source)
 	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
 	$(GUARD_RUN) $(LUXLINT_IMAGE) --emit-config pytest > .luxlint.pytest.ini; \
-	docker run --rm -w /app \
+	set -o pipefail; \
+	docker run --rm -w /app -e COVERAGE_FILE=/tmp/.coverage \
 	  -v $(PWD)/app:/app/app:ro -v $(PWD)/tests:/app/tests:ro \
 	  -v $(PWD)/.luxlint.pytest.ini:/cfg/pytest.ini:ro $(TEST_IMAGE) \
-	  pytest -c /cfg/pytest.ini -p no:cacheprovider tests -q; rc=$$?; \
+	  pytest -c /cfg/pytest.ini -p no:cacheprovider tests -q \
+	    --cov=app --cov-report=term-missing \
+	  | $(GUARD_RUN) -i $(LUXLINT_IMAGE) --coverage-ratchet; rc=$$?; \
 	rm -f .luxlint.pytest.ini; \
 	exit $$rc
 

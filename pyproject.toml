@@ -61,6 +61,8 @@ mypy = "^2.2.0"
 pytest = "^9.1.1"
 pytest-asyncio = "^1.4.0"
 pytest-mock = "^3.14.0"
+# Measures the real suite for `make test`'s coverage floor (luxlint --coverage-ratchet).
+pytest-cov = "^7.0.0"
 types-aiofiles = "^25.1.0"
 types-python-dateutil = "^2.9.0"
 
