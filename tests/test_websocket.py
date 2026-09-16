@@ -3,6 +3,7 @@ import json
 import time
 from unittest.mock import AsyncMock, patch
 
+import httpx
 import pytest
 from websockets.exceptions import InvalidHandshake, WebSocketException
 
@@ -433,3 +434,26 @@ class TestAuthRejectionRecovery:
         handler.refresh_url = None
         handler.auth_failures = 1
         await handler._refresh_credentials()
+
+    @pytest.mark.asyncio
+    async def test_a_failing_reauth_does_not_kill_the_collector(self, handler):
+        """A transient auth outage must NOT exit on the first blip.
+
+        authenticate() re-raises, so without a guard here the very first failed re-auth
+        would propagate out of run() and kill the process — making the failure limit
+        meaningless and regressing the old retry-forever behaviour for a Sense hiccup.
+        """
+        handler.refresh_url = AsyncMock(side_effect=httpx.ConnectError("auth down"))
+        handler.auth_failures = 1
+        await handler._refresh_credentials()  # must not raise
+        assert handler.ws_url  # unchanged, ready to retry
+
+    @pytest.mark.asyncio
+    async def test_a_persistently_failing_reauth_still_exits_at_the_limit(
+        self, handler
+    ):
+        """Transient is tolerated; persistent is not — the limit still bites."""
+        handler.refresh_url = AsyncMock(side_effect=httpx.ConnectError("auth down"))
+        handler.auth_failures = config.WS_AUTH_FAILURE_LIMIT + 1
+        with pytest.raises(RuntimeError, match="consecutively"):
+            await handler._refresh_credentials()

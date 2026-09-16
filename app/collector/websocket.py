@@ -303,7 +303,20 @@ class WebSocketHandler:
         if self.refresh_url is None:
             return
         api_logger.info("Re-authenticating to refresh the WebSocket token…")
-        self.ws_url = await self.refresh_url()
+        try:
+            self.ws_url = await self.refresh_url()
+        # swallowed-exceptions: a failed re-auth is far more often Sense's auth endpoint
+        # having a moment than a bad credential, and the callback is opaque to this module
+        # (it may raise anything). Letting it escape here would kill the collector on the
+        # FIRST transient blip and make the failure limit above meaningless — the limit is
+        # what turns a PERSISTENT failure into an exit. Count it, back off, try again.
+        except Exception as e:
+            api_logger.error(
+                "Re-authentication failed (attempt %s of %s before giving up): %s",
+                self.auth_failures,
+                config.WS_AUTH_FAILURE_LIMIT,
+                e,
+            )
 
     async def _handle_reconnection_delay(self, delay: float) -> None:
         """Handle reconnection delay with logging."""
