@@ -1,19 +1,25 @@
 name: sense-collector
 
-# THE one compose file (fleet standard: exactly one `compose.yaml` per repo). The four
-# stacks that used to be separate files are now compose PROFILES — a service carrying a
-# `profiles:` key is inert unless that profile is named, which is what makes one file
-# sufficient. Compose NEVER builds: every image is built outside it (`make build-local`,
-# `make harness-build`, `make release`) and referenced here by tag.
+# THE one compose file (fleet standard: exactly one `compose.yaml` per repo). Stacks are
+# compose PROFILES — a service carrying a `profiles:` key is inert unless that profile is
+# named, which is what makes one file sufficient. Compose NEVER builds: every image is built
+# outside it (`make build-local`, `make harness-build`, `make release`) and run by tag.
 #
-#   make up        -> --profile collector   collector only, YOUR external InfluxDB
-#   make dev-up    -> --profile dev         real Sense + bundled InfluxDB + Grafana
-#   make demo-up   -> --profile demo        FAKE Sense + bundled InfluxDB + Grafana
-#   make test-e2e  -> --profile e2e         FAKE Sense + throwaway InfluxDB, no ports
+# The house has TWO Sense monitors — tyle and bb — and each runs in two environments, so the
+# real-account stacks are a 2x2. Every stack has its own service names, container names,
+# volumes and ports, so any combination runs side by side on one host.
 #
-# Environments differ by `.env.<env>` (`docker compose --env-file .env.prod …`), never by
-# a second compose file. Sense is a cloud API, so nothing here publishes a port except the
-# bundled Grafana/InfluxDB you actually browse.
+#   make dev-up      -> --profile dev-tyle    real Sense (tyle) + bundled InfluxDB + Grafana
+#   make bb-up       -> --profile dev-bb      real Sense (bb)   + bundled InfluxDB + Grafana
+#   make prod-up     -> --profile prod-tyle   collector only -> your external InfluxDB
+#   make prod-bb-up  -> --profile prod-bb     collector only -> your external InfluxDB
+#   make demo-up     -> --profile demo        FAKE Sense + bundled InfluxDB + Grafana
+#   make test-e2e    -> --profile e2e         FAKE Sense + throwaway InfluxDB, no ports
+#
+# Credentials live in a gitignored `.env.<stack>` per stack (.env.dev-tyle, .env.dev-bb,
+# .env.prod-tyle, .env.prod-bb); .env.demo and .env.e2e are committed and hold no secrets.
+# Only Grafana publishes a host port — InfluxDB is reached by SERVICE NAME on the compose
+# network, so it never contends for a port with a sibling fleet stack.
 
 x-collector: &collector
   image: ${SENSE_IMAGE:-sense-collector:local}
@@ -27,133 +33,133 @@ x-influx-init: &influx-init
   DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
   DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
 
+x-influx: &influx
+  image: influxdb:2.7
+  environment: *influx-init
+  healthcheck:
+    test: ["CMD", "influx", "ping"]
+    interval: 5s
+    timeout: 3s
+    retries: 30
+  restart: unless-stopped
+
+x-grafana: &grafana
+  image: grafana/grafana:11.3.0
+  environment:
+    GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+    GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    GF_USERS_ALLOW_SIGN_UP: "false"
+    # Panel plugins the bundled dashboards use but that aren't Grafana core.
+    GF_INSTALL_PLUGINS: digrich-bubblechart-panel
+    INFLUX_BUCKET: ${INFLUX_BUCKET}
+    INFLUX_TOKEN: ${INFLUX_TOKEN}
+  restart: unless-stopped
+
+x-prod-collector: &prod-collector
+  <<: *collector
+  restart: always
+  healthcheck:
+    test: ["CMD", "python3", "-m", "app.health.check"]
+    interval: 30s
+    timeout: 10s
+    start_period: 30s
+    retries: 3
+
 services:
-  # ─────────────────────────────── profile: collector ───────────────────────────────
-  # The deployable. Writes to YOUR InfluxDB; config/secrets in .env.dev or .env.prod
-  # (both gitignored — see .env.example). Prod runs the same service with
-  # `--env-file .env.prod`, which also supplies SENSE_IMAGE (a pinned version tag).
-  sense-collector:
+  # ══════════════════════ dev-tyle — tyle monitor, bundled infra ══════════════════════
+  sense_dev_tyle_influxdb:
+    <<: *influx
+    profiles: [dev-tyle]
+    container_name: sense_dev_tyle_influxdb
+    volumes:
+      - sense_dev_tyle_influxdb_data:/var/lib/influxdb2
+      - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
+
+  sense_dev_tyle_grafana:
+    <<: *grafana
+    profiles: [dev-tyle]
+    container_name: sense_dev_tyle_grafana
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
+      - sense_dev_tyle_grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-13300}:3000"
+    depends_on:
+      sense_dev_tyle_influxdb:
+        condition: service_healthy
+
+  sense_dev_tyle_collector:
     <<: *collector
-    profiles: [collector]
-    container_name: sense_collector
+    profiles: [dev-tyle]
+    container_name: sense_dev_tyle_collector
     env_file:
-      - ${COLLECTOR_ENV_FILE:-.env.dev}
-    restart: always
-    healthcheck:
-      test: ["CMD", "python3", "-m", "app.health.check"]
-      interval: 30s
-      timeout: 10s
-      start_period: 30s
-      retries: 3
+      - .env.dev-tyle
+    environment:
+      SENSE_COLLECTOR_INFLUXDB_URL: http://sense_dev_tyle_influxdb:8086
+    depends_on:
+      sense_dev_tyle_influxdb:
+        condition: service_healthy
+
+  # ═══════════════════════ dev-bb — bb monitor, bundled infra ═════════════════════════
+  sense_dev_bb_influxdb:
+    <<: *influx
+    profiles: [dev-bb]
+    container_name: sense_dev_bb_influxdb
+    volumes:
+      - sense_dev_bb_influxdb_data:/var/lib/influxdb2
+      - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
+
+  sense_dev_bb_grafana:
+    <<: *grafana
+    profiles: [dev-bb]
+    container_name: sense_dev_bb_grafana
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
+      - sense_dev_bb_grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-13301}:3000"
+    depends_on:
+      sense_dev_bb_influxdb:
+        condition: service_healthy
+
+  sense_dev_bb_collector:
+    <<: *collector
+    profiles: [dev-bb]
+    container_name: sense_dev_bb_collector
+    env_file:
+      - .env.dev-bb
+    environment:
+      SENSE_COLLECTOR_INFLUXDB_URL: http://sense_dev_bb_influxdb:8086
+    depends_on:
+      sense_dev_bb_influxdb:
+        condition: service_healthy
+
+  # ═════════════ prod-tyle / prod-bb — collector only, YOUR external InfluxDB ═════════
+  # No bundled infra: these write to the InfluxDB named in their .env file, which also
+  # supplies SENSE_IMAGE (a pinned version tag, never :latest).
+  sense_prod_tyle_collector:
+    <<: *prod-collector
+    profiles: [prod-tyle]
+    container_name: sense_prod_tyle_collector
+    env_file:
+      - .env.prod-tyle
     volumes:
       - ${OUTPUT_DIR:-/mnt/docker/sense-collector/output}:/app/output
 
-  # ──────────────────────────── bundled infra: dev profile ────────────────────────────
-  # dev and demo each get their OWN infra services and container names, so the two stacks
-  # can run side by side. Ports come from .env.<env>, so they don't collide either.
-  sense_dev_influxdb:
-    profiles: [dev]
-    image: influxdb:2.7
-    container_name: sense_dev_influxdb
-    environment: *influx-init
-    volumes:
-      - sense_dev_influxdb_data:/var/lib/influxdb2
-      - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
-    # No published port: the collector and Grafana both reach InfluxDB by SERVICE NAME on
-    # the compose network. Publishing it bought nothing and collided with sibling fleet
-    # stacks on 8086. Poke at it with `docker compose exec` if you need to.
-    healthcheck:
-      test: ["CMD", "influx", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-    restart: unless-stopped
-
-  sense_dev_grafana:
-    profiles: [dev]
-    image: grafana/grafana:11.3.0
-    container_name: sense_dev_grafana
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      # Panel plugins the bundled dashboards use but that aren't Grafana core.
-      GF_INSTALL_PLUGINS: digrich-bubblechart-panel
-      INFLUX_BUCKET: ${INFLUX_BUCKET}
-      INFLUX_TOKEN: ${INFLUX_TOKEN}
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
-      - sense_dev_grafana_data:/var/lib/grafana
-    ports:
-      - "${GRAFANA_PORT:-3000}:3000"
-    depends_on:
-      sense_dev_influxdb:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # DEV collector — the REAL Sense cloud. .env.dev.local (gitignored, optional) carries
-  # your actual account and wins over .env.demo's placeholders.
-  sense_collector_dev:
-    <<: *collector
-    profiles: [dev]
-    container_name: sense_collector_dev
+  sense_prod_bb_collector:
+    <<: *prod-collector
+    profiles: [prod-bb]
+    container_name: sense_prod_bb_collector
     env_file:
-      - .env.demo
-      - path: .env.dev.local
-        required: false
-    environment:
-      # Names the dev profile's own InfluxDB. Set here, not in .env.demo, because that file
-      # is shared with the demo profile, whose InfluxDB is a different service.
-      SENSE_COLLECTOR_INFLUXDB_URL: http://sense_dev_influxdb:8086
-    depends_on:
-      sense_dev_influxdb:
-        condition: service_healthy
-
-  # ─────────────────────────── bundled infra: demo profile ───────────────────────────
-  sense_demo_influxdb:
-    profiles: [demo]
-    image: influxdb:2.7
-    container_name: sense_demo_influxdb
-    environment: *influx-init
+      - .env.prod-bb
     volumes:
-      - sense_demo_influxdb_data:/var/lib/influxdb2
-      - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
-    # No published port: the collector and Grafana both reach InfluxDB by SERVICE NAME on
-    # the compose network. Publishing it bought nothing and collided with sibling fleet
-    # stacks on 8086. Poke at it with `docker compose exec` if you need to.
-    healthcheck:
-      test: ["CMD", "influx", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-    restart: unless-stopped
+      - ${OUTPUT_DIR:-/mnt/docker/sense-collector-bb/output}:/app/output
 
-  sense_demo_grafana:
-    profiles: [demo]
-    image: grafana/grafana:11.3.0
-    container_name: sense_demo_grafana
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_INSTALL_PLUGINS: digrich-bubblechart-panel
-      INFLUX_BUCKET: ${INFLUX_BUCKET}
-      INFLUX_TOKEN: ${INFLUX_TOKEN}
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
-      - sense_demo_grafana_data:/var/lib/grafana
-    ports:
-      - "${GRAFANA_PORT:-3000}:3000"
-    depends_on:
-      sense_demo_influxdb:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ───────────────────────── fake Sense endpoint: demo + e2e ─────────────────────────
-  # Built OUTSIDE compose by `make harness-build` (compose never builds). The bare
-  # `:local` tag is the sanctioned local-build form — this image is never pushed.
+  # ═══════════════════ fake Sense endpoint — demo + e2e profiles ══════════════════════
+  # Built OUTSIDE compose by `make harness-build` (compose never builds). The bare `:local`
+  # tag is the sanctioned local-build form — this image is never pushed.
   sense_fake:
     profiles: [demo, e2e]
     image: ${SENSE_FAKE_IMAGE:-sense-collector-fake:local}
@@ -165,12 +171,34 @@ services:
       SENSE_FAKE_INTERVAL: "${SENSE_FAKE_INTERVAL:-2.0}"
     restart: unless-stopped
 
-  # DEMO collector — same bundled infra as dev, but pointed at the fake endpoint, so the
-  # dashboards populate with no Sense account and no hardware.
-  sense_collector_demo:
+  # ═════════════════════════════════ demo profile ═════════════════════════════════════
+  # "Click go" — no Sense account, no hardware. Config in the committed .env.demo.
+  sense_demo_influxdb:
+    <<: *influx
+    profiles: [demo]
+    container_name: sense_demo_influxdb
+    volumes:
+      - sense_demo_influxdb_data:/var/lib/influxdb2
+      - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
+
+  sense_demo_grafana:
+    <<: *grafana
+    profiles: [demo]
+    container_name: sense_demo_grafana
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
+      - sense_demo_grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-13302}:3000"
+    depends_on:
+      sense_demo_influxdb:
+        condition: service_healthy
+
+  sense_demo_collector:
     <<: *collector
     profiles: [demo]
-    container_name: sense_collector_demo
+    container_name: sense_demo_collector
     env_file:
       - .env.demo
     environment:
@@ -183,43 +211,39 @@ services:
       sense_fake:
         condition: service_started
 
-  # ─────────────────────────────── profile: e2e ───────────────────────────────
-  # Hardware-free end-to-end. No published ports (never collides, runs in CI) and the
-  # InfluxDB data is THROWAWAY — tmpfs, so the image's implicit VOLUME can't mint a fresh
-  # anonymous volume per run and abandon it. All values are fixed test values, in .env.e2e.
-  sense_influxdb_e2e:
+  # ══════════════════════════════════ e2e profile ═════════════════════════════════════
+  # Hardware-free end to end. No published ports (never collides, runs in CI) and the
+  # InfluxDB data is THROWAWAY — tmpfs, so the image's implicit VOLUME cannot mint a fresh
+  # anonymous volume per run and abandon it. Fixed test values in the committed .env.e2e.
+  sense_e2e_influxdb:
+    <<: *influx
     profiles: [e2e]
-    image: influxdb:2.7
-    container_name: sense_influxdb_e2e
-    environment: *influx-init
+    container_name: sense_e2e_influxdb
     volumes:
       - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
     tmpfs:
       - /var/lib/influxdb2
-    healthcheck:
-      test: ["CMD", "influx", "ping"]
-      interval: 3s
-      timeout: 3s
-      retries: 30
 
-  sense_collector_e2e:
+  sense_e2e_collector:
     <<: *collector
     profiles: [e2e]
-    container_name: sense_collector_e2e
+    container_name: sense_e2e_collector
     env_file:
       - .env.e2e
     environment:
       SENSE_COLLECTOR_API_BASE_URL: http://sense_fake:8080
       SENSE_COLLECTOR_WS_BASE_URL: ws://sense_fake:8080
-      SENSE_COLLECTOR_INFLUXDB_URL: http://sense_influxdb_e2e:8086
+      SENSE_COLLECTOR_INFLUXDB_URL: http://sense_e2e_influxdb:8086
     depends_on:
-      sense_influxdb_e2e:
+      sense_e2e_influxdb:
         condition: service_healthy
       sense_fake:
         condition: service_started
 
 volumes:
-  sense_dev_influxdb_data:
-  sense_dev_grafana_data:
+  sense_dev_tyle_influxdb_data:
+  sense_dev_tyle_grafana_data:
+  sense_dev_bb_influxdb_data:
+  sense_dev_bb_grafana_data:
   sense_demo_influxdb_data:
   sense_demo_grafana_data:

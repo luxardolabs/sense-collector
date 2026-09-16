@@ -87,16 +87,19 @@ POETRY_PIP := python -m venv /tmp/v && /tmp/v/bin/pip install -q --root-user-act
 # Compose stacks (all .yml, short-form volumes). Four flavors:
 # ONE compose.yaml; the four stacks are compose PROFILES, and environments differ by
 # .env.<env> (never by a second compose file — repo.compose_conventions).
-#   --profile collector  collector-only -> your external InfluxDB/Grafana (.env.dev / .env.prod)
-#   --profile dev        full LOCAL dev stack: your real Sense account + bundled InfluxDB+Grafana
+#   --profile dev-tyle / dev-bb    per-monitor LOCAL stack: real Sense account + bundled infra
+#   --profile prod-tyle / prod-bb  per-monitor collector only -> your external InfluxDB
 #   --profile demo       DEMO: fake Sense endpoint + bundled InfluxDB+Grafana (no account)
 #   --profile e2e        hardware-free e2e test (fake Sense + throwaway InfluxDB) -> `make test-e2e`
 DC      := docker compose
-RUN_DC  := $(DC) --profile collector --env-file .env.dev
-PROD_DC := $(DC) --profile collector --env-file .env.prod
-DEV_DC  := $(DC) --profile dev       --env-file .env.demo
+DEV_TYLE_DC := $(DC) --profile dev-tyle  --env-file .env.dev-tyle
+PROD_TYLE_DC := $(DC) --profile prod-tyle --env-file .env.prod-tyle
+PROD_BB_DC   := $(DC) --profile prod-bb   --env-file .env.prod-bb
+DEV_BB_DC   := $(DC) --profile dev-bb    --env-file .env.dev-bb
 # demo shifts off dev's Grafana port so both bundled stacks can run at once.
 DEMO_DC := GRAFANA_PORT=13302 $(DC) --profile demo --env-file .env.demo
+# Second Sense monitor — its own account/names/ports, credentials in gitignored .env.bb.
+
 
 # Remote prod deploy over SSH. Set the node explicitly (no fleet default).
 #   make prod-deploy PROD_NODE=prod-node.example.com
@@ -108,7 +111,7 @@ PROD_SSH  := ssh -o BatchMode=yes $(PROD_USER)@$(PROD_NODE)
 .PHONY: help version \
         dev-build-push build-local harness-build version-build-push release release-public github-release buildx-setup \
         docker-inspect docker-clean \
-        up down restart logs ps shell \
+        up down restart logs ps shell bb-up bb-down bb-logs \
         dev-up dev-down dev-clean dev-logs dev-ps dev-shell \
         prod-up prod-down prod-restart prod-logs prod-ps \
         demo-up demo-down demo-clean demo-logs demo-ps \
@@ -218,62 +221,72 @@ docker-clean: ## Remove local image tags (:dev, :$(VERSION), :latest)
 ##@ Collector-only — plug into your existing InfluxDB/Grafana (profile collector, .env.dev)
 
 up: build-local ## Build locally + start the collector against YOUR external InfluxDB (edit .env.dev)
-	SENSE_IMAGE=$(LOCAL_IMAGE) $(RUN_DC) up -d
+	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_TYLE_DC) up -d
 	@echo "sense-collector $(VERSION) running (collector only)"
 
 down: ## Stop the collector
-	$(RUN_DC) down
+	$(DEV_TYLE_DC) down
 
 restart: ## Restart the collector
-	$(RUN_DC) restart
+	$(DEV_TYLE_DC) restart
 
 logs: ## Follow collector logs
-	$(RUN_DC) logs -f
+	$(DEV_TYLE_DC) logs -f
 
 ps: ## Collector status
-	$(RUN_DC) ps
+	$(DEV_TYLE_DC) ps
 
 shell: ## Shell into the collector container
-	$(RUN_DC) exec sense-collector /bin/bash
+	$(DEV_TYLE_DC) exec sense-collector /bin/bash
 
 ##@ Dev — full LOCAL stack (your real Sense account + bundled InfluxDB + Grafana)
 
 dev-up: build-local ## Build locally + start the full dev stack (real Sense account; bundled Grafana)
-	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_DC) up -d
+	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_TYLE_DC) up -d
 	@echo "sense-collector [dev] — Grafana http://localhost:$(or $(GRAFANA_PORT),13300) (admin/admin)"
 
 dev-down: ## Stop the dev stack (keep data volumes)
-	$(DEV_DC) down
+	$(DEV_TYLE_DC) down
 
 dev-clean: ## Stop the dev stack AND delete its data volumes
-	$(DEV_DC) down -v
+	$(DEV_TYLE_DC) down -v
+
+bb-up: build-local ## Build locally + start the SECOND monitor's stack (real Sense account)
+	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_BB_DC) up -d
+	@echo "sense-collector [bb] — Grafana http://localhost:13301 (admin/admin)"
+
+bb-down: ## Stop the bb stack (keep data volumes)
+	$(DEV_BB_DC) down
+
+bb-logs: ## Follow bb stack logs
+	$(DEV_BB_DC) logs -f
 
 dev-logs: ## Follow dev stack logs
-	$(DEV_DC) logs -f
+	$(DEV_TYLE_DC) logs -f
 
 dev-ps: ## Dev stack status
-	$(DEV_DC) ps
+	$(DEV_TYLE_DC) ps
 
 dev-shell: ## Shell into the collector container
-	$(DEV_DC) exec sense-collector /bin/bash
+	$(DEV_TYLE_DC) exec sense-collector /bin/bash
 
 ##@ Prod — local stack (pulls :latest, .env.prod)
 
 prod-up: ## Pull :latest + start prod stack
-	$(PROD_DC) pull
-	$(PROD_DC) up -d
+	$(PROD_TYLE_DC) pull
+	$(PROD_TYLE_DC) up -d
 
 prod-down: ## Stop prod stack
-	$(PROD_DC) down
+	$(PROD_TYLE_DC) down
 
 prod-restart: ## Restart prod stack
-	$(PROD_DC) restart
+	$(PROD_TYLE_DC) restart
 
 prod-logs: ## Follow prod logs
-	$(PROD_DC) logs -f
+	$(PROD_TYLE_DC) logs -f
 
 prod-ps: ## Prod container status
-	$(PROD_DC) ps
+	$(PROD_TYLE_DC) ps
 
 ##@ Prod — remote deploy (set PROD_NODE=<host>)
 
@@ -289,17 +302,17 @@ prod-sync: check-prod-node ## Push compose.yaml + .env.prod to the node (repo is
 	@printf "✓ synced config to $(PROD_NODE):$(PROD_DIR)\n"
 
 prod-deploy: check-prod-node ## Pull :latest + recreate the collector on the node (run release first)
-	$(PROD_SSH) 'cd $(PROD_DIR) && $(PROD_DC) pull && $(PROD_DC) up -d'
+	$(PROD_SSH) 'cd $(PROD_DIR) && $(PROD_TYLE_DC) pull && $(PROD_TYLE_DC) up -d'
 	@printf "✓ deployed to $(PROD_NODE)\n"
 
 prod-status: check-prod-node ## Container status on the node
-	$(PROD_SSH) 'cd $(PROD_DIR) && $(PROD_DC) ps'
+	$(PROD_SSH) 'cd $(PROD_DIR) && $(PROD_TYLE_DC) ps'
 
 prod-logs-remote: check-prod-node ## Follow collector logs on the node
-	$(PROD_SSH) 'cd $(PROD_DIR) && $(PROD_DC) logs --tail=100 -f'
+	$(PROD_SSH) 'cd $(PROD_DIR) && $(PROD_TYLE_DC) logs --tail=100 -f'
 
 prod-health: check-prod-node ## Run the in-container health check on the node
-	$(PROD_SSH) 'cd $(PROD_DIR) && $(PROD_DC) exec -T sense-collector python3 -m app.health.check'
+	$(PROD_SSH) 'cd $(PROD_DIR) && $(PROD_TYLE_DC) exec -T sense-collector python3 -m app.health.check'
 
 prod-rollback: check-prod-node ## List image tags cached on the node for rollback
 	$(PROD_SSH) 'docker images $(REGISTRY)/$(IMAGE_NAME) --format "table {{.Tag}}\t{{.CreatedAt}}"'

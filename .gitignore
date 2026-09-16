@@ -2,6 +2,10 @@
 .env
 .env.dev
 .env.prod
+.env.dev-bb
+.env.dev-tyle
+.env.prod-bb
+.env.prod-tyle
 .env.local
 .env.*.local
 
