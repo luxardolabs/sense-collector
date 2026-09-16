@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.141.0",
+  "guard_version": "0.188.0",
   "repo": "/repo",
   "targets": [
     {
@@ -137,6 +137,24 @@
         "inert_reason": ""
       },
       {
+        "rule": "repo.makefile_no_command_substitution",
+        "status": "PASS",
+        "since": "0.185.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.guard_pins_not_overridable",
+        "status": "PASS",
+        "since": "0.187.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
         "rule": "repo.makefile_test_db_harness",
         "status": "INERT",
         "since": "0.102.0",
@@ -167,6 +185,60 @@
         "rule": "repo.release_docs_current",
         "status": "PASS",
         "since": "0.137.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.github_release_wired",
+        "status": "PASS",
+        "since": "0.150.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.release_tag_hygiene",
+        "status": "FAIL",
+        "since": "0.151.0",
+        "violations": 2,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.hooks_wired",
+        "status": "PASS",
+        "since": "0.154.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.hooks_current",
+        "status": "PASS",
+        "since": "0.164.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.allowlist_wellformed",
+        "status": "PASS",
+        "since": "0.165.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
+        "rule": "repo.python_version_consistent",
+        "status": "PASS",
+        "since": "0.166.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -281,6 +353,15 @@
         "inert_reason": ""
       },
       {
+        "rule": "repo.hatch_version_source_buildable",
+        "status": "PASS",
+        "since": "0.184.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": ""
+      },
+      {
         "rule": "repo.app_version_calver",
         "status": "PASS",
         "since": "0.50.0",
@@ -309,20 +390,20 @@
       }
     ],
     "summary": {
-      "PASS": 24,
-      "FAIL": 0,
+      "PASS": 32,
+      "FAIL": 1,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 2
     }
   },
   "summary": {
-    "PASS": 30,
-    "FAIL": 0,
+    "PASS": 38,
+    "FAIL": 1,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 2
   },
-  "commit": "eed1fb5bd709af997892d6edf610b2d056d22ae6",
-  "generated_at": "2026-09-06T19:37:18Z"
+  "commit": "4c14bb4415ca2ac396e1a213a241004ea368d84a",
+  "generated_at": "2026-09-16T03:54:01Z"
 }
