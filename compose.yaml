@@ -59,8 +59,9 @@ services:
     volumes:
       - sense_dev_influxdb_data:/var/lib/influxdb2
       - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
-    ports:
-      - "${INFLUX_PORT:-8086}:8086"
+    # No published port: the collector and Grafana both reach InfluxDB by SERVICE NAME on
+    # the compose network. Publishing it bought nothing and collided with sibling fleet
+    # stacks on 8086. Poke at it with `docker compose exec` if you need to.
     healthcheck:
       test: ["CMD", "influx", "ping"]
       interval: 5s
@@ -101,6 +102,10 @@ services:
       - .env.demo
       - path: .env.dev.local
         required: false
+    environment:
+      # Names the dev profile's own InfluxDB. Set here, not in .env.demo, because that file
+      # is shared with the demo profile, whose InfluxDB is a different service.
+      SENSE_COLLECTOR_INFLUXDB_URL: http://sense_dev_influxdb:8086
     depends_on:
       sense_dev_influxdb:
         condition: service_healthy
@@ -114,8 +119,9 @@ services:
     volumes:
       - sense_demo_influxdb_data:/var/lib/influxdb2
       - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
-    ports:
-      - "${INFLUX_PORT:-8086}:8086"
+    # No published port: the collector and Grafana both reach InfluxDB by SERVICE NAME on
+    # the compose network. Publishing it bought nothing and collided with sibling fleet
+    # stacks on 8086. Poke at it with `docker compose exec` if you need to.
     healthcheck:
       test: ["CMD", "influx", "ping"]
       interval: 5s

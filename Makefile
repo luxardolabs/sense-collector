@@ -40,7 +40,7 @@ LUXARCH_REGISTRY  ?=
 LUXLINT_REGISTRY  ?= $(LUXARCH_REGISTRY)
 LUXAUDIT_REGISTRY ?= $(LUXARCH_REGISTRY)
 
-LUXARCH_VERSION  := 0.188.0
+LUXARCH_VERSION  := 0.189.0
 LUXLINT_VERSION  := 0.55.0
 LUXAUDIT_VERSION := 0.9.0
 
@@ -95,7 +95,8 @@ DC      := docker compose
 RUN_DC  := $(DC) --profile collector --env-file .env.dev
 PROD_DC := $(DC) --profile collector --env-file .env.prod
 DEV_DC  := $(DC) --profile dev       --env-file .env.demo
-DEMO_DC := $(DC) --profile demo      --env-file .env.demo
+# demo shifts off dev's Grafana port so both bundled stacks can run at once.
+DEMO_DC := GRAFANA_PORT=13302 $(DC) --profile demo --env-file .env.demo
 
 # Remote prod deploy over SSH. Set the node explicitly (no fleet default).
 #   make prod-deploy PROD_NODE=prod-node.example.com
@@ -237,9 +238,9 @@ shell: ## Shell into the collector container
 
 ##@ Dev — full LOCAL stack (your real Sense account + bundled InfluxDB + Grafana)
 
-dev-up: build-local ## Build locally + start the full dev stack (real Sense account; Grafana http://localhost:3000)
+dev-up: build-local ## Build locally + start the full dev stack (real Sense account; bundled Grafana)
 	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_DC) up -d
-	@echo "sense-collector [dev] — Grafana http://localhost:3000 (admin/admin)"
+	@echo "sense-collector [dev] — Grafana http://localhost:$(or $(GRAFANA_PORT),13300) (admin/admin)"
 
 dev-down: ## Stop the dev stack (keep data volumes)
 	$(DEV_DC) down
@@ -308,7 +309,6 @@ prod-rollback: check-prod-node ## List image tags cached on the node for rollbac
 demo-up: build-local harness-build ## Bring up the demo stack — FAKE Sense endpoint + auto-provisioned InfluxDB + Grafana
 	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEMO_DC) up -d
 	@echo "Grafana:  http://localhost:3000  (admin/admin)  — dashboards populate from the fake Sense feed"
-	@echo "InfluxDB: http://localhost:8086"
 
 demo-down: ## Stop the demo stack (keep data volumes)
 	$(DEMO_DC) down
