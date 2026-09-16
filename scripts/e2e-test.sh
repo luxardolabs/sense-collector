@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # End-to-end harness runner: fake Sense endpoint -> collector -> InfluxDB, no hardware.
-# Brings up compose.e2e.yml, waits for the collector to authenticate, stream the realtime
-# WebSocket, and write mains + device data to InfluxDB, then asserts it landed. Always
-# tears the stack down. Driven by `make test-e2e` (which builds + passes SENSE_IMAGE).
+# Brings up compose.yaml's `e2e` profile, waits for the collector to authenticate, stream the
+# realtime WebSocket, and write mains + device data to InfluxDB, then asserts it landed. Always
+# tears the stack down. Driven by `make test-e2e`, which builds both images first (compose
+# never builds) and passes SENSE_IMAGE.
 set -euo pipefail
 
-DC="docker compose -f compose.e2e.yml"
+DC="docker compose --profile e2e --env-file .env.e2e"
 TOKEN="sense-e2e-token"
 MONITOR_ID="12345"
 # Device names the fake streams in realtime_update — must reach the sense_devices measurement.
@@ -15,12 +16,12 @@ TIMEOUT="${E2E_TIMEOUT:-120}"
 cleanup() { $DC down -v >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
-echo "▶ building fake Sense + collector, starting e2e stack (SENSE_IMAGE=${SENSE_IMAGE:-default})…"
-$DC up -d --build
+echo "▶ starting e2e stack (SENSE_IMAGE=${SENSE_IMAGE:-default})…"
+$DC up -d
 
 # Query InfluxDB (InfluxQL over the v1-compat API) from inside the influx container.
 influx_query() {
-  $DC exec -T sense_influxdb curl -s -G "http://localhost:8086/query" \
+  $DC exec -T sense_influxdb_e2e curl -s -G "http://localhost:8086/query" \
     --data-urlencode "db=sense" \
     --data-urlencode "q=$1" \
     -H "Authorization: Token ${TOKEN}" 2>/dev/null || true
@@ -40,7 +41,7 @@ done
 
 if [ -z "$mains_ok" ]; then
   echo "✗ FAIL: no sense_mains data for monitor ${MONITOR_ID} within ${TIMEOUT}s"
-  echo "---- collector logs ----"; $DC logs --tail=80 sense-collector || true
+  echo "---- collector logs ----"; $DC logs --tail=80 sense_collector_e2e || true
   echo "---- fake logs ----"; $DC logs --tail=20 sense_fake || true
   exit 1
 fi
@@ -55,15 +56,15 @@ done
 if [ "${#missing[@]}" -ne 0 ]; then
   echo "✗ FAIL: sense_devices missing expected device(s): ${missing[*]}"
   echo "   got: $dev_resp"
-  echo "---- collector logs ----"; $DC logs --tail=80 sense-collector || true
+  echo "---- collector logs ----"; $DC logs --tail=80 sense_collector_e2e || true
   exit 1
 fi
 echo "✓ PASS: sense_devices contains the streamed devices: ${EXPECTED_DEVICES[*]}"
 
 # The collector must still be running (didn't crash on any message type).
-if ! $DC ps --status running --services | grep -q '^sense-collector$'; then
+if ! $DC ps --status running --services | grep -q '^sense_collector_e2e$'; then
   echo "✗ FAIL: collector is not running (may have crashed)"
-  $DC logs --tail=80 sense-collector || true
+  $DC logs --tail=80 sense_collector_e2e || true
   exit 1
 fi
 

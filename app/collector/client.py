@@ -277,8 +277,16 @@ class SenseCollector:
                     for k, v in self.headers.items()
                     if k.lower() != "authorization"
                 }
+
+                async def refresh_ws_url() -> str:
+                    """Re-authenticate and rebuild the WS URL (the token lives in it)."""
+                    await self.authenticate()
+                    return SenseAPIEndpoints.WEBSOCKET.format(
+                        monitor_id=self.monitor_id, access_token=self.access_token
+                    )
+
                 await handle_websocket_connection(
-                    ws_url, ws_headers, self.process_websocket_data
+                    ws_url, ws_headers, self.process_websocket_data, refresh_ws_url
                 )
             finally:
                 # Cancel periodic tasks
