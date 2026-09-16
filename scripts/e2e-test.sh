@@ -21,7 +21,7 @@ $DC up -d
 
 # Query InfluxDB (InfluxQL over the v1-compat API) from inside the influx container.
 influx_query() {
-  $DC exec -T sense_influxdb_e2e curl -s -G "http://localhost:8086/query" \
+  $DC exec -T sense_e2e_influxdb curl -s -G "http://localhost:8086/query" \
     --data-urlencode "db=sense" \
     --data-urlencode "q=$1" \
     -H "Authorization: Token ${TOKEN}" 2>/dev/null || true
@@ -41,7 +41,7 @@ done
 
 if [ -z "$mains_ok" ]; then
   echo "✗ FAIL: no sense_mains data for monitor ${MONITOR_ID} within ${TIMEOUT}s"
-  echo "---- collector logs ----"; $DC logs --tail=80 sense_collector_e2e || true
+  echo "---- collector logs ----"; $DC logs --tail=80 sense_e2e_collector || true
   echo "---- fake logs ----"; $DC logs --tail=20 sense_fake || true
   exit 1
 fi
@@ -56,15 +56,15 @@ done
 if [ "${#missing[@]}" -ne 0 ]; then
   echo "✗ FAIL: sense_devices missing expected device(s): ${missing[*]}"
   echo "   got: $dev_resp"
-  echo "---- collector logs ----"; $DC logs --tail=80 sense_collector_e2e || true
+  echo "---- collector logs ----"; $DC logs --tail=80 sense_e2e_collector || true
   exit 1
 fi
 echo "✓ PASS: sense_devices contains the streamed devices: ${EXPECTED_DEVICES[*]}"
 
 # The collector must still be running (didn't crash on any message type).
-if ! $DC ps --status running --services | grep -q '^sense_collector_e2e$'; then
+if ! $DC ps --status running --services | grep -q '^sense_e2e_collector$'; then
   echo "✗ FAIL: collector is not running (may have crashed)"
-  $DC logs --tail=80 sense_collector_e2e || true
+  $DC logs --tail=80 sense_e2e_collector || true
   exit 1
 fi
 
