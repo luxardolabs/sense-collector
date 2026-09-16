@@ -272,6 +272,17 @@ class SenseCollector:
                 # The access token is already carried in the WS URL (Sense's protocol), so
                 # don't ALSO send it as an Authorization header — that just doubles where the
                 # secret lives (and URLs leak through proxies far more than headers).
+                #
+                # DO NOT "fix" a WebSocket 401 by re-adding this header (SENSECOLLE-21/-44).
+                # That header read from self.headers, which authenticate() rebuilds on every
+                # renewal, so it had been silently carrying a LIVE token and masking the real
+                # defect: ws_url is built ONCE below and never re-derived. When it was removed
+                # as "redundant" — verified only against a fresh token, never across a renewal
+                # — both deployments started 401ing at the next renewal and retried the dead
+                # URL ~85,000 times over two months while REST kept working.
+                #
+                # The invariant is: the WS credential must be RE-DERIVED after re-auth, never
+                # snapshotted. That is what refresh_ws_url below exists for.
                 ws_headers = {
                     k: v
                     for k, v in self.headers.items()
