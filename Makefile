@@ -40,9 +40,9 @@ LUXARCH_REGISTRY  ?=
 LUXLINT_REGISTRY  ?= $(LUXARCH_REGISTRY)
 LUXAUDIT_REGISTRY ?= $(LUXARCH_REGISTRY)
 
-LUXARCH_VERSION  := 0.141.0
-LUXLINT_VERSION  := 0.44.2
-LUXAUDIT_VERSION := 0.4.0
+LUXARCH_VERSION  := 0.188.0
+LUXLINT_VERSION  := 0.55.0
+LUXAUDIT_VERSION := 0.9.0
 
 LUXARCH_IMAGE  = $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 LUXLINT_IMAGE  = $(LUXLINT_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
@@ -85,15 +85,17 @@ POETRY_RUN := docker run --rm -u $(REPO_UID):$(REPO_GID) -e HOME=/tmp -v $(PWD):
 POETRY_PIP := python -m venv /tmp/v && /tmp/v/bin/pip install -q --root-user-action=ignore $(POETRY_SPEC)
 
 # Compose stacks (all .yml, short-form volumes). Four flavors:
-#   compose.yml       collector-only -> your external InfluxDB/Grafana (.env.dev / :dev)
-#   compose.prod.yml  collector-only -> external, prod (.env.prod / :latest)
-#   compose.dev.yml   full LOCAL dev stack: your real Sense account + bundled InfluxDB+Grafana
-#   compose.demo.yml  DEMO: fake Sense endpoint + bundled InfluxDB+Grafana (no account)
-#   compose.e2e.yml   hardware-free e2e test (fake Sense + ephemeral InfluxDB) -> `make test-e2e`
-RUN_DC  := docker compose -f compose.yml --env-file .env.dev
-PROD_DC := docker compose -f compose.prod.yml --env-file .env.prod
-DEV_DC  := docker compose -f compose.dev.yml --env-file .env.demo
-DEMO_DC := docker compose -f compose.demo.yml --env-file .env.demo
+# ONE compose.yaml; the four stacks are compose PROFILES, and environments differ by
+# .env.<env> (never by a second compose file — repo.compose_conventions).
+#   --profile collector  collector-only -> your external InfluxDB/Grafana (.env.dev / .env.prod)
+#   --profile dev        full LOCAL dev stack: your real Sense account + bundled InfluxDB+Grafana
+#   --profile demo       DEMO: fake Sense endpoint + bundled InfluxDB+Grafana (no account)
+#   --profile e2e        hardware-free e2e test (fake Sense + throwaway InfluxDB) -> `make test-e2e`
+DC      := docker compose
+RUN_DC  := $(DC) --profile collector --env-file .env.dev
+PROD_DC := $(DC) --profile collector --env-file .env.prod
+DEV_DC  := $(DC) --profile dev       --env-file .env.demo
+DEMO_DC := $(DC) --profile demo      --env-file .env.demo
 
 # Remote prod deploy over SSH. Set the node explicitly (no fleet default).
 #   make prod-deploy PROD_NODE=prod-node.example.com
@@ -103,7 +105,7 @@ PROD_DIR  ?= /opt/sense-collector
 PROD_SSH  := ssh -o BatchMode=yes $(PROD_USER)@$(PROD_NODE)
 
 .PHONY: help version \
-        dev-build-push build-local version-build-push release release-public buildx-setup \
+        dev-build-push build-local harness-build version-build-push release release-public github-release buildx-setup \
         docker-inspect docker-clean \
         up down restart logs ps shell \
         dev-up dev-down dev-clean dev-logs dev-ps dev-shell \
@@ -167,6 +169,14 @@ dev-build-push: ## Build + push :dev ONLY (tooling stage: dev deps + tests baked
 	docker push $(DEV_IMAGE)
 	@echo "Pushed $(DEV_IMAGE)"
 
+# Compose never builds — every image is built here and referenced by tag. The fake-Sense
+# emulator is no exception (--playbook compose-hygiene: "a fake-device harness is built
+# outside compose too, then run by tag"). `:local` is the sanctioned never-pushed form.
+HARNESS_IMAGE := sense-collector-fake:local
+
+harness-build: ## Build the fake-Sense emulator image used by the demo + e2e profiles
+	docker build $(NO_CACHE_FLAG) -t $(HARNESS_IMAGE) ./harness
+
 build-local: ## Build the runtime image from CURRENT source as a local tag (no push, no registry)
 	docker build $(NO_CACHE_FLAG) --target base -f Dockerfile $(BUILD_ARGS) -t $(LOCAL_IMAGE) .
 
@@ -174,6 +184,15 @@ version-build-push: ## Build + push :$(VERSION) ONLY (runtime base stage) to the
 	docker build $(NO_CACHE_FLAG) --target base -f Dockerfile $(BUILD_ARGS) -t $(VERSION_IMAGE) .
 	docker push $(VERSION_IMAGE)
 	@echo "Pushed $(VERSION_IMAGE)"
+
+# The GitHub Release is part of cutting a release, not an afterthought: a git tag is NOT a
+# Release, and without this the /releases page stays empty while release_notes/$(VERSION).md
+# goes unused (repo.github_release_wired). Idempotent — skips if the release already exists.
+github-release: ## Publish this VERSION's release notes to GitHub /releases
+	@gh release view v$(VERSION) --repo luxardolabs/sense-collector >/dev/null 2>&1 \
+	  && echo "GitHub Release v$(VERSION) already exists — skipping" \
+	  || gh release create v$(VERSION) --title $(VERSION) \
+	       --notes-file app/release_notes/$(VERSION).md --latest
 
 release: buildx-setup ## Build + push :$(VERSION) AND :latest (multi-arch) to the private registry
 	docker buildx build $(NO_CACHE_FLAG) --target base --platform $(PLATFORMS) -f Dockerfile $(BUILD_ARGS) \
@@ -195,7 +214,7 @@ docker-inspect: ## Inspect release image metadata
 docker-clean: ## Remove local image tags (:dev, :$(VERSION), :latest)
 	docker rmi $(DEV_IMAGE) $(VERSION_IMAGE) $(IMAGE) 2>/dev/null || true
 
-##@ Collector-only — plug into your existing InfluxDB/Grafana (compose.yml, .env.dev)
+##@ Collector-only — plug into your existing InfluxDB/Grafana (profile collector, .env.dev)
 
 up: build-local ## Build locally + start the collector against YOUR external InfluxDB (edit .env.dev)
 	SENSE_IMAGE=$(LOCAL_IMAGE) $(RUN_DC) up -d
@@ -264,8 +283,8 @@ prod-init: check-prod-node ## One-time: create the output data dir on the node (
 	$(PROD_SSH) 'mkdir -p $(PROD_DIR)/output && chown -R 1000:1000 $(PROD_DIR)/output'
 	@printf "✓ output dir created on $(PROD_NODE)\n"
 
-prod-sync: check-prod-node ## Push compose.prod.yml + .env.prod to the node (repo is source of truth)
-	rsync -az --chown=1000:1000 compose.prod.yml .env.prod $(PROD_USER)@$(PROD_NODE):$(PROD_DIR)/
+prod-sync: check-prod-node ## Push compose.yaml + .env.prod to the node (repo is source of truth)
+	rsync -az --chown=1000:1000 compose.yaml .env.prod $(PROD_USER)@$(PROD_NODE):$(PROD_DIR)/
 	@printf "✓ synced config to $(PROD_NODE):$(PROD_DIR)\n"
 
 prod-deploy: check-prod-node ## Pull :latest + recreate the collector on the node (run release first)
@@ -286,8 +305,8 @@ prod-rollback: check-prod-node ## List image tags cached on the node for rollbac
 
 ##@ Demo / quickstart (self-contained: collector + InfluxDB + Grafana)
 
-demo-up: build-local ## Bring up the demo stack — FAKE Sense endpoint + auto-provisioned InfluxDB + Grafana
-	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEMO_DC) up -d --build
+demo-up: build-local harness-build ## Bring up the demo stack — FAKE Sense endpoint + auto-provisioned InfluxDB + Grafana
+	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEMO_DC) up -d
 	@echo "Grafana:  http://localhost:3000  (admin/admin)  — dashboards populate from the fake Sense feed"
 	@echo "InfluxDB: http://localhost:8086"
 
@@ -392,7 +411,7 @@ test: .test-image.stamp ## Canonical pytest suite + coverage floor (lock-built d
 	exit $$rc
 
 E2E_IMAGE := sense-collector:e2e   # local build tag — the e2e gate needs no registry
-test-e2e: ## Hardware-free end-to-end test: fake Sense endpoint -> collector -> InfluxDB
+test-e2e: harness-build ## Hardware-free end-to-end test: fake Sense endpoint -> collector -> InfluxDB
 	docker build $(NO_CACHE_FLAG) --target base -f Dockerfile $(BUILD_ARGS) -t $(E2E_IMAGE) .
 	SENSE_IMAGE=$(E2E_IMAGE) ./scripts/e2e-test.sh
 

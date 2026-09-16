@@ -9,7 +9,7 @@ from typing import Any
 import aiofiles
 import websockets
 from websockets.asyncio.client import ClientConnection
-from websockets.exceptions import WebSocketException
+from websockets.exceptions import InvalidStatus, WebSocketException
 
 from app.core import config
 from app.utils.file_validator import FilePathValidator
@@ -24,14 +24,20 @@ class WebSocketHandler:
         ws_url: str,
         headers: dict[str, str],
         process_data_callback: Callable[[dict[str, Any]], Awaitable[None]],
+        refresh_url: Callable[[], Awaitable[str]] | None = None,
     ) -> None:
         self.ws_url = ws_url
         self.headers = headers
         self.process_data_callback = process_data_callback
+        # Called after the server rejects the handshake as unauthorized: re-authenticates
+        # and returns a FRESH ws_url. Sense carries the access token IN the URL, so a URL
+        # captured at startup goes stale the moment the token expires.
+        self.refresh_url = refresh_url
         self.ws: ClientConnection | None = None
         self.last_message_time = time.time()
         self.connection_start_time = time.time()
         self.reconnect_count = 0
+        self.auth_failures = 0
         self.is_shutting_down = False
 
     async def connect(self) -> bool:
@@ -49,7 +55,22 @@ class WebSocketHandler:
                 "WebSocket connected successfully (attempt #%s)",
                 self.reconnect_count + 1,
             )
+            self.auth_failures = 0
             return True
+        except InvalidStatus as e:
+            # InvalidStatus subclasses WebSocketException, so it MUST be caught first.
+            status = e.response.status_code
+            if status in (401, 403):
+                self.auth_failures += 1
+                api_logger.error(
+                    "WebSocket auth rejected (HTTP %s), failure #%s — the token in the URL "
+                    "is stale; re-authenticating before the next attempt",
+                    status,
+                    self.auth_failures,
+                )
+            else:
+                api_logger.error("Failed to connect WebSocket: %s", e)
+            return False
         except (OSError, WebSocketException, TimeoutError) as e:
             api_logger.error("Failed to connect WebSocket: %s", e)
             return False
@@ -166,7 +187,13 @@ class WebSocketHandler:
             message_task: asyncio.Task[bool] | None = None
             health_task: asyncio.Task[bool] | None = None
             try:
-                if await self.connect():
+                connected = await self.connect()
+                if not connected and self.auth_failures:
+                    # The handshake was rejected as unauthorized — retrying the same URL
+                    # can only fail the same way, so refresh it before backing off.
+                    await self._refresh_credentials()
+
+                if connected:
                     # Reset backoff on successful connection
                     backoff_delay = config.WS_RECONNECT_DELAY_INITIAL
 
@@ -251,6 +278,33 @@ class WebSocketHandler:
 
         return False
 
+    async def _refresh_credentials(self) -> None:
+        """Re-authenticate and rebuild the WebSocket URL after an auth rejection.
+
+        Sense carries the access token IN the WebSocket URL, so the URL captured at startup
+        dies with the token. Without this the reconnect loop re-presents the same dead token
+        forever — the collector logs a 401 every backoff interval and never collects again,
+        while REST keeps working because it reads the refreshed token. That ran for two
+        months on two deployments (~85k rejections each) before anything noticed.
+
+        After WS_AUTH_FAILURE_LIMIT consecutive rejections the credential itself is assumed
+        bad and the error is raised: the process exits and the container restart policy makes
+        it visible, rather than idling healthy-looking with no data.
+        """
+        if self.auth_failures > config.WS_AUTH_FAILURE_LIMIT:
+            api_logger.error(
+                "WebSocket auth rejected %s times in a row — the credentials look wrong, "
+                "not merely expired. Exiting so the restart policy surfaces it.",
+                self.auth_failures,
+            )
+            raise RuntimeError(
+                f"WebSocket authentication failed {self.auth_failures} times consecutively"
+            )
+        if self.refresh_url is None:
+            return
+        api_logger.info("Re-authenticating to refresh the WebSocket token…")
+        self.ws_url = await self.refresh_url()
+
     async def _handle_reconnection_delay(self, delay: float) -> None:
         """Handle reconnection delay with logging."""
         # Aware in UTC, rendered in the container's zone — this value is only ever logged.
@@ -275,7 +329,8 @@ async def handle_websocket_connection(
     ws_url: str,
     headers: dict[str, str],
     process_data_callback: Callable[[dict[str, Any]], Awaitable[None]],
+    refresh_url: Callable[[], Awaitable[str]] | None = None,
 ) -> None:
     """Construct a WebSocketHandler and run its connect/reconnect loop."""
-    handler = WebSocketHandler(ws_url, headers, process_data_callback)
+    handler = WebSocketHandler(ws_url, headers, process_data_callback, refresh_url)
     await handler.run()

@@ -330,3 +330,106 @@ class TestHandleWebSocketConnection:
         with patch("app.collector.websocket.WebSocketHandler.run", AsyncMock()) as run:
             await handle_websocket_connection("ws://x", {"A": "b"}, AsyncMock())
         run.assert_awaited_once()
+
+
+def _invalid_status(code):
+    """The real exception `websockets` raises when the server rejects the handshake."""
+    from websockets.datastructures import Headers
+    from websockets.exceptions import InvalidStatus
+    from websockets.http11 import Response
+
+    return InvalidStatus(Response(code, "Rejected", Headers()))
+
+
+class TestAuthRejectionRecovery:
+    """The token rides IN the WS URL, so an expired token makes a captured URL permanently
+    dead. Two deployments retried the same URL ~85k times over two months, logging a 401
+    every 60s while REST kept working. These pin the recovery, not just the detection.
+    """
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("code", [401, 403])
+    async def test_an_auth_rejection_is_counted_not_treated_as_transport(
+        self, handler, code
+    ):
+        with patch(
+            "app.collector.websocket.websockets.connect",
+            AsyncMock(side_effect=_invalid_status(code)),
+        ):
+            assert await handler.connect() is False
+        assert handler.auth_failures == 1
+
+    @pytest.mark.asyncio
+    async def test_a_non_auth_rejection_is_not_counted_as_auth(self, handler):
+        """A 502 is the proxy having a bad day — re-authenticating would not help."""
+        with patch(
+            "app.collector.websocket.websockets.connect",
+            AsyncMock(side_effect=_invalid_status(502)),
+        ):
+            assert await handler.connect() is False
+        assert handler.auth_failures == 0
+
+    @pytest.mark.asyncio
+    async def test_a_successful_connect_clears_the_failure_count(self, handler):
+        handler.auth_failures = 3
+        with patch(
+            "app.collector.websocket.websockets.connect",
+            AsyncMock(return_value=MockWS(open_=True)),
+        ):
+            assert await handler.connect() is True
+        assert handler.auth_failures == 0
+
+    @pytest.mark.asyncio
+    async def test_the_url_is_rebuilt_after_a_rejection(self, handler):
+        """THE regression: the reconnect must not re-present the dead token."""
+        handler.refresh_url = AsyncMock(
+            return_value="wss://sense/ws?access_token=FRESH"
+        )
+        handler.auth_failures = 1
+        await handler._refresh_credentials()
+        handler.refresh_url.assert_awaited_once()
+        assert handler.ws_url.endswith("FRESH")
+
+    @pytest.mark.asyncio
+    async def test_run_refreshes_the_url_instead_of_retrying_the_dead_one(
+        self, handler
+    ):
+        """End to end through run(): a 401 drives a re-auth, not an identical retry."""
+        refreshed = AsyncMock(return_value="wss://sense/ws?access_token=FRESH")
+        handler.refresh_url = refreshed
+        attempts = []
+
+        async def reject_then_stop():
+            attempts.append(handler.ws_url)
+            handler.auth_failures += 1
+            if len(attempts) >= 2:
+                handler.is_shutting_down = True
+            return False
+
+        with (
+            patch.object(handler, "connect", AsyncMock(side_effect=reject_then_stop)),
+            patch.object(handler, "_handle_reconnection_delay", AsyncMock()),
+        ):
+            await asyncio.wait_for(handler.run(), timeout=5)
+
+        refreshed.assert_awaited()
+        # the second attempt used the refreshed URL, not the original dead one
+        assert attempts[1].endswith("FRESH")
+
+    @pytest.mark.asyncio
+    async def test_persistent_rejection_exits_instead_of_idling_forever(self, handler):
+        """Past the limit the credential is wrong, not stale — exit so the restart policy
+        shows it, rather than looping quietly with no data (the observed failure)."""
+        handler.refresh_url = AsyncMock(
+            return_value="wss://sense/ws?access_token=FRESH"
+        )
+        handler.auth_failures = config.WS_AUTH_FAILURE_LIMIT + 1
+        with pytest.raises(RuntimeError, match="consecutively"):
+            await handler._refresh_credentials()
+
+    @pytest.mark.asyncio
+    async def test_no_refresh_callback_is_survivable(self, handler):
+        """A handler built without the callback (older callers) must not crash."""
+        handler.refresh_url = None
+        handler.auth_failures = 1
+        await handler._refresh_credentials()
