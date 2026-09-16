@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.189.0",
+  "guard_version": "0.190.0",
   "repo": "/repo",
   "targets": [
     {
@@ -201,9 +201,9 @@
       },
       {
         "rule": "repo.release_tag_hygiene",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.151.0",
-        "violations": 2,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -390,20 +390,20 @@
       }
     ],
     "summary": {
-      "PASS": 32,
-      "FAIL": 1,
+      "PASS": 33,
+      "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 2
     }
   },
   "summary": {
-    "PASS": 38,
-    "FAIL": 1,
+    "PASS": 39,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 2
   },
-  "commit": "e3eab46b44eb6ecfa20e93286b4670b19b188fe6",
-  "generated_at": "2026-09-16T04:28:16Z"
+  "commit": "03e99d83187a0feaf5e67dc23c4fafb7b0525f4f",
+  "generated_at": "2026-09-16T04:41:53Z"
 }
