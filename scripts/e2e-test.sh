@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # End-to-end harness runner: fake Sense endpoint -> collector -> InfluxDB, no hardware.
-# Brings up compose.yaml's `e2e` profile, waits for the collector to authenticate, stream the
+# Brings up compose.yml's `e2e` profile, waits for the collector to authenticate, stream the
 # realtime WebSocket, and write mains + device data to InfluxDB, then asserts it landed. Always
 # tears the stack down. Driven by `make test-e2e`, which builds both images first (compose
 # never builds) and passes SENSE_IMAGE.

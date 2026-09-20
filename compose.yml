@@ -1,6 +1,6 @@
 name: sense-collector
 
-# THE one compose file (fleet standard: exactly one `compose.yaml` per repo). Stacks are
+# THE one compose file (fleet standard: exactly one `compose.yml` per repo). Stacks are
 # compose PROFILES — a service carrying a `profiles:` key is inert unless that profile is
 # named, which is what makes one file sufficient. Compose NEVER builds: every image is built
 # outside it (`make build-local`, `make harness-build`, `make release`) and run by tag.
