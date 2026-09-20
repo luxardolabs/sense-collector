@@ -40,7 +40,7 @@ LUXARCH_REGISTRY  ?=
 LUXLINT_REGISTRY  ?= $(LUXARCH_REGISTRY)
 LUXAUDIT_REGISTRY ?= $(LUXARCH_REGISTRY)
 
-LUXARCH_VERSION  := 0.190.0
+LUXARCH_VERSION  := 0.192.4
 LUXLINT_VERSION  := 0.55.0
 LUXAUDIT_VERSION := 0.9.0
 
@@ -85,7 +85,7 @@ POETRY_RUN := docker run --rm -u $(REPO_UID):$(REPO_GID) -e HOME=/tmp -v $(PWD):
 POETRY_PIP := python -m venv /tmp/v && /tmp/v/bin/pip install -q --root-user-action=ignore $(POETRY_SPEC)
 
 # Compose stacks (all .yml, short-form volumes). Four flavors:
-# ONE compose.yaml; the four stacks are compose PROFILES, and environments differ by
+# ONE compose.yml; the four stacks are compose PROFILES, and environments differ by
 # .env.<env> (never by a second compose file — repo.compose_conventions).
 #   --profile dev-tyle / dev-bb    per-monitor LOCAL stack: real Sense account + bundled infra
 #   --profile prod-tyle / prod-bb  per-monitor collector only -> your external InfluxDB
@@ -297,8 +297,8 @@ prod-init: check-prod-node ## One-time: create the output data dir on the node (
 	$(PROD_SSH) 'mkdir -p $(PROD_DIR)/output && chown -R 1000:1000 $(PROD_DIR)/output'
 	@printf "✓ output dir created on $(PROD_NODE)\n"
 
-prod-sync: check-prod-node ## Push compose.yaml + .env.prod to the node (repo is source of truth)
-	rsync -az --chown=1000:1000 compose.yaml .env.prod $(PROD_USER)@$(PROD_NODE):$(PROD_DIR)/
+prod-sync: check-prod-node ## Push compose.yml + .env.prod to the node (repo is source of truth)
+	rsync -az --chown=1000:1000 compose.yml .env.prod $(PROD_USER)@$(PROD_NODE):$(PROD_DIR)/
 	@printf "✓ synced config to $(PROD_NODE):$(PROD_DIR)\n"
 
 prod-deploy: check-prod-node ## Pull :latest + recreate the collector on the node (run release first)
@@ -350,9 +350,18 @@ poetry-install: ## Verify deps resolve + install cleanly from poetry.lock (docke
 
 # Lean test-deps image, built from poetry.lock (NOT from :dev). Keyed on the lock + pyproject +
 # Dockerfile.test, so it rebuilds ONLY when deps change — never on a code edit (source is mounted).
+# The stamp tracks the LOCK, but the image lives in the Docker daemon — outside make's
+# view. A prune or a daemon reset deletes the image while the stamp survives, so make
+# skips the build and the run fails against a nonexistent image, surfacing as a confusing
+# "no coverage % on STDIN" three lines later (SENSECOLLE-45). Drop the stamp whenever the
+# image is actually gone, so it asserts the fact rather than a proxy for it.
 .test-image.stamp: poetry.lock pyproject.toml Dockerfile.test
 	DOCKER_BUILDKIT=1 docker build $(NO_CACHE_FLAG) -f Dockerfile.test -t $(TEST_IMAGE) .
 	@touch $@
+
+.PHONY: _test-image-present
+_test-image-present:
+	@docker image inspect $(TEST_IMAGE) >/dev/null 2>&1 || rm -f .test-image.stamp
 
 # Every guard target is a no-op when the private registry host is unset (external
 # contributor / CI without registry access) — one guard of the var, reused everywhere.
@@ -371,15 +380,24 @@ guard-version-check: ## FATAL: fail if any guard pin is behind the published lat
 	    printf "✗ %s pinned %s, latest %s — behind. Preview: --new-rules --since %s; then 'make guard-upgrade'\n" "$$g" "$$pin" "$$latest" "$$pin"; rc=1; \
 	  fi; done; exit $$rc
 
-guard-upgrade: ## Bump every guard pin to the published latest (prints what newly bites)
-	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
-	for g in luxarch luxlint luxaudit; do \
+guard-upgrade:  ## Bump every guard pin to the published latest (prints what newly bites)
+	@for g in luxarch luxlint luxaudit; do \
 	  docker pull -q $(LUXARCH_REGISTRY)/luxardolabs/$$g:latest >/dev/null 2>&1 || true; \
 	  latest=$$(docker run --rm $(LUXARCH_REGISTRY)/luxardolabs/$$g:latest --version 2>/dev/null | awk '{print $$2}'); \
-	  var=$$(echo $$g | tr a-z A-Z)_VERSION; old=$$(sed -n "s/^$$var  *:= //p" Makefile); \
-	  [ -n "$$latest" ] && sed -i "s|^$$var\( *\):= .*|$$var\1:= $$latest|" Makefile; \
-	  [ "$$g" = luxarch ] && [ -n "$$old" ] && $(GUARD_RUN) $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$$latest --new-rules --since $$old || true; \
-	done; echo "pins bumped — re-run make check"
+	  var=$$(echo $$g | tr a-z A-Z)_VERSION; \
+	  old=$$(sed -n -E "s/^$$var[[:space:]]*:=[[:space:]]*//p" Makefile); \
+	  if [ -z "$$old" ]; then echo "!! no $$var pin found in Makefile — NOT bumped"; continue; fi; \
+	  if [ -z "$$latest" ]; then echo "!! could not read $$g:latest — $$var left at $$old"; continue; fi; \
+	  checked=1; \
+	  sed -i -E "s|^($$var[[:space:]]*:=[[:space:]]*).*|\\1$$latest|" Makefile; \
+	  new=$$(sed -n -E "s/^$$var[[:space:]]*:=[[:space:]]*//p" Makefile); \
+	  if [ "$$new" != "$$latest" ]; then echo "!! $$var did NOT change (still $$new)"; exit 1; fi; \
+	  if [ "$$old" != "$$latest" ]; then echo "$$var $$old -> $$latest"; bumped=1; fi; \
+	  [ "$$g" = luxarch ] && [ "$$old" != "$$latest" ] && docker run --rm -v $(PWD):/repo $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$$latest --new-rules --since $$old || true; \
+	done; \
+	if [ -n "$$bumped" ]; then echo "pins bumped — re-run make check"; \
+	elif [ -n "$$checked" ]; then echo "all pins already at latest"; \
+	else echo "!! could not reach the registry — NO pin was checked; currency NOT established"; exit 1; fi
 
 honest: ## HONESTY gate — a green `make check` must mean nothing was silently unchecked
 	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
@@ -410,7 +428,7 @@ format: ## THE canonical fixer (luxlint --format) — safe autofixes + canonical
 # [test].coverage_min floor — monotonic UP, and loud (never silently green) if the
 # measurement is missing. PIPESTATUS keeps pytest's own exit code authoritative: a failing
 # suite must fail `make test` even when the ratchet is satisfied.
-test: .test-image.stamp ## Canonical pytest suite + coverage floor (lock-built deps image, mounted source)
+test: _test-image-present .test-image.stamp ## Canonical pytest suite + coverage floor (lock-built deps image, mounted source)
 	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
 	$(GUARD_RUN) $(LUXLINT_IMAGE) --emit-config pytest > .luxlint.pytest.ini; \
 	set -o pipefail; \

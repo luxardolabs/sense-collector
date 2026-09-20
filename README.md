@@ -16,8 +16,8 @@
 
 ```bash
 cp .env.example .env.prod          # then edit: Sense credentials + InfluxDB connection
-docker compose -f compose.prod.yml up -d
-docker compose -f compose.prod.yml ps   # HEALTH shows healthy once data is flowing
+docker compose --profile prod-tyle --env-file .env.prod-tyle up -d
+docker compose --profile prod-tyle ps   # HEALTH shows healthy once data is flowing
 ```
 
 The image is published at `ghcr.io/luxardolabs/sense-collector:latest`. Full walkthrough: **[docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)**.

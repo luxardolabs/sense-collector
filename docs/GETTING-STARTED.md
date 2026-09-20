@@ -42,10 +42,10 @@ Everything else is optional and has sensible defaults — see [CONFIGURATION.md]
 
 ## Run
 
-With Docker Compose (recommended — uses `compose.prod.yml` and your `.env.prod`):
+With Docker Compose (recommended — one `compose.yml`; pick the profile for your stack and its `.env.<stack>`):
 
 ```bash
-docker compose -f compose.prod.yml up -d
+docker compose --profile prod-tyle --env-file .env.prod-tyle up -d
 ```
 
 Or with `docker run`:
@@ -66,7 +66,7 @@ The collector reaches out to the Sense cloud and your InfluxDB; it exposes no po
 The container ships a Docker `HEALTHCHECK` driven by a heartbeat the collector touches on every WebSocket message, so an unhealthy container is a real liveness signal.
 
 ```bash
-docker compose -f compose.prod.yml ps        # HEALTH shows healthy once data is flowing
+docker compose --profile prod-tyle ps        # HEALTH shows healthy once data is flowing
 docker logs -f sense-collector               # watch it authenticate, connect the WS, and write
 ```
 

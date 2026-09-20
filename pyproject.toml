@@ -50,6 +50,12 @@ pytz = "^2026.2"
 #     negotiated.
 #   All fixed in 3.14.3.
 aiohttp = ">=3.14.3"
+# anyio: the async runtime underneath httpx (httpx -> httpcore -> anyio), so it is on the
+#   Sense API path. CVE-2026-63374 (TLS hostname handling for internationalized domain
+#   names), CVE-2026-64847 (process-pool worker stderr pipe never drained), CVE-2026-63349
+#   (open_process forwards the wrong variable for extra_groups). All fixed in 4.14.2; a
+#   patch bump with no API change.
+anyio = ">=4.14.2"
 # h2: the HTTP/2 stack behind httpx[http2], which talks to the Sense cloud API.
 #   CVE-2026-71554 multiple Host headers accepted and all forwarded to the consumer, enabling
 #     request smuggling where HTTP/2 is downgraded to HTTP/1.1. Fixed in 4.4.1.

@@ -75,23 +75,25 @@ Sense cloud API/WebSocket -> app/collector (client + websocket) -> app/storage/i
 - **Automatic WebSocket reconnection** with exponential backoff + heartbeat.
 - Three async transports by design: **httpx** (Sense REST, HTTP/2), **websockets** 16.x (Sense realtime WS — `websockets.asyncio.client` / `additional_headers`), and **aiohttp** (InfluxDB writes, via `InfluxDBClientAsync`, per the fleet ingestion standard).
 
-## The four run stacks
+## The run stacks
 
-Distinguished by source (real vs fake Sense) and observability (external vs bundled). All are `.yml`, short-form volumes, and run on the **bridge network** (Sense is a cloud API — no host networking). Compose never builds except the fake-Sense service in demo/e2e (`build: ./harness`).
+**ONE `compose.yml`**; each stack is a compose `profiles:` key, so a service is inert unless its profile is named. Two Sense monitors (tyle, bb) x two environments gives the four real-account stacks. Everything runs on the **bridge network** (Sense is a cloud API — no host networking), and only Grafana publishes a port. **Compose never builds** — the fake-Sense image is built by `make harness-build` and referenced by tag.
 
-| Stack          | compose file                         | source          | InfluxDB/Grafana          | make                 |
-| -------------- | ------------------------------------ | --------------- | ------------------------- | -------------------- |
-| collector-only | `compose.yml` (+ `compose.prod.yml`) | real            | external (your fleet)     | `make up` / `prod-*` |
-| dev            | `compose.dev.yml`                    | real            | bundled, auto-provisioned | `make dev-up`        |
-| demo           | `compose.demo.yml`                   | fake (emulator) | bundled, auto-provisioned | `make demo-up`       |
-| test           | `compose.e2e.yml`                    | fake            | ephemeral, no Grafana     | `make test-e2e`      |
+| Stack     | profile of `compose.yml` | source          | InfluxDB/Grafana          | make              |
+| --------- | ------------------------ | --------------- | ------------------------- | ----------------- |
+| dev-tyle  | `dev-tyle`               | real (tyle)     | bundled, auto-provisioned | `make dev-up`     |
+| dev-bb    | `dev-bb`                 | real (bb)       | bundled, auto-provisioned | `make bb-up`      |
+| prod-tyle | `prod-tyle`              | real (tyle)     | external (your fleet)     | `make prod-up`    |
+| prod-bb   | `prod-bb`                | real (bb)       | external (your fleet)     | `make prod-bb-up` |
+| demo      | `demo`                   | fake (emulator) | bundled, auto-provisioned | `make demo-up`    |
+| test      | `e2e`                    | fake            | ephemeral, no Grafana     | `make test-e2e`   |
 
 - Bundled `influxdb:2.7` + Grafana are dev/demo/test only. InfluxQL dashboards need a DBRP mapping (`ops/influxdb/init-dbrp.sh`); Grafana is provisioned via `grafana/provisioning/` (datasource pinned uid `uDxwFcOGz`; dashboards from `grafana/shared-local/`, using the `${data_source}` picker var).
 - **Emulator**: `harness/fake_sense.py` — pure-stdlib Sense cloud fake (HTTP auth + REST + hand-rolled RFC 6455 WebSocket). Point the collector at it with `SENSE_COLLECTOR_API_BASE_URL` / `SENSE_COLLECTOR_WS_BASE_URL`. See `harness/README.md`.
 
 ## Configuration
 
-All config is via `SENSE_COLLECTOR_*` environment variables (see `app/core/config.py` for the full validated list, and `docs/CONFIGURATION.md`). **Secrets live in gitignored `.env.dev` / `.env.prod`** (copy from `.env.example`); the dev stack layers an optional gitignored `.env.dev.local` (copy from `.env.dev.local.example`) with your real Sense account. `.env.demo` is committed, non-secret bundled-stack config. Run `make gitleaks-staged` before committing.
+All config is via `SENSE_COLLECTOR_*` environment variables (see `app/core/config.py` for the full validated list, and `docs/CONFIGURATION.md`). **Secrets live in a gitignored `.env.<stack>` per real-account stack** — `.env.dev-tyle`, `.env.dev-bb`, `.env.prod-tyle`, `.env.prod-bb` (copy from `.env.example`). `.env.demo` and `.env.e2e` are committed and hold no secrets. Run `make gitleaks-staged` before committing.
 
 Required: `API_USERNAME`, `API_PASSWORD`, `INFLUXDB_URL`, `INFLUXDB_TOKEN`, `INFLUXDB_ORG`, `INFLUXDB_BUCKET` (all `SENSE_COLLECTOR_`-prefixed).
 
