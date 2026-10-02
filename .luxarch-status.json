@@ -165,9 +165,9 @@
       },
       {
         "rule": "repo.fleet_skills_present",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.245.0",
-        "violations": 4,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -255,9 +255,9 @@
       },
       {
         "rule": "repo.emitted_assets_current",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.208.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -282,9 +282,9 @@
       },
       {
         "rule": "repo.claude_pointer_present",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.213.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -363,9 +363,9 @@
       },
       {
         "rule": "repo.hooks_current",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.164.0",
-        "violations": 9,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": ""
@@ -570,20 +570,20 @@
       }
     ],
     "summary": {
-      "PASS": 43,
-      "FAIL": 4,
+      "PASS": 47,
+      "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 7
     }
   },
   "summary": {
-    "PASS": 50,
-    "FAIL": 4,
+    "PASS": 54,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 7
   },
-  "commit": "922d076759c75016a855b9e8dfeb4dcfb3ed93e5",
-  "generated_at": "2026-10-02T13:46:48Z"
+  "commit": "c5798ddd9fe55d14014506bf782ae55a856b2989",
+  "generated_at": "2026-10-02T13:49:14Z"
 }
