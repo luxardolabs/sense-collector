@@ -1,0 +1,13 @@
+format: luxpm-sync-receipt/1
+project: SENSECOLLE
+repository_url: https://github.com/luxardolabs/sense-collector
+issued_at: 2026-10-02T14:07:38+00:00
+last_activity_at: 2026-10-02T14:07:25+00:00
+stale_days: 14
+open: 2
+open_stale: 1
+closed_without_summary: 15
+open_escalations: 0
+last_known_commit: 46dce076b2fcd924010058a6c77cd6d98aae5755
+key_id: cbb673eafd0c3932
+signature: cZAw/0QpjvBkk0LBU/gilRoSmnEIIx40Sxhkll3jPOsod47k5upRYXBugV6WgnTEZ0LweDKYADCYrEcA132zAw==
