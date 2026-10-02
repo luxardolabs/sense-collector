@@ -40,9 +40,9 @@ LUXARCH_REGISTRY  ?=
 LUXLINT_REGISTRY  ?= $(LUXARCH_REGISTRY)
 LUXAUDIT_REGISTRY ?= $(LUXARCH_REGISTRY)
 
-LUXARCH_VERSION  := 0.192.4
-LUXLINT_VERSION  := 0.55.0
-LUXAUDIT_VERSION := 0.9.0
+LUXARCH_VERSION  := 0.249.0
+LUXLINT_VERSION  := 0.60.0
+LUXAUDIT_VERSION := 0.12.0
 
 LUXARCH_IMAGE  = $(LUXARCH_REGISTRY)/luxardolabs/luxarch:$(LUXARCH_VERSION)
 LUXLINT_IMAGE  = $(LUXLINT_REGISTRY)/luxardolabs/luxlint:$(LUXLINT_VERSION)
@@ -162,6 +162,21 @@ buildx-setup: ## Ensure the shared, GC-capped fleet buildx builder exists (multi
 	  mkdir -p "$$(dirname "$(BUILDKITD_CONFIG)")"; \
 	  printf '[worker.oci]\n  gc = true\n  [[worker.oci.gcpolicy]]\n    keepBytes = "20GB"\n    all = true\n' > "$(BUILDKITD_CONFIG)"; \
 	  echo "seeded $(BUILDKITD_CONFIG) (buildkit GC capped at 20GB)"; \
+	fi
+	@# Refuse a stray per-project builder: `buildx create` only creates, so a builder this
+	@# repo (or a sibling) used before the shared one keeps running forever, uncapped, with
+	@# its own cache. The orphan lives on the HOST, so only this recipe can see it.
+	@# ALLOW_STRAY_BUILDERS=1 is the escape for a deliberate non-fleet builder.
+	@# JSON, one builder per line: the `{{.Name}}` table form also lists NODE names
+	@# (`luxardo-builder0`), which would read as a stray.
+	@strays=$$(docker buildx ls --format json 2>/dev/null \
+	  | sed -nE 's/.*"Name":"([^"]*)","Nodes".*/\1/p' \
+	  | grep -vxE '$(BUILDX_BUILDER)|default|desktop-linux' || true); \
+	if [ -n "$$strays" ] && [ -z "$(ALLOW_STRAY_BUILDERS)" ]; then \
+	  echo "REFUSING: stray buildx builder(s) beside the shared $(BUILDX_BUILDER):"; \
+	  echo "$$strays" | sed 's/^/    /'; \
+	  echo "remove each with: docker buildx rm <name>   (or ALLOW_STRAY_BUILDERS=1 if deliberate)"; \
+	  exit 1; \
 	fi
 	@docker buildx inspect $(BUILDX_BUILDER) >/dev/null 2>&1 \
 		|| docker buildx create --name $(BUILDX_BUILDER) --driver docker-container \
@@ -380,6 +395,7 @@ guard-version-check: ## FATAL: fail if any guard pin is behind the published lat
 	    printf "✗ %s pinned %s, latest %s — behind. Preview: --new-rules --since %s; then 'make guard-upgrade'\n" "$$g" "$$pin" "$$latest" "$$pin"; rc=1; \
 	  fi; done; exit $$rc
 
+# luxarch:guard-upgrade asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit guard-upgrade`.
 guard-upgrade:  ## Bump every guard pin to the published latest (prints what newly bites)
 	@for g in luxarch luxlint luxaudit; do \
 	  docker pull -q $(LUXARCH_REGISTRY)/luxardolabs/$$g:latest >/dev/null 2>&1 || true; \
@@ -441,7 +457,8 @@ test: _test-image-present .test-image.stamp ## Canonical pytest suite + coverage
 	rm -f .luxlint.pytest.ini; \
 	exit $$rc
 
-E2E_IMAGE := sense-collector:e2e   # local build tag — the e2e gate needs no registry
+# Local build tag — the e2e gate needs no registry.
+E2E_IMAGE := sense-collector:e2e
 test-e2e: harness-build ## Hardware-free end-to-end test: fake Sense endpoint -> collector -> InfluxDB
 	docker build $(NO_CACHE_FLAG) --target base -f Dockerfile $(BUILD_ARGS) -t $(E2E_IMAGE) .
 	SENSE_IMAGE=$(E2E_IMAGE) ./scripts/e2e-test.sh
@@ -470,7 +487,7 @@ status: ## Regenerate the committed guard-status files (.lux*-status.json) — C
 	set -e; export SHA=$$(git rev-parse HEAD) TS=$$(date -u +%FT%TZ); \
 	t=$$(mktemp -d); \
 	$(GUARD_RUN) $(LUXLINT_IMAGE)  --json > $$t/lux.json || true; $(STAMP) $$t/lux.json .luxlint-status.json; \
-	$(GUARD_RUN) $(LUXARCH_IMAGE)  --json > $$t/lux.json || true; $(STAMP) $$t/lux.json .luxarch-status.json; \
+	docker run --rm -e LUXARCH_STATUS_WRITE=1 -v $(PWD):/repo $(LUXARCH_IMAGE) --json > $$t/lux.json || true; $(STAMP) $$t/lux.json .luxarch-status.json; \
 	$(GUARD_RUN) $(LUXAUDIT_IMAGE) --json > $$t/lux.json || true; $(STAMP) $$t/lux.json .luxaudit-status.json; \
 	rm -rf $$t; echo "wrote .lux*-status.json at $$SHA — commit them"
 
@@ -489,29 +506,95 @@ onboard-check: ## PROVE the repo is onboarded: all three guards on + honest + pr
 	$(MAKE) -s gitleaks >/dev/null 2>&1 || { echo "gitleaks found secrets in FULL history — the pre-commit hook only sees staged diffs; scrub before onboarding is complete"; fail=1; }; \
 	[ $$fail -eq 0 ] && echo "onboard-check: all three guards on + honest + privacy wired + history clean ✓" || { echo "onboard-check FAILED"; exit 1; }
 
-# Secret scanning — THE canonical fleet gitleaks config (gitleaks defaults + the org denylist for
-# internal infra / retired identity) is emitted from the luxlint image at scan time to a tmp file
-# OUTSIDE the repo, then handed to gitleaks. It is NEVER committed (it names the very strings it
-# forbids); luxlint's secret.no_local_gitleaks_config reds a committed .gitleaks.toml. Per-repo
-# known-non-secret carve-outs live in .luxlint.toml [gitleaks].allow (mounted at emit). Skips
-# gracefully when LUXLINT_REGISTRY is unset (same as lint/arch/audit).
-GITLEAKS_IMAGE ?= ghcr.io/gitleaks/gitleaks:latest
+# Public repo: the scan needs the private-registry luxlint/gitleaks images, so the registry legs
+# skip gracefully when LUXARCH_REGISTRY is unset (the identity pass needs only git and always runs).
+LUXLINT = $(LUXLINT_IMAGE)
 
-gitleaks: ## Scan committed history for secrets (canonical fleet config, emitted — never committed)
-	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
-	d=$$(mktemp -d); cfg=$$d/gl.toml; \
-	$(GUARD_RUN) $(LUXLINT_IMAGE) --emit-config gitleaks > $$cfg; \
-	docker run --rm -v $(PWD):/repo:ro -v $$cfg:/cfg/gl.toml:ro $(GITLEAKS_IMAGE) \
-	  detect --source /repo --config /cfg/gl.toml --redact -v; rc=$$?; \
-	rm -rf $$d; exit $$rc
+# luxarch:gitleaks asset v8 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit gitleaks`.
+# ── The privacy gate: BOTH surfaces ─────────────────────────────────────────────────────────────
+# Emitted by `luxarch --emit gitleaks`. Drop in verbatim.
+#
+# `gitleaks` scans DIFF CONTENT. A commit's author/committer address lives in the commit object
+# HEADER and never appears in a patch, so no content rule can ever match it — it is a surface the
+# scanner does not read. A repo reported `no leaks found` over 963 commits while 29 of them carried a
+# personal address in both the author and committer fields, and it would have reported exactly the
+# same thing after the scrub: identical output, opposite truth. Measured across the fleet, EIGHT
+# repos carry a personal address in history and two of them are PUBLIC (LUXTASTE-339).
+#
+# FLEET-ONBOARDING-STANDARD §2 uses one of those very addresses as its worked example of a leak the
+# full-history scan exists to catch. The standard named the leak and the gate could not see it.
 
-gitleaks-staged: ## Pre-commit secret scan of staged changes (canonical fleet config; run before commit)
+# Commit identities this repo accepts. The fleet account's `users.noreply.github.com` address, plus
+# GitHub's own web-UI committer. Widen ONLY for a real outside contributor, with a comment saying who.
+# NOT for the org account's real address: a role mailbox in commit metadata is published with every
+# clone exactly like a personal one (six fleet repos carried it, one PUBLIC; OPENCLAIM-359). Its
+# omission here is the policy, not an oversight: the answer is the scrub printed below, and the
+# repo's agent performs it once the OWNER approves the force-push.
+# Anchored on the CLOSING BRACKET, because the compared line is `Name <email>` — not a bare
+# address. The first cut allowed `^noreply@github.com$$`, which can NEVER match a
+# `Name <email>` line, so the GitHub web-UI identity was silently DENIED and the canonical
+# recipe would have refused on any repo carrying a web-UI commit. Measured across the fleet: it
+# denied 4 of 6 distinct identity lines instead of the 3 real offenders (LUXTRMNL-21).
+# It was missed because the only repo it was tested on has no web-UI commits, so the broken
+# branch never ran. The bracket also closes a substring hole: unanchored,
+# `<x@users.noreply.github.com.attacker.test>` would have been allowed.
+GIT_IDENTITY_OK ?= <[^>]*users\.noreply\.github\.com>$$|<noreply@github\.com>$$
+
+# The secret scanner, PINNED and MIRRORED in the fleet registry (LUXASIF-29). The fleet bans a moving tag
+# everywhere it can see one, and this used to ship `ghcr.io/gitleaks/gitleaks:latest` inside the asset every
+# repo adopts verbatim: the privacy gate could not run with ghcr unreachable or the local copy pruned, and
+# nothing recorded which scanner said "no leaks found". New detection rules still arrive, through the fleet's
+# own mechanism: luxarch bumps this pin in a release, and `repo.emitted_assets_current` tells you to re-emit.
+# v5: the HOST is never written here (LUXSTATS-115). v4 inlined the private registry, so dropping
+# this asset in "verbatim" put the host into a committed Makefile, and on a public repo the fleet's
+# own gitleaks disclosure tier refused the commit. The mirror lives beside the guards, so the ref is
+# derived from wherever this repo already pulls luxlint (`$(LUXLINT)`, which the scan below needs
+# anyway). It works whichever variable holds your guard registry (REGISTRY, LUXARCH_REGISTRY, …).
+# Recursive `=` so it resolves at use, whatever order LUXLINT is defined in.
+GITLEAKS_IMAGE = $(dir $(LUXLINT))gitleaks:v8.30.1
+
+gitleaks: ## secret scan over FULL HISTORY + the commit-identity pass (the hooks cover commit/push)
 	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
-	d=$$(mktemp -d); cfg=$$d/gl.toml; \
-	$(GUARD_RUN) $(LUXLINT_IMAGE) --emit-config gitleaks > $$cfg; \
-	docker run --rm -v $(PWD):/repo:ro -v $$cfg:/cfg/gl.toml:ro $(GITLEAKS_IMAGE) \
-	  protect --staged --source /repo --config /cfg/gl.toml --redact -v; rc=$$?; \
-	rm -rf $$d; exit $$rc
+	set -e; C=$$(mktemp); trap 'rm -f "$$C"' EXIT INT TERM; \
+	docker run --rm -v $(PWD):/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	docker run --rm -v $(PWD):/repo -v "$$C":/gl.toml:ro -w /repo \
+	  $(GITLEAKS_IMAGE) git /repo -c /gl.toml --redact -v
+	@# The identity pass — the half gitleaks structurally cannot do. Cheap: one `git log`.
+	@# Walks what THIS repo publishes (branches, tags, HEAD), NOT `--all`: a remote-tracking ref caches the
+	@# remote's state, which during a scrub is by definition the un-rewritten history you are about to
+	@# force-push over — `--all` refused the verified fix, and any `git fetch` re-armed it (BOUTIQUE-577).
+	@bad=$$(git log --branches --tags HEAD --pretty='%an <%ae>%n%cn <%ce>' 2>/dev/null | sort -u \
+	  | grep -vE '$(GIT_IDENTITY_OK)' || true); \
+	if [ -n "$$bad" ]; then \
+	  echo "REFUSING: a non-fleet identity appears in commit METADATA (author/committer):"; \
+	  echo "$$bad" | sed 's/^/    /'; \
+	  echo "gitleaks cannot see this — it scans diffs, not commit headers, so it reported no leaks."; \
+	  echo "An address here is attached to every affected commit forever, not to one line of one file."; \
+	  echo "Scrub per FLEET-ONBOARDING-STANDARD §2: mirror backup -> git filter-repo -> re-verify with"; \
+	  echo "  git log --branches --tags HEAD --pretty='%an <%ae>%n%cn <%ce>' | sort -u"; \
+	  echo "-> ask the OWNER to approve the force-push, then do it yourself. Never force-push unapproved."; \
+	  exit 1; \
+	fi
+
+# v6: the STAGED scan the commit hook calls (`hooks/pre-commit` → `make gitleaks-staged`) is part of the
+# asset now. v5 shipped only the full-history half, so 9 of 10 adopting repos hand-wrote this target
+# and the tenth had none, leaving its pre-commit hook pointing at a missing recipe. If your Makefile
+# carries its own `gitleaks-staged`, delete it when you re-emit: this one replaces it.
+# v7: `-w /repo` is LOAD-BEARING. Without it git runs outside the repo, falls back to `git diff
+# --no-index`, rejects `--staged`, and gitleaks EXITS 0: v6 let a staged secret through while printing
+# a git error (measured on a planted GitHub token: v6 exit 0, v7 "leaks found: 1" exit 1).
+# v8: the denylist goes to a PER-RUN `mktemp` file, removed on exit (LUXHELIX-128). v7 wrote a fixed
+# `/tmp/gl.toml` that outlived the run: on a host where commit and push run as different users, the
+# next user's redirect was refused (`fs.protected_regular=1`, the Fedora default, blocks O_CREAT on
+# another user's file in sticky /tmp even for root), so the privacy gate failed every commit or push
+# after a user switch (2 of 2 measured). Two repos scanning at once also shared one file, so one could
+# scan with the other's carve-outs. The full-history scan now also passes `-w /repo`, like the staged one.
+gitleaks-staged: ## secret scan of the STAGED changes (run by hooks/pre-commit)
+	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \
+	set -e; C=$$(mktemp); trap 'rm -f "$$C"' EXIT INT TERM; \
+	docker run --rm -v $(PWD):/repo $(LUXLINT) --emit-config gitleaks > "$$C"; \
+	docker run --rm -v $(PWD):/repo -v "$$C":/gl.toml:ro -w /repo \
+	  $(GITLEAKS_IMAGE) protect --staged /repo -c /gl.toml --redact -v
 
 hooks: ## Install the committed git hooks (hooks/) — gitleaks on every commit + push (luxlint --emit-hooks)
 	@if $(NO_REGISTRY); then $(SKIP_MSG); exit 0; fi; \

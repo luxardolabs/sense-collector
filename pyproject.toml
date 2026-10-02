@@ -60,17 +60,20 @@ anyio = ">=4.14.2"
 #   CVE-2026-71554 multiple Host headers accepted and all forwarded to the consumer, enabling
 #     request smuggling where HTTP/2 is downgraded to HTTP/1.1. Fixed in 4.4.1.
 h2 = ">=4.4.1"
+# urllib3: the HTTP client inside influxdb-client (its sync/REST transport, imported even on the
+#   async path). CVE-2026-97687 (proxy TLS settings applied to the wrong connection),
+#   CVE-2026-97688 / CVE-2026-97689 (streaming API decompresses past the requested read
+#   size). All fixed in 2.8.0; a minor bump with no API change.
+urllib3 = ">=2.8.0"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.15.21"
-mypy = "^2.2.0"
+# Test tooling only. ruff/mypy and their `types-*` stubs are guard-owned: luxlint runs them
+# mount-only with the fleet stubs baked in (repo.guard_owned_tools_undeclared).
 pytest = "^9.1.1"
 pytest-asyncio = "^1.4.0"
 pytest-mock = "^3.14.0"
 # Measures the real suite for `make test`'s coverage floor (luxlint --coverage-ratchet).
 pytest-cov = "^7.0.0"
-types-aiofiles = "^25.1.0"
-types-python-dateutil = "^2.9.0"
 
 [build-system]
 requires = ["hatchling"]

@@ -20,14 +20,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry with pip (pinned; pip verifies wheel hashes).
-RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+# Install Poetry into its OWN venv (pinned; pip verifies wheel hashes), never into the system
+# site-packages: the base stage copies that whole tree, so a system-wide poetry shipped poetry,
+# virtualenv, msgpack and setuptools into the runtime image, where luxaudit's image leg flagged
+# their CVEs. With POETRY_VIRTUALENVS_CREATE=false, `poetry install` still targets the system
+# interpreter, so system site-packages ends up holding the app's deps and nothing else.
+RUN python -m venv /opt/poetry \
+    && /opt/poetry/bin/pip install --no-cache-dir "poetry==$POETRY_VERSION" \
+    && ln -s /opt/poetry/bin/poetry /usr/local/bin/poetry
 
 WORKDIR /app
 COPY pyproject.toml poetry.lock* ./
 RUN poetry install --no-root --only main
 
-# ---- Stage 1b: builder-dev — add the dev group (ruff/mypy/pytest, pinned) ----
+# ---- Stage 1b: builder-dev — add the dev group (pytest + plugins, pinned) ----
 FROM builder AS builder-dev
 RUN poetry install --no-root --with dev
 
@@ -41,12 +47,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Sense monitor data against IANA zones — python:*-slim ships no /usr/share/zoneinfo.
 # Sense uses standard IANA zone names, so (unlike python-kasa's TP-Link devices)
 # tzdata-legacy is NOT needed here.
-RUN apt-get update && apt-get install -y --no-install-recommends tzdata \
+# `apt-get upgrade` pulls the Debian security fixes published since the base tag was cut —
+# the OS layer (openssl, perl-base, pcre2, gzip, …) is what a lockfile cannot see.
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages + console scripts from the builder (main deps only)
+# Copy installed packages + console scripts from the builder (main deps only). The poetry
+# symlink in /usr/local/bin would dangle here (its venv stays in the builder), so drop it.
 COPY --from=builder /usr/local/lib/python3.14/site-packages/ /usr/local/lib/python3.14/site-packages/
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
+
+# The app never runs pip, and pip vendors its own urllib3/msgpack/setuptools that no upgrade
+# reaches — remove it from the runtime image.
+RUN rm -f /usr/local/bin/poetry && python -m pip uninstall -y pip
 
 WORKDIR /app
 
@@ -58,7 +72,7 @@ COPY --chown=appuser:appuser app /app/app
 
 # Own the whole workdir by appuser: the output dir must exist for a clean-clone
 # build (bind-mounted at runtime, but the writer + healthcheck reference ./output
-# relative to WORKDIR when unmounted), and tool caches (ruff/mypy) need it writable.
+# relative to WORKDIR when unmounted), and tool caches (pytest) need it writable.
 RUN mkdir -p /app/output && chown -R appuser:appuser /app
 
 USER appuser
@@ -92,7 +106,7 @@ CMD ["python3", "-m", "app.main"]
 FROM base AS dev
 
 USER root
-# Overlay the dev-group site-packages (ruff/mypy/pytest, pinned by poetry.lock)
+# Overlay the dev-group site-packages (pytest + plugins, pinned by poetry.lock)
 # on top of the runtime deps.
 COPY --from=builder-dev /usr/local/lib/python3.14/site-packages/ /usr/local/lib/python3.14/site-packages/
 COPY --from=builder-dev /usr/local/bin/ /usr/local/bin/

@@ -1,3 +1,5 @@
+<!-- luxarch:changelog-guide asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit changelog-guide`. -->
+
 # Change Log Writing Guide (INTERNAL)
 
 Canonical fleet guide — emitted by `luxarch --emit changelog-guide`. Drop it in at `<app>/change_logs/writing-guide.md`. This is the **internal, technical** change log. NOT for end users / staff — only the platform/dev team reads it. For the user-facing version see `<app>/release_notes/` (`luxarch --emit release-notes-guide`).
@@ -35,7 +37,12 @@ One-line release theme (optional).
 
 ## Notes
 - Pre-/post-deploy steps. Known issues. Deferred follow-ups.
+
+## Known reds
+- {RULE} — {PREFIX}-NNN — why it isn't fixable locally now (escalated, owner-approved to ship red).
 ```
+
+Omit **Known reds** when `make check` is green. Include it only when the release ships with a guard red that is examined, escalated (an open tracked issue), and owner-approved — the recorded exception the release gate requires (see `luxarch --doc FLEET-RELEASE-PROCESS` §0). A red that is unexamined, or deferred to green (`[rules.deferred]`/allowlist) rather than escalated, is **not** a Known red — it blocks the release. Mirror this section into the LuxPM release object too.
 
 ## Rules
 
