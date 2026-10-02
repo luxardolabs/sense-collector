@@ -8,6 +8,8 @@ The format is defined in [`app/change_logs/writing-guide.md`](app/change_logs/wr
 
 ## Versions
 
+- [2026.10.0](app/change_logs/2026.10.0.md) — 2026-10-02 — runtime image hardened (29 → 0 fixable CVEs), anyio/urllib3 floors, guards to luxarch 0.249.1
+- [2026.09.1](app/change_logs/2026.09.1.md) — 2026-09-16 — WebSocket 401 recovery, run stacks as compose profiles
 - [2026.09.0](app/change_logs/2026.09.0.md) — 2026-09-06 — security patches, health-check DST fix, narrowed exception handling
 
 Releases before `2026.09.0` predate this standard and have no per-version file. `2026.8.0` (the first Luxardo Labs fleet-standard release) is described on its [GitHub release](https://github.com/luxardolabs/sense-collector/releases/tag/2026.8.0); the `2025.7.x` history is recorded internally.

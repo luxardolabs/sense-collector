@@ -8,6 +8,8 @@ The format is defined in [`app/release_notes/writing-guide.md`](app/release_note
 
 ## Versions
 
+- [2026.10.0](app/release_notes/2026.10.0.md) — 2026-10-02 — security update; drop-in upgrade
+- [2026.09.1](app/release_notes/2026.09.1.md) — 2026-09-16 — fixes a collector that could silently stop recording
 - [2026.09.0](app/release_notes/2026.09.0.md) — 2026-09-06 — security patches and a health-check fix; drop-in upgrade
 
 ## Surfaces
