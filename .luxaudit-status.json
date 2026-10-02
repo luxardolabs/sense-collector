@@ -1,17 +1,289 @@
 {
   "guard": "luxaudit",
-  "guard_version": "0.9.0",
+  "guard_version": "0.12.0",
   "repo": "/repo",
-  "packages": 45,
+  "packages": 37,
   "source": "poetry.lock",
   "summary": {
-    "PASS": 45,
-    "FAIL": 0,
+    "PASS": 37,
+    "FAIL": 29,
     "XFAIL": 0
   },
   "vulnerable": [],
   "deferred": [],
+  "banned": [],
   "not_audited": [],
-  "commit": "e2bce9c3ea8012798305c309bc61dd9e680ebb26",
-  "generated_at": "2026-09-20T06:41:48Z"
+  "image": {
+    "ref": "luxardolabs/sense-collector:2026.09.1",
+    "inert": false,
+    "inert_reason": "",
+    "error": "",
+    "not_released": [],
+    "vulnerable": [
+      {
+        "package": "anyio",
+        "installed": "4.14.1",
+        "vuln_id": "CVE-2026-63374",
+        "severity": "CRITICAL",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "4.14.2"
+      },
+      {
+        "package": "perl-base",
+        "installed": "5.40.1-6",
+        "vuln_id": "CVE-2026-13221",
+        "severity": "CRITICAL",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "5.40.1-6+deb13u1"
+      },
+      {
+        "package": "perl-base",
+        "installed": "5.40.1-6",
+        "vuln_id": "CVE-2026-42496",
+        "severity": "CRITICAL",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "5.40.1-6+deb13u1"
+      },
+      {
+        "package": "perl-base",
+        "installed": "5.40.1-6",
+        "vuln_id": "CVE-2026-8376",
+        "severity": "CRITICAL",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "5.40.1-6+deb13u1"
+      },
+      {
+        "package": "anyio",
+        "installed": "4.14.1",
+        "vuln_id": "CVE-2026-63349",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "4.14.2"
+      },
+      {
+        "package": "msgpack",
+        "installed": "1.1.2",
+        "vuln_id": "GHSA-6v7p-g79w-8964",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "1.2.1"
+      },
+      {
+        "package": "setuptools",
+        "installed": "70.3.0",
+        "vuln_id": "CVE-2025-47273",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "78.1.1"
+      },
+      {
+        "package": "urllib3",
+        "installed": "2.7.0",
+        "vuln_id": "CVE-2026-97687",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "2.8.0"
+      },
+      {
+        "package": "urllib3",
+        "installed": "2.7.0",
+        "vuln_id": "CVE-2026-97689",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "2.8.0"
+      },
+      {
+        "package": "virtualenv",
+        "installed": "21.7.10",
+        "vuln_id": "CVE-2026-102925",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "21.7.13"
+      },
+      {
+        "package": "virtualenv",
+        "installed": "21.7.10",
+        "vuln_id": "CVE-2026-102930",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "21.7.12"
+      },
+      {
+        "package": "virtualenv",
+        "installed": "21.7.10",
+        "vuln_id": "CVE-2026-102937",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "21.7.12"
+      },
+      {
+        "package": "gzip",
+        "installed": "1.13-1",
+        "vuln_id": "CVE-2026-41992",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "1.13-1+deb13u1"
+      },
+      {
+        "package": "libpcre2-8-0",
+        "installed": "10.46-1~deb13u1",
+        "vuln_id": "CVE-2026-103111",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "10.46-1~deb13u3"
+      },
+      {
+        "package": "libpcre2-8-0",
+        "installed": "10.46-1~deb13u1",
+        "vuln_id": "CVE-2026-86145",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "10.46-1~deb13u2"
+      },
+      {
+        "package": "libpcre2-8-0",
+        "installed": "10.46-1~deb13u1",
+        "vuln_id": "CVE-2026-89157",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "10.46-1~deb13u2"
+      },
+      {
+        "package": "libpcre2-8-0",
+        "installed": "10.46-1~deb13u1",
+        "vuln_id": "CVE-2026-89161",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "10.46-1~deb13u2"
+      },
+      {
+        "package": "libsqlite3-0",
+        "installed": "3.46.1-7+deb13u1",
+        "vuln_id": "CVE-2026-11822",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "3.46.1-7+deb13u2"
+      },
+      {
+        "package": "libsqlite3-0",
+        "installed": "3.46.1-7+deb13u1",
+        "vuln_id": "CVE-2026-11824",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "3.46.1-7+deb13u2"
+      },
+      {
+        "package": "libssl3t64",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-75804",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "libssl3t64",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-84782",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "openssl",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-75804",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "openssl",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-84782",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "openssl-provider-legacy",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-75804",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "openssl-provider-legacy",
+        "installed": "3.5.7-1~deb13u2",
+        "vuln_id": "CVE-2026-84782",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "3.5.7-1~deb13u3"
+      },
+      {
+        "package": "perl-base",
+        "installed": "5.40.1-6",
+        "vuln_id": "CVE-2026-42497",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "5.40.1-6+deb13u1"
+      },
+      {
+        "package": "perl-base",
+        "installed": "5.40.1-6",
+        "vuln_id": "CVE-2026-48962",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "5.40.1-6+deb13u1"
+      },
+      {
+        "package": "perl-base",
+        "installed": "5.40.1-6",
+        "vuln_id": "CVE-2026-57432",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "5.40.1-6+deb13u1"
+      },
+      {
+        "package": "perl-base",
+        "installed": "5.40.1-6",
+        "vuln_id": "CVE-2026-57433",
+        "severity": "HIGH",
+        "layer": "os",
+        "image": "luxardolabs/sense-collector:2026.09.1",
+        "fix": "5.40.1-6+deb13u1"
+      }
+    ],
+    "deferred": []
+  },
+  "commit": "922d076759c75016a855b9e8dfeb4dcfb3ed93e5",
+  "generated_at": "2026-10-02T13:46:48Z"
 }
