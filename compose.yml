@@ -15,6 +15,7 @@ name: sense-collector
 #   make prod-bb-up  -> --profile prod-bb     collector only -> your external InfluxDB
 #   make demo-up     -> --profile demo        FAKE Sense + bundled InfluxDB + Grafana
 #   make test-e2e    -> --profile e2e         FAKE Sense + throwaway InfluxDB, no ports
+#   make test        -> --profile test        throwaway InfluxDB for the pytest suite, per-run project
 #
 # Credentials live in a gitignored `.env.<stack>` per stack (.env.dev-tyle, .env.dev-bb,
 # .env.prod-tyle, .env.prod-bb); .env.demo and .env.e2e are committed and hold no secrets.
@@ -73,6 +74,7 @@ services:
     container_name: sense_dev_tyle_influxdb
     volumes:
       - sense_dev_tyle_influxdb_data:/var/lib/influxdb2
+      - sense_dev_tyle_influxdb_config:/etc/influxdb2
       - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
 
   sense_dev_tyle_grafana:
@@ -108,6 +110,7 @@ services:
     container_name: sense_dev_bb_influxdb
     volumes:
       - sense_dev_bb_influxdb_data:/var/lib/influxdb2
+      - sense_dev_bb_influxdb_config:/etc/influxdb2
       - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
 
   sense_dev_bb_grafana:
@@ -179,6 +182,7 @@ services:
     container_name: sense_demo_influxdb
     volumes:
       - sense_demo_influxdb_data:/var/lib/influxdb2
+      - sense_demo_influxdb_config:/etc/influxdb2
       - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
 
   sense_demo_grafana:
@@ -213,8 +217,8 @@ services:
 
   # ══════════════════════════════════ e2e profile ═════════════════════════════════════
   # Hardware-free end to end. No published ports (never collides, runs in CI) and the
-  # InfluxDB data is THROWAWAY — tmpfs, so the image's implicit VOLUME cannot mint a fresh
-  # anonymous volume per run and abandon it. Fixed test values in the committed .env.e2e.
+  # InfluxDB data + config are THROWAWAY — tmpfs, so the image's implicit VOLUMEs cannot mint fresh
+  # anonymous volumes per run and abandon them. Fixed test values in the committed .env.e2e.
   sense_e2e_influxdb:
     <<: *influx
     profiles: [e2e]
@@ -223,6 +227,7 @@ services:
       - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
     tmpfs:
       - /var/lib/influxdb2
+      - /etc/influxdb2
 
   sense_e2e_collector:
     <<: *collector
@@ -240,10 +245,25 @@ services:
       sense_fake:
         condition: service_started
 
+  # ══════════════════════════════════ test profile ════════════════════════════════════
+  # The suite's REAL InfluxDB (`make test`, luxarch test block). Each run starts it in a compose
+  # project of its own (-p), so it carries no container_name, ports or volumes: data and config
+  # live on tmpfs and vanish with the run. Credentials come from the committed .env.e2e.
+  sense_test_influxdb:
+    <<: *influx
+    profiles: [test]
+    restart: "no"
+    tmpfs:
+      - /var/lib/influxdb2
+      - /etc/influxdb2
+
 volumes:
   sense_dev_tyle_influxdb_data:
+  sense_dev_tyle_influxdb_config:
   sense_dev_tyle_grafana_data:
   sense_dev_bb_influxdb_data:
+  sense_dev_bb_influxdb_config:
   sense_dev_bb_grafana_data:
   sense_demo_influxdb_data:
+  sense_demo_influxdb_config:
   sense_demo_grafana_data:

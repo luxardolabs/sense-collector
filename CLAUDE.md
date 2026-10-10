@@ -2,11 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-<!-- luxarch:claude-pointer asset v4 - DO NOT edit this marker line; it is how repo.claude_pointer_present knows your copy is current. Re-emit with `luxarch --emit claude-pointer`. -->
+<!-- luxarch:claude-pointer asset v7 - DO NOT edit this marker line; it is how repo.claude_pointer_present knows your copy is current. Re-emit with `luxarch --emit claude-pointer`. -->
 
 ## How to work here (fleet conduct — read the standard, not just this block)
 
 **`luxarch --doc FLEET-AGENT-CONDUCT-STANDARD` — read it in full before your first change.** It is the one home for *how* agents work in this fleet. This block is a pointer plus the handful of rules that get broken most; it is not a summary and does not replace reading it.
+
+**Run `/fleet-start` at the start of every session and after every compact.** It rehydrates from LuxPM and restates the session rules.
 
 **Report the result, not the mountain.** No "heavy", "multi-hour", "the big one", no narrating difficulty. Done + next in one line, with numbers.
 
@@ -15,9 +17,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Ask** — deleting anything; changing scope; a deferral/allowlist/exemption; publishing outward (pushing another repo, a force-push, a history rewrite); a genuine product fork where the choice is taste, not correctness.
 - **Do it** — aligning code to a ratified standard or a guard red; anything you have evidence for that is reversible in one commit. The standard already decided; say what you did.
 
+**Work the guard reds in `luxarch --plan` order. Never ask which family or sweep is next.** The order is decided. An escalation covers ONE site: its family keeps going.
+
+**An owner hold is exactly as wide as the owner said.** "Hold off on X" excludes X and nothing else. It is not permission to pause, ask, or check in about anything outside X. Skip the held family, say so in one line, and keep burning down the rest.
+
+**End every turn that worked guard reds with `reds: N (was M)`**, plus the held families by name. A turn that ends on a question while N > 0, outside an ask-class, is the failure this block exists to stop.
+
 When you do ask: **one decision per message**, the evidence that makes it answerable, your recommendation stated as one, and a question answerable in one word. **A recommendation that ends in a menu is not a recommendation** — if you rejected the alternatives, re-offering them asks the owner to redo your analysis.
 
-**Use the fleet skills; don't improvise the procedure.** `/wrap-up` before you call anything done (tests, every red in touched files, docs, gate, LuxPM closed out, all with evidence). `/pin-bump` to upgrade the guards. `/escalate` when a guard is wrong. `/release` to cut a release.
+**Use the fleet skills; don't improvise the procedure.** `/fleet-start` to open a session. `/wrap-up` before you call anything done (tests you saw fail before the fix, every red in touched files, docs, gate, LuxPM closed out, all with evidence). `/adversarial` to have an independent agent attack a change touching auth, tenancy, data, money, secrets or deploys. `/pin-bump` to upgrade the guards. `/escalate` when a guard is wrong. `/release` to cut a release.
 
 **You touched it, you own it.** Edit a file for any reason and it has a mypy, ruff or luxarch red: fix every one in that file, not just yours. Never spend time proving a red predates you; fix it. Test what you changed first. **Before fixing any mypy red, read `luxlint --playbook mypy-sweep` in full.**
 
@@ -55,7 +63,7 @@ make lint            # ruff via luxlint (mount-only, canonical config)
 make mypy            # mypy via luxlint (mount-only; fleet typed deps baked — no in-repo tail)
 make format          # THE canonical fixer (luxlint --format) — never a bare ruff/mdformat
 make arch            # architecture conformance via the pinned luxarch container (.luxarch.toml)
-make test            # pytest + the [test].coverage_min ratchet (lock-built image, mounted source)
+make test            # THE suite (luxarch test block): test image + a real per-run InfluxDB, branch coverage ratchet
 make status          # regenerate the committed .lux*-status.json (commit them)
 make onboard-check   # proves all three guards are wired + honest (NOT that they are green)
 make poetry-lock     # regenerate poetry.lock (poetry-in-docker; no host poetry needed)
@@ -67,7 +75,7 @@ python -m app.main
 python -m app.health.check   # container healthcheck
 ```
 
-Dependencies are managed with **Poetry** (`pyproject.toml` + committed `poetry.lock`). There is no `requirements.txt`. The **build backend is hatchling** and the version is `dynamic` from the `VERSION` file — Poetry stays the dependency manager in `package-mode = false`, so the lockfile and every `poetry install --no-root` path are unaffected. `make lint`/`make mypy` run **mount-only inside the luxlint image** (the repo installs nothing); `make test` builds from the lock and mounts current source — never exec into the baked container (stale code).
+Dependencies are managed with **Poetry** (`pyproject.toml` + committed `poetry.lock`). There is no `requirements.txt`. The **build backend is hatchling** and the version is `dynamic` from the `VERSION` file — Poetry stays the dependency manager in `package-mode = false`, so the lockfile and every `poetry install --no-root` path are unaffected. `make lint`/`make mypy` run **mount-only inside the luxlint image** (the repo installs nothing); `make test` builds the Dockerfile's `test` stage from current source (`make test-build`), starts a throwaway InfluxDB in its own compose project (profile `test`), and mounts the source read-only — never exec into the baked container (stale code).
 
 **Guard pins move often** — read `--changelog --since <pin>` and `--new-rules --since <pin>` before `make guard-upgrade`. A clean `--new-rules` is *not* "no impact": a tightened rule fires without being a new rule. `make check` is a pass/fail gate that stops at the first failure; **`make plan` is the full board** and includes work that does not turn the gate red (sweep findings, inert rules, un-adopted overlays).
 
@@ -84,7 +92,8 @@ Event-driven asyncio. `app/main.py` orchestrates concurrent tasks: WebSocket rec
   - `websocket.py` — `WebSocketHandler` (auto-reconnect, heartbeat/ping, health monitor)
   - `endpoints.py` — centralized Sense API + WebSocket URL builders
 - `app/storage/influxdb.py` — asyncio-native InfluxDB writes (`InfluxDBClientAsync`, one awaited batch per poll cycle) (`sense_mains`, `sense_devices`, `sense_event`, `sense_monitor_status`, `sense_o11y`, `sense_always_on*`, …)
-- `app/utils/` — `logging.py`, `time.py`, `file_validator.py`
+- `app/core/logging_config.py` — the fleet logging module (`luxarch --emit logging`; never hand-edit), installed once in `app/main.py`: JSON lines on stdout
+- `app/utils/` — `logging.py` (the three per-area loggers + their levels), `time.py`, `file_validator.py`
 - `app/health/check.py` — Docker HEALTHCHECK
 
 Validate layout conformance with `python /mnt/luxardolabs/check_layout.py .` (must be green).
@@ -131,7 +140,7 @@ Required: `API_USERNAME`, `API_PASSWORD`, `INFLUXDB_URL`, `INFLUXDB_TOKEN`, `INF
 1. **Device name resolution**: devices are queued for lookup when discovered; cache respects rate limits.
 1. **InfluxDB writes** (fleet ingestion standard): the asyncio-native `InfluxDBClientAsync` (aiohttp), opened in `connect()`; each poll cycle's points are written as ONE `await write_api.write(...)` — no batch/flush knobs, no background buffer to flush. `ping()` fails fast on an unreachable server; auth/bucket errors (401/404) are logged and retried next cycle.
 1. **Lifecycle & error handling** (fleet canonical spine): long-lived clients open in `connect()` and close in `close()` (never a fresh client/session per request); shutdown is `loop.add_signal_handler` + an `asyncio.Event` threaded into the periodic loops (interruptible `asyncio.wait_for(shutdown.wait(), timeout=…)` sleeps); env is read via `ConfigValidator` and logged once through `config.describe_settings()`; **every log call uses lazy `%s` args, never f-strings** (ruff `G` fails lint on a violation). The app logs-and-continues on individual failures — but the catches are **narrowed** to what can actually fail at each site (`MALFORMED_PAYLOAD` / `EXPORT_WRITE_ERRORS` per module), so a bare `except Exception` no longer hides an `AttributeError` from a real bug; the six genuine last-resort nets carry an inline `# swallowed-exceptions: <reason>` waiver. Do not widen these back. `make arch` (folded into `make check`) statically guards these so they can't drift.
-1. **Docker**: four-stage `Dockerfile` (builder → builder-dev → base → dev). Prod pulls `:latest`; dev/demo/test pull/build `:dev`. `Dockerfile.lint` overlays current source for lint/test.
+1. **Docker**: multi-stage `Dockerfile` (builder → builder-dev → base → dev → test). `base` is the runtime image; `test` is what `make test` runs (never pushed). Every push of `:$(VERSION)` refuses an already-released version and a dirty tree, and scans the exact candidate (luxaudit `--image-archive`) before pushing; `make release` ends with `make gh-release`.
 1. **NO AI attribution** in commits/PRs (house rule — no Co-Authored-By, "Generated with", robot emoji).
 
 Release notes live in `CHANGELOG.md` at the repo root (Keep a Changelog, CalVer) — it is the public record and the source for the GitHub release body. Pre-fleet-standard history (`2025.7.x`) stays on the LuxPM "Changelog" page (project `SENSECOLLE`); work items are tracked as LuxPM issues.

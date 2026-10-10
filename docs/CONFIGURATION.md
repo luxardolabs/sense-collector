@@ -134,15 +134,16 @@ These environment variables MUST be set for the application to run:
 
 ## Logging Configuration
 
-| Variable                                | Default    | Values                                | Description                          |
-| --------------------------------------- | ---------- | ------------------------------------- | ------------------------------------ |
-| `SENSE_COLLECTOR_LOG_LEVEL_API`         | `INFO`     | DEBUG, INFO, WARNING, ERROR, CRITICAL | API logging level                    |
-| `SENSE_COLLECTOR_LOG_LEVEL_STORAGE`     | `INFO`     | DEBUG, INFO, WARNING, ERROR, CRITICAL | Storage logging level                |
-| `SENSE_COLLECTOR_LOG_LEVEL_GENERAL`     | `INFO`     | DEBUG, INFO, WARNING, ERROR, CRITICAL | General logging level                |
-| `SENSE_COLLECTOR_STRUCTURED_LOGS`       | `false`    | true, false                           | Enable JSON structured logging       |
-| `SENSE_COLLECTOR_LOG_DIR`               | \`\`       | Path                                  | Log directory (empty = console only) |
-| `SENSE_COLLECTOR_LOG_FILE_MAX_BYTES`    | `10485760` | 1MB-100MB                             | Maximum log file size                |
-| `SENSE_COLLECTOR_LOG_FILE_BACKUP_COUNT` | `5`        | 1-20                                  | Number of log backups to keep        |
+The collector logs the fleet way (`app/core/logging_config.py`, emitted by luxarch): one JSON object per line on stdout, with the caller's fields under `attributes`. Collect it with your container log driver (`docker logs`, Loki, …); there is no file output.
+
+| Variable                            | Default | Values                                | Description                                              |
+| ----------------------------------- | ------- | ------------------------------------- | -------------------------------------------------------- |
+| `SENSE_COLLECTOR_LOG_LEVEL_API`     | `INFO`  | DEBUG, INFO, WARNING, ERROR, CRITICAL | API (Sense REST + WebSocket) logging level               |
+| `SENSE_COLLECTOR_LOG_LEVEL_STORAGE` | `INFO`  | DEBUG, INFO, WARNING, ERROR, CRITICAL | Storage (InfluxDB) logging level                         |
+| `SENSE_COLLECTOR_LOG_LEVEL_GENERAL` | `INFO`  | DEBUG, INFO, WARNING, ERROR, CRITICAL | General logging level                                    |
+| `LOG_LEVEL`                         | `INFO`  | DEBUG, INFO, WARNING, ERROR, CRITICAL | Root level (third-party libraries)                       |
+| `LOG_MODULE_LEVELS`                 | \`\`    | JSON object                           | Per-logger overrides at runtime, e.g. `{"api": "DEBUG"}` |
+| `LOG_FORMAT`                        | `json`  | json, text                            | `text` gives a readable line for local development only  |
 
 ## Export Configuration
 
@@ -209,11 +210,8 @@ SENSE_COLLECTOR_LOG_LEVEL_API=DEBUG
 SENSE_COLLECTOR_LOG_LEVEL_STORAGE=DEBUG
 SENSE_COLLECTOR_LOG_LEVEL_GENERAL=DEBUG
 
-# Optional: Enable structured logging
-SENSE_COLLECTOR_STRUCTURED_LOGS=true
-
-# Optional: Save logs to files
-SENSE_COLLECTOR_LOG_DIR=./logs
+# Optional: Readable log lines instead of JSON (local development only)
+LOG_FORMAT=text
 
 # Optional: Export raw data (written under the gitignored output/ dir)
 SENSE_COLLECTOR_OUTPUT_RECEIVED_DATA=true

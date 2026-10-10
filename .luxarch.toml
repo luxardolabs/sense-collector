@@ -21,7 +21,7 @@ source_client = ["collector/client.py"]
 #
 # What we do instead: the sense_o11y measurement (config.MEASUREMENT_O11Y) reports the
 # collector's own operation into InfluxDB alongside the energy data and is read in Grafana,
-# plus the per-area structured logging in app/utils/logging.py.
+# plus the per-area JSON logging (app/core/logging_config.py, levels in app/utils/logging.py).
 #
 # Revisit if this collector's failures stop being diagnosable from those two channels, or
 # if the fleet standardises tracing across collectors — then it is an adoption task.

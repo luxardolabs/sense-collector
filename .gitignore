@@ -17,8 +17,6 @@ Makefile.local
 .luxlint.mypy.ini
 .luxlint.pytest.ini
 
-# --- lean test-deps image build stamp (Dockerfile.test; keyed on poetry.lock) ---
-.test-image.stamp
 
 # --- Legacy secret-bearing files quarantined during the fleet-standard scrub ---
 # (set_environment*.sh, compose.*.yaml, real captures) — kept locally, never committed.
@@ -71,3 +69,6 @@ Thumbs.db
 .claude/.luxpm-ledger.json
 .claude/settings.json.bak
 .claude/.push-hold
+
+# Claude Code hook session state (luxarch --emit hooks)
+.claude/.luxpm-searched.json

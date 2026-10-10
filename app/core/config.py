@@ -3,9 +3,9 @@ import os
 from pathlib import Path
 
 # Module logger, never the root logger: a bare `logging.warning(...)` module-level call goes
-# to the root logger, which installs a default handler on first use and so bypasses the per-area
-# levels this module itself configures (LOG_LEVEL_GENERAL / _API / _STORAGE). Records from
-# here then ignore the app's logging config and can't be filtered by source.
+# to the root logger, which installs a default handler on first use (this module is imported
+# before app.main calls configure_logging) and so bypasses the fleet logging setup. A named
+# logger propagates to whatever configure_logging installs and can be filtered by source.
 logger = logging.getLogger(__name__)
 
 
@@ -318,14 +318,6 @@ DEFAULT_WIFI_STRENGTH = get_env_float(
 LOG_LEVEL_API = get_env_log_level("SENSE_COLLECTOR_LOG_LEVEL_API", "INFO")
 LOG_LEVEL_STORAGE = get_env_log_level("SENSE_COLLECTOR_LOG_LEVEL_STORAGE", "INFO")
 LOG_LEVEL_GENERAL = get_env_log_level("SENSE_COLLECTOR_LOG_LEVEL_GENERAL", "INFO")
-LOG_STRUCTURED = get_env_bool("SENSE_COLLECTOR_STRUCTURED_LOGS", False)
-LOG_DIR = os.getenv("SENSE_COLLECTOR_LOG_DIR", "")  # Empty means console only
-LOG_FILE_MAX_BYTES = get_env_int(
-    "SENSE_COLLECTOR_LOG_FILE_MAX_BYTES", 10485760, min_val=1048576, max_val=104857600
-)  # 1MB-100MB
-LOG_FILE_BACKUP_COUNT = get_env_int(
-    "SENSE_COLLECTOR_LOG_FILE_BACKUP_COUNT", 5, min_val=1, max_val=20
-)
 
 # Export Configuration with validation
 OUTPUT_RECEIVED_DATA = get_env_bool("SENSE_COLLECTOR_OUTPUT_RECEIVED_DATA", False)
@@ -419,6 +411,5 @@ def describe_settings() -> dict[str, str]:
         "SENSE_COLLECTOR_LOG_LEVEL_API": LOG_LEVEL_API,
         "SENSE_COLLECTOR_LOG_LEVEL_STORAGE": LOG_LEVEL_STORAGE,
         "SENSE_COLLECTOR_LOG_LEVEL_GENERAL": LOG_LEVEL_GENERAL,
-        "SENSE_COLLECTOR_STRUCTURED_LOGS": str(LOG_STRUCTURED),
         "SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE": HEALTH_HEARTBEAT_FILE,
     }

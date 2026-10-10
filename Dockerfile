@@ -1,8 +1,10 @@
 # =============================================================================
 # sense-collector — multi-stage image (fleet standard)
 #   --target base : runtime only (prod pulls :latest / :VERSION)
-#   --target dev  : base + dev deps + baked tests (dev stack pulls :dev; lint/test
-#                   images derive from it). See Makefile dev-build-push / release.
+#   --target dev  : base + dev deps + baked tests (dev stack pulls :dev).
+#   --target test : the image `make test` runs (luxarch test block, `make test-build`):
+#                   the same app layers prod ships, plus the dev group. Never pushed.
+#   See Makefile dev-build-push / release / test-build.
 # All dependency versions (runtime AND dev tooling) come from poetry.lock, so the
 # lint/type/test tooling is pinned and reproducible.
 # =============================================================================
@@ -116,3 +118,8 @@ COPY --chown=appuser:appuser tests /app/tests
 COPY --chown=appuser:appuser pyproject.toml /app/pyproject.toml
 
 USER appuser
+
+# ---- Stage 4: test — what `make test` runs (never pushed) --------------------
+# The production layers plus the dev group (pytest, coverage), so the suite runs on the
+# interpreter and deps that ship. Source is mounted read-only over /repo at run time.
+FROM dev AS test

@@ -2,16 +2,26 @@
 
 Two things here are load-bearing and cheap to get wrong: the masking applied to secrets
 before they reach the startup log, and the fail-fast on missing required config. The
-orchestration loop itself (task wiring + signal handlers) is covered by the e2e stack.
+orchestration (task endings, client lifecycle) is tested here against stand-ins; the
+real wiring end to end is the e2e stack.
 """
 
+import asyncio
+import logging
 import os
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from app.core import config
-from app.main import _SENSITIVE, _obscure, validate_environment
+from app.main import (
+    _SENSITIVE,
+    _obscure,
+    create_collector,
+    main,
+    run_collector_tasks,
+    validate_environment,
+)
 
 
 class TestObscure:
@@ -45,6 +55,13 @@ class TestObscure:
 
 
 class TestValidateEnvironment:
+    @pytest.fixture(autouse=True)
+    def _capture_the_startup_log(self, caplog):
+        """The startup log is INFO on the `general` logger, whose level comes from
+        configure_logging in production; capture it here, or a masking assertion that
+        checks for an ABSENT secret would pass on an empty log."""
+        caplog.set_level(logging.INFO, logger="general")
+
     def test_passes_when_every_required_var_is_present(self):
         env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
         with patch.dict(os.environ, env, clear=False):
@@ -121,3 +138,106 @@ class TestValidateEnvironment:
             validate_environment()
         for raw in settings.values():
             assert raw not in caplog.text
+
+
+class _FakeCollector:
+    """Stands in for SenseCollector.collect_sense_data with a chosen ending."""
+
+    def __init__(self, ending):
+        self.ending = ending
+        self.cancelled = False
+
+    async def collect_sense_data(self, shutdown_event):
+        try:
+            if self.ending == "forever":
+                await asyncio.Event().wait()
+            if self.ending == "raise":
+                raise ConnectionError("websocket gone")
+        except asyncio.CancelledError:
+            self.cancelled = True
+            raise
+
+
+class TestRunCollectorTasks:
+    """Any data-task ending other than a requested shutdown must exit non-zero, so the
+    container's restart policy actually restarts it."""
+
+    @pytest.mark.asyncio
+    async def test_shutdown_stops_the_data_task_cleanly(self):
+        collector = _FakeCollector("forever")
+        shutdown = asyncio.Event()
+        shutdown.set()
+        await run_collector_tasks(collector, shutdown)
+        assert collector.cancelled
+
+    @pytest.mark.asyncio
+    async def test_a_data_task_that_returns_is_a_failure(self):
+        with pytest.raises(RuntimeError, match="exited unexpectedly"):
+            await run_collector_tasks(_FakeCollector("return"), asyncio.Event())
+
+    @pytest.mark.asyncio
+    async def test_a_data_task_error_propagates(self):
+        with pytest.raises(ConnectionError, match="websocket gone"):
+            await run_collector_tasks(_FakeCollector("raise"), asyncio.Event())
+
+
+class TestCreateCollector:
+    @pytest.mark.asyncio
+    async def test_failed_auth_closes_the_client_and_raises(self):
+        collector = AsyncMock()
+        collector.authenticate.side_effect = PermissionError("bad credentials")
+        with (
+            patch("app.main.InfluxDBStorage") as storage_cls,
+            patch("app.main.SenseCollector", return_value=collector),
+            pytest.raises(PermissionError),
+        ):
+            storage_cls.return_value.connect = AsyncMock()
+            await create_collector()
+        collector.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_returns_both_connected_clients(self):
+        collector = AsyncMock()
+        with (
+            patch("app.main.InfluxDBStorage") as storage_cls,
+            patch("app.main.SenseCollector", return_value=collector),
+        ):
+            storage_cls.return_value.connect = AsyncMock()
+            got_collector, got_storage = await create_collector()
+        assert got_collector is collector
+        assert got_storage is storage_cls.return_value
+        got_storage.connect.assert_awaited_once()
+        collector.connect.assert_awaited_once()
+        collector.close.assert_not_awaited()
+
+
+class TestMain:
+    """main() always closes both clients, and a fatal error exits non-zero."""
+
+    @pytest.mark.asyncio
+    async def test_a_clean_shutdown_closes_both_clients(self):
+        collector, storage = AsyncMock(), AsyncMock()
+        with (
+            patch("app.main.validate_environment"),
+            patch("app.main.create_collector", return_value=(collector, storage)),
+            patch("app.main.run_collector_tasks", new=AsyncMock()),
+        ):
+            await main()
+        collector.close.assert_awaited_once()
+        storage.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_a_fatal_error_exits_non_zero_after_cleanup(self):
+        collector, storage = AsyncMock(), AsyncMock()
+        collector.close.side_effect = OSError("already closed")
+        failing = AsyncMock(side_effect=RuntimeError("Task exited unexpectedly"))
+        with (
+            patch("app.main.validate_environment"),
+            patch("app.main.create_collector", return_value=(collector, storage)),
+            patch("app.main.run_collector_tasks", new=failing),
+            pytest.raises(SystemExit) as exit_info,
+        ):
+            await main()
+        assert exit_info.value.code == 1
+        # A failing collector close must not skip the InfluxDB close after it.
+        storage.close.assert_awaited_once()
