@@ -7,21 +7,24 @@
   "summary": {
     "PASS": 36,
     "FAIL": 0,
-    "XFAIL": 0
+    "XFAIL": 0,
+    "INERT": 1
   },
   "vulnerable": [],
   "deferred": [],
   "banned": [],
   "not_audited": [],
   "image": {
-    "ref": "luxardolabs/sense-collector:2026.10.1",
-    "inert": false,
-    "inert_reason": "",
+    "ref": "luxardolabs/sense-collector:2026.10.2",
+    "inert": true,
+    "inert_reason": "luxardolabs/sense-collector:2026.10.2: not in the registry, so nothing was released at this VERSION. A deploy that pins `:sha-\u2026` is not visible from the mount; name it in `[image] refs`",
     "error": "",
-    "not_released": [],
+    "not_released": [
+      "luxardolabs/sense-collector:2026.10.2"
+    ],
     "vulnerable": [],
     "deferred": []
   },
-  "commit": "f9fccd4765ccf9baba337b9b4125fc0d76c75e8b",
-  "generated_at": "2026-10-10T20:26:04Z"
+  "commit": "884de3eaa8988e881b7635db27da9166aff7c6ef",
+  "generated_at": "2026-10-10T20:29:19Z"
 }

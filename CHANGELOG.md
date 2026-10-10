@@ -8,6 +8,7 @@ The format is defined in [`app/change_logs/writing-guide.md`](app/change_logs/wr
 
 ## Versions
 
+- [2026.10.2](app/change_logs/2026.10.2.md) — 2026-10-10 — /adversarial fixes: WS token redacted at DEBUG, text-mode log forging, every platform scanned by digest, recursive .dockerignore
 - [2026.10.1](app/change_logs/2026.10.1.md) — 2026-10-10 — guards to luxarch 0.276.0; fleet JSON logging; test block with a real InfluxDB; guarded + scanned release path; multidict CVE
 - [2026.10.0](app/change_logs/2026.10.0.md) — 2026-10-02 — runtime image hardened (29 → 0 fixable CVEs), anyio/urllib3 floors, guards to luxarch 0.249.1
 - [2026.09.1](app/change_logs/2026.09.1.md) — 2026-09-16 — WebSocket 401 recovery, run stacks as compose profiles
