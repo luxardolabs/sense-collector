@@ -213,7 +213,7 @@ build-local: ## Build the runtime image from CURRENT source as a local tag (no p
 # release + GHCR promotion), so the block itself is not pasted.
 SHA_IMAGE       := $(REGISTRY)/$(IMAGE_NAME):sha-$(COMMIT)
 # Multi-arch cannot be `docker save`d from a buildx push, so `release` pushes this tag (which
-# nothing pins), pulls + scans it, and only then points the release tags at the same digest.
+# nothing pins) and hands it to publish_scanned below.
 CANDIDATE_IMAGE := $(REGISTRY)/$(IMAGE_NAME):candidate-$(COMMIT)
 
 define refuse_released
@@ -226,6 +226,12 @@ define refuse_released
 	  *[Nn]"o such manifest"*|*"manifest unknown"*|*"not found"*) ;; \
 	  *) echo "REFUSING: cannot verify $(1) is unreleased: $$out"; exit 1 ;; \
 	esac
+	@# A not-found only counts from a REAL registry: any plain web server's 404 (a wrong port, a
+	@# misrouted proxy) also reads as "no such manifest". A registry names its API on /v2/.
+	@h=$$(echo '$(1)' | cut -d/ -f1); \
+	curl -sS -o /dev/null -D - --max-time 10 "https://$$h/v2/" 2>/dev/null \
+	  | grep -qi '^docker-distribution-api-version:' \
+	  || { echo "REFUSING: $$h does not answer as a container registry, so its not-found proves nothing"; exit 1; }
 endef
 
 define refuse_dirty_tree
@@ -244,6 +250,32 @@ define scan_candidate
 	docker save $(1) -o "$$T"; chmod 644 "$$T"; \
 	docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
 	  "$$ref" --image-archive /candidate.tar --image-label $(1)
+endef
+
+# Multi-arch publish: $(1) is an image index already pushed, $(2) the `-t` tags to point at it.
+# Everything is pinned to the index DIGEST read once up front, so a re-push of the source tag
+# between scan and publish cannot swap the bits. EVERY platform image in that index is pulled by
+# its own manifest digest and scanned: `docker pull` of the tag fetches the host's platform only,
+# so a tag-based scan left arm64 unscanned while imagetools published it. Attestation entries
+# (platform unknown/unknown) are not images and are skipped.
+define publish_scanned
+	@set -e; ref='$(LUXAUDIT_IMAGE)'; \
+	if $(NO_REGISTRY); then echo "REFUSING: set LUXARCH_REGISTRY (Makefile.local); the candidate must be scanned before it is pushed"; exit 2; fi; \
+	repo=$$(echo '$(1)' | sed -E 's/:[^/:]*$$//'); \
+	index=$$(docker buildx imagetools inspect '$(1)' --format '{{json .Manifest.Digest}}' | tr -d '"'); \
+	case "$$index" in sha256:*) ;; *) echo "REFUSING: could not read the index digest of $(1)"; exit 1 ;; esac; \
+	plats=$$(docker buildx imagetools inspect "$$repo@$$index" --raw | python3 -c 'import json, sys; [print(m["platform"]["os"] + "/" + m["platform"]["architecture"], m["digest"]) for m in json.load(sys.stdin)["manifests"] if m.get("platform", {}).get("os", "unknown") != "unknown"]'); \
+	[ -n "$$plats" ] || { echo "REFUSING: $$repo@$$index lists no platform images"; exit 1; }; \
+	T=$$(mktemp); trap 'rm -f "$$T"; docker rmi sense-collector:release-scan >/dev/null 2>&1 || true' EXIT INT TERM; \
+	echo "$$plats" | while read -r plat digest; do \
+	  docker pull -q "$$repo@$$digest" >/dev/null; \
+	  docker tag "$$repo@$$digest" sense-collector:release-scan; \
+	  docker save sense-collector:release-scan -o "$$T"; chmod 644 "$$T"; \
+	  docker run --rm -v $(PWD):/repo -v luxaudit-cache:/root/.cache/trivy -v "$$T":/candidate.tar:ro \
+	    "$$ref" --image-archive /candidate.tar --image-label "$(1) $$plat ($$digest)" || exit 1; \
+	done; \
+	docker buildx imagetools create $(2) "$$repo@$$index"; \
+	echo "Published $$repo@$$index (every platform scanned) as: $(2)"
 endef
 
 version-build-push: ## Build + scan + push :$(VERSION) ONLY (single-arch runtime stage) — refuses an already-released VERSION
@@ -289,10 +321,7 @@ release: buildx-setup ## Cut VERSION: multi-arch build, scan, then :$(VERSION) +
 	$(gh_release_preflight)
 	docker buildx build $(NO_CACHE_FLAG) --target base --platform $(PLATFORMS) -f Dockerfile $(BUILD_ARGS) \
 		-t $(CANDIDATE_IMAGE) --push .
-	docker pull -q $(CANDIDATE_IMAGE)
-	$(call scan_candidate,$(CANDIDATE_IMAGE))
-	docker buildx imagetools create -t $(VERSION_IMAGE) -t $(SHA_IMAGE) -t $(IMAGE) $(CANDIDATE_IMAGE)
-	@echo "Released $(VERSION_IMAGE) + $(SHA_IMAGE) + $(IMAGE) (same digest as the scanned candidate)"
+	$(call publish_scanned,$(CANDIDATE_IMAGE),-t $(VERSION_IMAGE) -t $(SHA_IMAGE) -t $(IMAGE))
 	@$(MAKE) --no-print-directory gh-release
 
 # Promotion copies the RELEASED digest; it still probes ITS destination tag (GHCR) and re-scans
@@ -300,13 +329,7 @@ release: buildx-setup ## Cut VERSION: multi-arch build, scan, then :$(VERSION) +
 release-public: ## Promote the RELEASED private image to $(EXTERNAL_REGISTRY)/luxardolabs/sense-collector by digest (run `release` first)
 	$(call refuse_released,$(PUBLIC_IMAGE):$(VERSION))
 	$(refuse_dirty_tree)
-	docker pull -q $(VERSION_IMAGE)
-	$(call scan_candidate,$(VERSION_IMAGE))
-	docker buildx imagetools create \
-		--tag $(PUBLIC_IMAGE):$(VERSION) \
-		--tag $(PUBLIC_IMAGE):latest \
-		$(VERSION_IMAGE)
-	@echo "Promoted $(VERSION_IMAGE) -> $(PUBLIC_IMAGE):$(VERSION) + :latest (by digest — no rebuild)"
+	$(call publish_scanned,$(VERSION_IMAGE),-t $(PUBLIC_IMAGE):$(VERSION) -t $(PUBLIC_IMAGE):latest)
 
 docker-inspect: ## Inspect release image metadata
 	@docker inspect $(IMAGE) --format='Version: {{index .Config.Labels "org.opencontainers.image.version"}}' 2>/dev/null || echo "Image not built"

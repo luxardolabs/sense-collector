@@ -1,15 +1,17 @@
-# Runtime image build context. The Dockerfile COPYs `app/` (base) and `tests/`
-# (dev stage) explicitly, so exclude everything that must never enter an image
-# or would bust the build cache. Dockerfile.lint uses its own .dockerignore.
+# Build context for every Dockerfile stage (base, dev, test). The Dockerfile COPYs
+# `app/` (base) and `tests/` (dev/test stages) explicitly, so exclude everything that
+# must never enter an image or would bust the build cache.
 
 # Git
 .git
 .gitignore
 
-# Python / caches
-__pycache__
-*.py[cod]
-*.so
+# Python / caches. `**/` because a bare pattern matches only at the context root, and
+# `COPY app /app/app` would otherwise bake the host's gitignored app/**/__pycache__ into a
+# release (2026.10.1 shipped July-dated .pyc files and a .DS_Store that way).
+**/__pycache__
+**/*.py[cod]
+**/*.so
 .Python
 .venv
 venv/
@@ -43,9 +45,9 @@ Dockerfile*
 Makefile
 
 # OS / editor
-.DS_Store
-Thumbs.db
-*.swp
+**/.DS_Store
+**/Thumbs.db
+**/*.swp
 .vscode/
 .idea/
 

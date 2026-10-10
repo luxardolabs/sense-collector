@@ -5,8 +5,9 @@ Output is configured ONCE, in app.main, by the fleet's emitted logging module
 line with LOG_FORMAT=text for local development. This module only names the loggers and their
 levels; AREA_LEVELS is handed to configure_logging(levels=...).
 
-Remote-derived values (Sense device names are user-editable) cannot forge a log line: the JSON
-formatter escapes control characters in every field.
+Remote-derived values (Sense device names are user-editable) cannot forge a log line, and the
+WebSocket access token cannot be printed, in either format: app.main passes app/core/privacy.py's
+redactor to configure_logging.
 """
 
 import logging

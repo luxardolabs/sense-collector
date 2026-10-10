@@ -134,7 +134,7 @@ These environment variables MUST be set for the application to run:
 
 ## Logging Configuration
 
-The collector logs the fleet way (`app/core/logging_config.py`, emitted by luxarch): one JSON object per line on stdout, with the caller's fields under `attributes`. Collect it with your container log driver (`docker logs`, Loki, …); there is no file output.
+The collector logs the fleet way (`app/core/logging_config.py`, emitted by luxarch): one JSON object per line on stdout, with the caller's fields under `attributes`. Collect it with your container log driver (`docker logs`, Loki, …); there is no file output. Every line passes through a redactor: the WebSocket access token is replaced with `[REDACTED]` and control characters are escaped, at any level and in either format.
 
 | Variable                            | Default | Values                                | Description                                              |
 | ----------------------------------- | ------- | ------------------------------------- | -------------------------------------------------------- |

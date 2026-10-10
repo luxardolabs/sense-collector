@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from app.collector.client import SenseCollector
 from app.core import config
 from app.core.logging_config import configure_logging
+from app.core.privacy import redact
 from app.storage.influxdb import InfluxDBStorage
 from app.utils.logging import AREA_LEVELS, logger
 
@@ -21,6 +22,20 @@ def _obscure(value: str) -> str:
     if len(value) <= 4:
         return "*" * len(value)
     return value[:2] + "*" * (len(value) - 4) + value[-2:]
+
+
+def setup_logging() -> None:
+    """The fleet's one logging setup (JSON lines on stdout), with this collector's levels.
+
+    `redact` keeps the WebSocket access token and remote control characters out of every
+    line, at any LOG_LEVEL and in either LOG_FORMAT (app/core/privacy.py).
+    """
+    configure_logging(
+        service="sense-collector",
+        version=config.BUILD_VERSION,
+        levels=AREA_LEVELS,
+        redact=redact,
+    )
 
 
 def validate_environment() -> None:
@@ -197,10 +212,8 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    # First, before any line is logged: the fleet's one logging setup (JSON lines on stdout).
-    configure_logging(
-        service="sense-collector", version=config.BUILD_VERSION, levels=AREA_LEVELS
-    )
+    # First, before any line is logged.
+    setup_logging()
     logger.info("Starting Sense Collector")
 
     # Configure asyncio for production (Python 3.14 baseline — Runner always available).
