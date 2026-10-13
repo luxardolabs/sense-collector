@@ -1,6 +1,6 @@
 {
   "guard": "luxarch",
-  "guard_version": "0.277.0",
+  "guard_version": "0.289.3",
   "repo": "/repo",
   "targets": [
     {
@@ -83,6 +83,17 @@
           "inert_reason": "",
           "fix": "",
           "example": ""
+        },
+        {
+          "rule": "fw.trusted_host_enforced",
+          "status": "INERT",
+          "since": "0.280.0",
+          "violations": 0,
+          "deferred": false,
+          "inert": true,
+          "inert_reason": "no HTTP surface: this collector target builds no FastAPI/Starlette app that a launch surface serves, so there is no Host header to refuse",
+          "fix": "",
+          "example": ""
         }
       ],
       "summary": {
@@ -90,7 +101,7 @@
         "FAIL": 0,
         "XFAIL": 0,
         "XPASS": 0,
-        "INERT": 0
+        "INERT": 1
       }
     }
   ],
@@ -296,24 +307,24 @@
       },
       {
         "rule": "repo.deploy_tag_is_immutable",
-        "status": "PASS",
+        "status": "FAIL",
         "since": "0.197.0",
-        "violations": 0,
+        "violations": 1,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "",
+        "fix": "pin an immutable identifier in `.env.<env>` (compose) or the overlay's `images: newTag:` (kustomize): `sha-<commit>` (every build, no ceremony \u2014 the sha is already computed for BUILD_COMMIT) or `TAG=<version>` for a cut release. A moving tag cannot be a deployment record: you cannot say which bits are running and you cannot roll back to them. `luxarch --emit image-block` prints the canonical scheme, where `:dev` survives only as a human-readable alias nothing pins. See --doc FLEET-BUILD-DEPLOY-STANDARD.",
         "example": ""
       },
       {
         "rule": "repo.release_scans_candidate",
-        "status": "PASS",
+        "status": "FAIL",
         "since": "0.250.0",
-        "violations": 0,
+        "violations": 1,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "",
+        "fix": "Re-emit `luxarch --emit image-block` (v14): its `release` builds, `docker save`s the tag it is about to push, runs `luxaudit --image-archive` (luxaudit >= 0.13.0) on THAT archive with THIS repo as `/repo` (`-v \"$(CURDIR)\":/repo`; `$(PWD)` is the caller's directory) and only then pushes. Multi-arch (`PLATFORMS`): push a `candidate-<commit>` tag nothing pins, pin its digest, pull + save + scan each platform by that digest, then `docker buildx imagetools create` the release tag from it. See --doc FLEET-BUILD-DEPLOY-STANDARD, Architectures.",
         "example": ""
       },
       {
@@ -386,6 +397,17 @@
         "rule": "repo.claude_pointer_present",
         "status": "PASS",
         "since": "0.213.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.agent_instructions_resolve",
+        "status": "PASS",
+        "since": "0.280.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -518,6 +540,17 @@
         "rule": "repo.fleet_dep_floor",
         "status": "PASS",
         "since": "0.219.0",
+        "violations": 0,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "",
+        "example": ""
+      },
+      {
+        "rule": "repo.images_on_fleet_line",
+        "status": "PASS",
+        "since": "0.282.0",
         "violations": 0,
         "deferred": false,
         "inert": false,
@@ -669,6 +702,17 @@
         "example": ""
       },
       {
+        "rule": "repo.image_block_wired",
+        "status": "FAIL",
+        "since": "0.280.0",
+        "violations": 8,
+        "deferred": false,
+        "inert": false,
+        "inert_reason": "",
+        "fix": "Paste `luxarch --emit image-block` into the Makefile and delete the hand-written publish and deploy targets; set its settings ABOVE it (REGISTRY, and as needed RELEASE_REGISTRY, PLATFORMS for a multi-arch image, PUBLIC_REGISTRY for a public copy, IMAGE_NAME, BUILD_CONTEXT, IMAGES for more than one image). Where the block cannot serve this repo, escalate to the luxarch maintainer and leave this red lit: a hand-written copy is the drift the block exists to end. See --doc FLEET-BUILD-DEPLOY-STANDARD.",
+        "example": ""
+      },
+      {
         "rule": "repo.poetry_version_consistent",
         "status": "PASS",
         "since": "0.268.0",
@@ -803,7 +847,7 @@
     ],
     "summary": {
       "PASS": 58,
-      "FAIL": 0,
+      "FAIL": 3,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 6
@@ -811,11 +855,11 @@
   },
   "summary": {
     "PASS": 65,
-    "FAIL": 0,
+    "FAIL": 3,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 6
+    "INERT": 7
   },
-  "commit": "56d6369d344ca2719ace5df09a678bff84c96569",
-  "generated_at": "2026-10-10T20:34:34Z"
+  "commit": "58399a8bd00e8a3cdce2e3db97c354094f8dc85e",
+  "generated_at": "2026-10-13T01:15:17Z"
 }
