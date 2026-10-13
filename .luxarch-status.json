@@ -307,24 +307,24 @@
       },
       {
         "rule": "repo.deploy_tag_is_immutable",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.197.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "pin an immutable identifier in `.env.<env>` (compose) or the overlay's `images: newTag:` (kustomize): `sha-<commit>` (every build, no ceremony \u2014 the sha is already computed for BUILD_COMMIT) or `TAG=<version>` for a cut release. A moving tag cannot be a deployment record: you cannot say which bits are running and you cannot roll back to them. `luxarch --emit image-block` prints the canonical scheme, where `:dev` survives only as a human-readable alias nothing pins. See --doc FLEET-BUILD-DEPLOY-STANDARD.",
+        "fix": "",
         "example": ""
       },
       {
         "rule": "repo.release_scans_candidate",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.250.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "Re-emit `luxarch --emit image-block` (v14): its `release` builds, `docker save`s the tag it is about to push, runs `luxaudit --image-archive` (luxaudit >= 0.13.0) on THAT archive with THIS repo as `/repo` (`-v \"$(CURDIR)\":/repo`; `$(PWD)` is the caller's directory) and only then pushes. Multi-arch (`PLATFORMS`): push a `candidate-<commit>` tag nothing pins, pin its digest, pull + save + scan each platform by that digest, then `docker buildx imagetools create` the release tag from it. See --doc FLEET-BUILD-DEPLOY-STANDARD, Architectures.",
+        "fix": "",
         "example": ""
       },
       {
@@ -681,12 +681,12 @@
       },
       {
         "rule": "repo.stack_smoke_wired",
-        "status": "INERT",
+        "status": "PASS",
         "since": "0.268.0",
         "violations": 0,
         "deferred": false,
-        "inert": true,
-        "inert_reason": "no `dev-deploy` target in a committed makefile \u2014 no deploy to end with a probe",
+        "inert": false,
+        "inert_reason": "",
         "fix": "",
         "example": ""
       },
@@ -703,13 +703,13 @@
       },
       {
         "rule": "repo.image_block_wired",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.280.0",
-        "violations": 8,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "Paste `luxarch --emit image-block` into the Makefile and delete the hand-written publish and deploy targets; set its settings ABOVE it (REGISTRY, and as needed RELEASE_REGISTRY, PLATFORMS for a multi-arch image, PUBLIC_REGISTRY for a public copy, IMAGE_NAME, BUILD_CONTEXT, IMAGES for more than one image). Where the block cannot serve this repo, escalate to the luxarch maintainer and leave this red lit: a hand-written copy is the drift the block exists to end. See --doc FLEET-BUILD-DEPLOY-STANDARD.",
+        "fix": "",
         "example": ""
       },
       {
@@ -846,20 +846,20 @@
       }
     ],
     "summary": {
-      "PASS": 58,
-      "FAIL": 3,
+      "PASS": 62,
+      "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
-      "INERT": 6
+      "INERT": 5
     }
   },
   "summary": {
-    "PASS": 65,
-    "FAIL": 3,
+    "PASS": 69,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 7
+    "INERT": 6
   },
-  "commit": "58399a8bd00e8a3cdce2e3db97c354094f8dc85e",
-  "generated_at": "2026-10-13T01:15:17Z"
+  "commit": "239eb4629b70e8cb809658e936f11e78ee960b2d",
+  "generated_at": "2026-10-13T01:50:17Z"
 }

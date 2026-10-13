@@ -1,10 +1,10 @@
 # =============================================================================
 # sense-collector — multi-stage image (fleet standard)
-#   --target base : runtime only (prod pulls :latest / :VERSION)
-#   --target dev  : base + dev deps + baked tests (dev stack pulls :dev).
-#   --target test : the image `make test` runs (luxarch test block, `make test-build`):
-#                   the same app layers prod ships, plus the dev group. Never pushed.
-#   See Makefile dev-build-push / release / test-build.
+#   --target production : runtime only (stacks pin :<version> / :sha-<commit>)
+#   --target dev        : production + dev deps + baked tests (never pushed).
+#   --target test       : the image `make test` runs (luxarch test block, `make test-build`):
+#                         the same app layers prod ships, plus the dev group. Never pushed.
+#   See the Makefile image block: release / publish-sha / test-build.
 # All dependency versions (runtime AND dev tooling) come from poetry.lock, so the
 # lint/type/test tooling is pinned and reproducible.
 # =============================================================================
@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry into its OWN venv (pinned; pip verifies wheel hashes), never into the system
-# site-packages: the base stage copies that whole tree, so a system-wide poetry shipped poetry,
+# site-packages: the production stage copies that whole tree, so a system-wide poetry shipped poetry,
 # virtualenv, msgpack and setuptools into the runtime image, where luxaudit's image leg flagged
 # their CVEs. With POETRY_VIRTUALENVS_CREATE=false, `poetry install` still targets the system
 # interpreter, so system site-packages ends up holding the app's deps and nothing else.
@@ -39,8 +39,8 @@ RUN poetry install --no-root --only main
 FROM builder AS builder-dev
 RUN poetry install --no-root --with dev
 
-# ---- Stage 2: base — lean runtime image (prod) ------------------------------
-FROM python:3.14-slim AS base
+# ---- Stage 2: production — lean runtime image ------------------------
+FROM python:3.14-slim AS production
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -104,8 +104,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 
 CMD ["python3", "-m", "app.main"]
 
-# ---- Stage 3: dev — base + dev tooling + baked tests (dev stack / lint / test)
-FROM base AS dev
+# ---- Stage 3: dev — production + dev tooling + baked tests (lint / test)
+FROM production AS dev
 
 USER root
 # Overlay the dev-group site-packages (pytest + plugins, pinned by poetry.lock)

@@ -15,12 +15,12 @@
 ## Quick Start
 
 ```bash
-cp .env.example .env.prod          # then edit: Sense credentials + InfluxDB connection
+cp .env.example .env.prod-tyle     # then edit: TAG=<version>, Sense credentials, InfluxDB connection
 docker compose --profile prod-tyle --env-file .env.prod-tyle up -d
 docker compose --profile prod-tyle ps   # HEALTH shows healthy once data is flowing
 ```
 
-The image is published at `ghcr.io/luxardolabs/sense-collector:latest`. Full walkthrough: **[docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)**.
+The image is published at `ghcr.io/luxardolabs/sense-collector:<version>`, one immutable tag per release: set `TAG=<version>` in your env file. `:latest` is frozen at `2026.10.2` and no longer updated. Full walkthrough: **[docs/GETTING-STARTED.md](docs/GETTING-STARTED.md)**.
 
 ## Documentation
 

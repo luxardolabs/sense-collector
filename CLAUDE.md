@@ -67,8 +67,10 @@ make test            # THE suite (luxarch test block): test image + a real per-r
 make status          # regenerate the committed .lux*-status.json (commit them)
 make onboard-check   # proves all three guards are wired + honest (NOT that they are green)
 make poetry-lock     # regenerate poetry.lock (poetry-in-docker; no host poetry needed)
-make release         # build + push :VERSION + :latest (multi-arch) to the private registry
-make release-public  # promote that released image to ghcr.io/luxardolabs/<collector> by digest
+make dev-deploy      # build + scan + push :sha-<commit>, pin .env.dev's TAG=, restart dev-tyle, smoke it
+make dev-pin TAG=…   # point dev-tyle at an already-published tag (the rollback path)
+make release         # build + scan + push :VERSION (multi-arch) to the private registry, then the GitHub Release
+make release-public  # copy that released image to ghcr.io/luxardolabs/sense-collector by digest
 
 # Run directly (after setting env; see Configuration)
 python -m app.main
@@ -129,7 +131,7 @@ Sense cloud API/WebSocket -> app/collector (client + websocket) -> app/storage/i
 
 ## Configuration
 
-All config is via `SENSE_COLLECTOR_*` environment variables (see `app/core/config.py` for the full validated list, and `docs/CONFIGURATION.md`). **Secrets live in a gitignored `.env.<stack>` per real-account stack** — `.env.dev-tyle`, `.env.dev-bb`, `.env.prod-tyle`, `.env.prod-bb` (copy from `.env.example`). `.env.demo` and `.env.e2e` are committed and hold no secrets. Run `make gitleaks-staged` before committing.
+All config is via `SENSE_COLLECTOR_*` environment variables (see `app/core/config.py` for the full validated list, and `docs/CONFIGURATION.md`). **Secrets live in a gitignored `.env.<stack>` per real-account stack** — `.env.dev` (dev-tyle; it also carries the stack's `REGISTRY=`/`TAG=`/`SENSE_IMAGE=`), `.env.dev-bb`, `.env.prod-tyle`, `.env.prod-bb` (copy from `.env.example`). `.env.demo` and `.env.e2e` are committed and hold no secrets. Run `make gitleaks-staged` before committing.
 
 Required: `API_USERNAME`, `API_PASSWORD`, `INFLUXDB_URL`, `INFLUXDB_TOKEN`, `INFLUXDB_ORG`, `INFLUXDB_BUCKET` (all `SENSE_COLLECTOR_`-prefixed).
 
@@ -140,7 +142,7 @@ Required: `API_USERNAME`, `API_PASSWORD`, `INFLUXDB_URL`, `INFLUXDB_TOKEN`, `INF
 1. **Device name resolution**: devices are queued for lookup when discovered; cache respects rate limits.
 1. **InfluxDB writes** (fleet ingestion standard): the asyncio-native `InfluxDBClientAsync` (aiohttp), opened in `connect()`; each poll cycle's points are written as ONE `await write_api.write(...)` — no batch/flush knobs, no background buffer to flush. `ping()` fails fast on an unreachable server; auth/bucket errors (401/404) are logged and retried next cycle.
 1. **Lifecycle & error handling** (fleet canonical spine): long-lived clients open in `connect()` and close in `close()` (never a fresh client/session per request); shutdown is `loop.add_signal_handler` + an `asyncio.Event` threaded into the periodic loops (interruptible `asyncio.wait_for(shutdown.wait(), timeout=…)` sleeps); env is read via `ConfigValidator` and logged once through `config.describe_settings()`; **every log call uses lazy `%s` args, never f-strings** (ruff `G` fails lint on a violation). The app logs-and-continues on individual failures — but the catches are **narrowed** to what can actually fail at each site (`MALFORMED_PAYLOAD` / `EXPORT_WRITE_ERRORS` per module), so a bare `except Exception` no longer hides an `AttributeError` from a real bug; the six genuine last-resort nets carry an inline `# swallowed-exceptions: <reason>` waiver. Do not widen these back. `make arch` (folded into `make check`) statically guards these so they can't drift.
-1. **Docker**: multi-stage `Dockerfile` (builder → builder-dev → base → dev → test). `base` is the runtime image; `test` is what `make test` runs (never pushed). Every push of `:$(VERSION)` refuses an already-released version (confirmed against a real registry's `/v2/`) and a dirty tree. Multi-arch publishes (`release`, `release-public`) go through `publish_scanned`: pin the index digest, scan EVERY platform image by its own digest (luxaudit `--image-archive`), then `imagetools create` from that digest. `make release` ends with `make gh-release`. `.dockerignore` patterns must be `**/`-recursive, or host caches under `app/` ship in the image.
+1. **Docker**: multi-stage `Dockerfile` (builder → builder-dev → production → dev → test). `production` is the runtime image; `test` is what `make test` runs (never pushed). Publishing is the emitted image block (`luxarch --emit image-block`, never hand-edited; `PLATFORMS` multi-arch, `PUBLIC_REGISTRY := ghcr.io`): `publish-sha` / `dev-deploy` push `:sha-<commit>`, `release` pushes `:$(VERSION)` only and ends with the GitHub Release, `release-public` copies that digest to GHCR. Every push refuses a dirty tree and an already-published tag, and scans every platform by digest before it pushes. No app `:latest` is published; stacks pin `TAG=`. `.dockerignore` patterns must be `**/`-recursive, or host caches under `app/` ship in the image.
 1. **NO AI attribution** in commits/PRs (house rule — no Co-Authored-By, "Generated with", robot emoji).
 
 Release notes live in `CHANGELOG.md` at the repo root (Keep a Changelog, CalVer) — it is the public record and the source for the GitHub release body. Pre-fleet-standard history (`2025.7.x`) stays on the LuxPM "Changelog" page (project `SENSECOLLE`); work items are tracked as LuxPM issues.

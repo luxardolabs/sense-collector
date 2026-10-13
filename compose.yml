@@ -3,7 +3,7 @@ name: sense-collector
 # THE one compose file (fleet standard: exactly one `compose.yml` per repo). Stacks are
 # compose PROFILES — a service carrying a `profiles:` key is inert unless that profile is
 # named, which is what makes one file sufficient. Compose NEVER builds: every image is built
-# outside it (`make build-local`, `make harness-build`, `make release`) and run by tag.
+# outside it (`make build-local`, `make harness-build`, `make publish-sha`, `make release`) and run by tag.
 #
 # The house has TWO Sense monitors — tyle and bb — and each runs in two environments, so the
 # real-account stacks are a 2x2. Every stack has its own service names, container names,
@@ -17,7 +17,7 @@ name: sense-collector
 #   make test-e2e    -> --profile e2e         FAKE Sense + throwaway InfluxDB, no ports
 #   make test        -> --profile test        throwaway InfluxDB for the pytest suite, per-run project
 #
-# Credentials live in a gitignored `.env.<stack>` per stack (.env.dev-tyle, .env.dev-bb,
+# Credentials live in a gitignored `.env.<stack>` per stack (.env.dev for dev-tyle, .env.dev-bb,
 # .env.prod-tyle, .env.prod-bb); .env.demo and .env.e2e are committed and hold no secrets.
 # Only Grafana publishes a host port — InfluxDB is reached by SERVICE NAME on the compose
 # network, so it never contends for a port with a sibling fleet stack.
@@ -96,7 +96,7 @@ services:
     profiles: [dev-tyle]
     container_name: sense_dev_tyle_collector
     env_file:
-      - .env.dev-tyle
+      - .env.dev
     environment:
       SENSE_COLLECTOR_INFLUXDB_URL: http://sense_dev_tyle_influxdb:8086
     depends_on:

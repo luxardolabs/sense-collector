@@ -11,20 +11,23 @@ Sense Collector runs as a single Docker container. It authenticates against the 
 
 ## The image
 
-The public multi-arch image (linux/amd64, linux/arm64) is published to GitHub Container Registry:
+The public multi-arch image (linux/amd64, linux/arm64) is published to GitHub Container Registry, one immutable tag per release:
 
 ```
-ghcr.io/luxardolabs/sense-collector:latest
-ghcr.io/luxardolabs/sense-collector:2026.8.0
+ghcr.io/luxardolabs/sense-collector:<version>
 ```
+
+Pin the release you run (see [Releases](https://github.com/luxardolabs/sense-collector/releases) for the newest), and upgrade by changing the tag: in your env file that is `TAG=<version>` (the template's `SENSE_IMAGE` reads it). A pinned tag always names the same bits, so you know what is running and can roll back to it.
+
+**`:latest` is no longer updated.** It stays at `2026.10.2`, the last release that moved it; later releases publish only their version tag. If you run `:latest`, switch to a version tag.
 
 ## Configure
 
 Copy the template and fill in your Sense credentials and InfluxDB connection. The template documents every variable inline; the full reference is in [CONFIGURATION.md](CONFIGURATION.md).
 
 ```bash
-cp .env.example .env.prod
-# edit .env.prod — set SENSE_COLLECTOR_API_USERNAME / _API_PASSWORD and the four INFLUXDB_* values
+cp .env.example .env.prod-tyle
+# edit .env.prod-tyle — set TAG=<version>, SENSE_COLLECTOR_API_USERNAME / _API_PASSWORD and the four INFLUXDB_* values
 ```
 
 The six required variables:
@@ -53,10 +56,10 @@ Or with `docker run`:
 ```bash
 docker run -d \
   --name sense-collector \
-  --env-file .env.prod \
+  --env-file .env.prod-tyle \
   --restart always \
   -v /mnt/docker/sense-collector/output:/app/output \
-  ghcr.io/luxardolabs/sense-collector:latest
+  ghcr.io/luxardolabs/sense-collector:<version>
 ```
 
 The collector reaches out to the Sense cloud and your InfluxDB; it exposes no ports.
