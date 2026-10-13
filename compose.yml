@@ -86,7 +86,7 @@ services:
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_tyle_grafana_data:/var/lib/grafana
     ports:
-      - "${GRAFANA_PORT:-13300}:3000"
+      - "${GRAFANA_PORT_TYLE:-13300}:3000"
     depends_on:
       sense_dev_tyle_influxdb:
         condition: service_healthy
@@ -122,7 +122,7 @@ services:
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_bb_grafana_data:/var/lib/grafana
     ports:
-      - "${GRAFANA_PORT:-13301}:3000"
+      - "${GRAFANA_PORT_BB:-13301}:3000"
     depends_on:
       sense_dev_bb_influxdb:
         condition: service_healthy

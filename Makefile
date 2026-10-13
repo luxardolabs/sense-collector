@@ -192,9 +192,12 @@ build-local: ## Build the runtime image from CURRENT source as a local tag (no p
 # ── Publishing: the emitted image block (repo.image_block_wired) ─────────────────────────────────
 # Its settings live ABOVE it: REGISTRY (Makefile.local), IMAGE_NAME, PLATFORMS (multi-arch: the
 # public image is pulled on arm64 too) and PUBLIC_REGISTRY (release-public copies each release to
-# GHCR). The dev stack it deploys is dev-tyle, whose compose env file is `.env.dev` (`dev-pin`
-# writes its TAG=). Re-emit with `luxarch --emit image-block --update Makefile`; never hand-edit.
-DEV_PROFILES := dev-tyle
+# GHCR). The dev environment it deploys is BOTH monitors' stacks, dev-tyle and dev-bb: one build,
+# pinned once in `.env.dev` (`dev-pin` writes its TAG=), whose SENSE_IMAGE both collectors run.
+# Each collector keeps its own credentials (env_file .env.dev / .env.dev-bb), and each Grafana its
+# own port (GRAFANA_PORT_TYLE / GRAFANA_PORT_BB). Re-emit with
+# `luxarch --emit image-block --update Makefile`; never hand-edit.
+DEV_PROFILES := dev-tyle dev-bb
 
 # luxarch:image-block asset v16 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit image-block`.
 # ── Images: ONE naming scheme, and the NAME declares what the image IS ──────────────────────────
@@ -767,8 +770,8 @@ dev-pin: ## Point the dev stack at an ALREADY-PUBLISHED tag and restart it (roll
 test-build: ## Build the LOCAL test image from source (never pushed, never a deploy tag)
 	@docker build --load --target test $(BUILD_ARGS) -f $(call img_dockerfile,$(IMAGE_PRIMARY)) -t $(TEST_IMAGE) $(call img_context,$(IMAGE_PRIMARY)) >/dev/null
 
-# ── Smoke: the dev-tyle collector serves no HTTP, so it is probed by its container ───────────────
-SMOKE_CONTAINERS := sense_dev_tyle_collector
+# ── Smoke: the collectors serve no HTTP, so each is probed by its container ──────────────────────
+SMOKE_CONTAINERS := sense_dev_tyle_collector sense_dev_bb_collector
 # Its entry points are app.main and the HEALTHCHECK module (not the asset's app/*_main default).
 SMOKE_ENTRY_MODULES := app.main app.health.check
 
@@ -967,7 +970,7 @@ shell: ## Shell into the collector container
 
 dev-up: build-local ## Build locally + start the full dev stack (real Sense account; bundled Grafana)
 	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_TYLE_DC) up -d
-	@echo "sense-collector [dev] — Grafana http://localhost:$(or $(GRAFANA_PORT),13300) (admin/admin)"
+	@echo "sense-collector [dev] — Grafana http://localhost:$(or $(GRAFANA_PORT_TYLE),13300) (admin/admin)"
 
 dev-down: ## Stop the dev stack (keep data volumes)
 	$(DEV_TYLE_DC) down

@@ -67,8 +67,8 @@ make test            # THE suite (luxarch test block): test image + a real per-r
 make status          # regenerate the committed .lux*-status.json (commit them)
 make onboard-check   # proves all three guards are wired + honest (NOT that they are green)
 make poetry-lock     # regenerate poetry.lock (poetry-in-docker; no host poetry needed)
-make dev-deploy      # build + scan + push :sha-<commit>, pin .env.dev's TAG=, restart dev-tyle, smoke it
-make dev-pin TAG=…   # point dev-tyle at an already-published tag (the rollback path)
+make dev-deploy      # build + scan + push :sha-<commit>, pin .env.dev's TAG=, restart dev-tyle AND dev-bb, smoke both
+make dev-pin TAG=…   # point both dev stacks at an already-published tag (the rollback path)
 make release         # build + scan + push :VERSION (multi-arch) to the private registry, then the GitHub Release
 make release-public  # copy that released image to ghcr.io/luxardolabs/sense-collector by digest
 
@@ -131,7 +131,7 @@ Sense cloud API/WebSocket -> app/collector (client + websocket) -> app/storage/i
 
 ## Configuration
 
-All config is via `SENSE_COLLECTOR_*` environment variables (see `app/core/config.py` for the full validated list, and `docs/CONFIGURATION.md`). **Secrets live in a gitignored `.env.<stack>` per real-account stack** — `.env.dev` (dev-tyle; it also carries the stack's `REGISTRY=`/`TAG=`/`SENSE_IMAGE=`), `.env.dev-bb`, `.env.prod-tyle`, `.env.prod-bb` (copy from `.env.example`). `.env.demo` and `.env.e2e` are committed and hold no secrets. Run `make gitleaks-staged` before committing.
+All config is via `SENSE_COLLECTOR_*` environment variables (see `app/core/config.py` for the full validated list, and `docs/CONFIGURATION.md`). **Secrets live in a gitignored `.env.<stack>` per real-account stack** — `.env.dev` (dev-tyle's credentials, plus the `REGISTRY=`/`TAG=`/`SENSE_IMAGE=` BOTH dev collectors run), `.env.dev-bb` (bb's credentials), `.env.prod-tyle`, `.env.prod-bb` (copy from `.env.example`). `.env.demo` and `.env.e2e` are committed and hold no secrets. Run `make gitleaks-staged` before committing.
 
 Required: `API_USERNAME`, `API_PASSWORD`, `INFLUXDB_URL`, `INFLUXDB_TOKEN`, `INFLUXDB_ORG`, `INFLUXDB_BUCKET` (all `SENSE_COLLECTOR_`-prefixed).
 
