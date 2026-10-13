@@ -1,5 +1,5 @@
-# Build context for every Dockerfile stage (base, dev, test). The Dockerfile COPYs
-# `app/` (base) and `tests/` (dev/test stages) explicitly, so exclude everything that
+# Build context for every Dockerfile stage (production, dev, test). The Dockerfile COPYs
+# `app/` (production) and `tests/` (dev/test stages) explicitly, so exclude everything that
 # must never enter an image or would bust the build cache.
 
 # Git
