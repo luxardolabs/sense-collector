@@ -219,13 +219,13 @@
       },
       {
         "rule": "repo.agent_push_declared",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.296.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "Add to .luxarch.toml: `[agents]` then `push = \"agent\"` (the agent pushes when its work lands: every repo an agent can push to, public included) or `push = \"owner\"` (an airgapped repo: the agent stops at the commit and the owner transfers it). The owner decides which; an agent asks once and writes the answer down. `unpushed-stop-guard` and `/wrap-up` read it. See --doc FLEET-AGENT-CONDUCT-STANDARD.",
+        "fix": "",
         "example": ""
       },
       {
@@ -857,20 +857,20 @@
       }
     ],
     "summary": {
-      "PASS": 58,
-      "FAIL": 1,
+      "PASS": 59,
+      "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 9
     }
   },
   "summary": {
-    "PASS": 65,
-    "FAIL": 1,
+    "PASS": 66,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 10
   },
-  "commit": "e11b60c7ca982d382eec4293d7e5ade56b58f690",
-  "generated_at": "2026-10-25T15:52:01Z"
+  "commit": "4e5deaae6af8193961c370c330f17a455b867f43",
+  "generated_at": "2026-10-25T16:15:10Z"
 }

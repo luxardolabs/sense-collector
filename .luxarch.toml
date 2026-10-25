@@ -28,3 +28,8 @@ source_client = ["collector/client.py"]
 [observability]
 enabled = false
 exempt_reason = "deliberate non-adoption, not non-applicability: no opentelemetry dependency and none of the pack's span helpers, and a headless collector's failures are already diagnosable from the sense_o11y InfluxDB measurement (read in Grafana) plus per-area structured logging. Parts of the fleet do run the overlay, so this is a choice to revisit if tracing is standardised across collectors."
+
+# Who pushes (FLEET-AGENT-CONDUCT-STANDARD, "Who pushes, and who releases"): the owner's call.
+# "agent": an agent pushes main as it lands each issue, through the gitleaks pre-push hook.
+[agents]
+push = "agent"
