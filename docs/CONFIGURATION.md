@@ -39,7 +39,7 @@ These environment variables MUST be set for the application to run:
 | `SENSE_COLLECTOR_API_BASE_URL` | `https://api.sense.com/apiservice/api/v1` | Sense API base URL |
 | `SENSE_COLLECTOR_WS_BASE_URL`  | `wss://clientrt.sense.com`                | WebSocket base URL |
 
-No URL setting takes credentials. Startup refuses a `user:password@` in `SENSE_COLLECTOR_API_BASE_URL`, `SENSE_COLLECTOR_WS_BASE_URL` or `SENSE_COLLECTOR_INFLUXDB_URL`, because Sense authenticates with the account login and InfluxDB with its token, and the URL appears in error log lines.
+No URL setting takes credentials. Startup refuses any `@` (a `user:password@`, encoded or not) in `SENSE_COLLECTOR_API_BASE_URL`, `SENSE_COLLECTOR_WS_BASE_URL` or `SENSE_COLLECTOR_INFLUXDB_URL`, because Sense authenticates with the account login and InfluxDB with its token, and the URL appears in error log lines.
 
 ### Headers and Versions
 
@@ -89,11 +89,11 @@ No URL setting takes credentials. Startup refuses a `user:password@` in `SENSE_C
 
 ## Container Health Check
 
-| Variable                                    | Default                                                                                            | Min | Max                                         | Description                                                                                |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------- | --- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE`      | `120`                                                                                              | —   | —                                           | Max heartbeat age before unhealthy (seconds)                                               |
-| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE`     | `<export folder>/.heartbeat`, or `/tmp/sense-collector.heartbeat` when that folder is not writable | —   | —                                           | Heartbeat file the collector touches as data flows; the healthcheck picks the same default |
-| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL` | `15`                                                                                               | 1   | half of `HEALTH_CHECK_MAX_AGE`, at most 300 | Min seconds between heartbeat touches (throttle)                                           |
+| Variable                                    | Default                                                                                            | Min | Max                                         | Description                                                                                          |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------- | --- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE`      | `120`                                                                                              | 10  | 86400                                       | Max heartbeat age before unhealthy (seconds); the collector and the healthcheck read it the same way |
+| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE`     | `<export folder>/.heartbeat`, or `/tmp/sense-collector.heartbeat` when that folder is not writable | —   | —                                           | Heartbeat file the collector touches as data flows; the healthcheck picks the same default           |
+| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL` | `15`                                                                                               | 1   | half of `HEALTH_CHECK_MAX_AGE`, at most 300 | Min seconds between heartbeat touches (throttle)                                                     |
 
 ## HTTP Configuration
 
