@@ -9,17 +9,20 @@ collector bug still propagates).
 import asyncio
 import json
 import time
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
 
+from app.collector import client as client_mod
 from app.collector.client import (
     DeviceCache,
     SenseCollector,
     authenticate_with_sense,
 )
 from app.collector.endpoints import SenseAPIEndpoints
+from app.core import config
 
 AUTH_RESPONSE = {
     "access_token": "tok-abc",
@@ -629,8 +632,14 @@ class TestMakeApiRequest:
             side_effect=[_response(status=401), _response(json_body={"ok": True})]
         )
         collector.min_api_interval = 0
+
+        async def renew() -> None:  # what the real authenticate() does to the token
+            collector.auth_time = datetime.now(UTC)
+
         with (
-            patch.object(collector, "authenticate", AsyncMock()) as auth,
+            patch.object(
+                collector, "authenticate", AsyncMock(side_effect=renew)
+            ) as auth,
             patch("app.collector.client.asyncio.sleep", AsyncMock()),
         ):
             assert await collector.make_api_request("http://x/y") == {"ok": True}
@@ -835,3 +844,82 @@ class TestPeriodicSummary:
         collector.activity_stats["realtime_updates"] = 5
         await collector._log_periodic_summary()
         assert collector.activity_stats["realtime_updates"] == 0
+
+
+class TestAuthenticationPacing:
+    """Password logins against Sense's rate-limited auth endpoint must stay rare: a login
+    flood keeps a 429 going and can get the account locked."""
+
+    @staticmethod
+    def _collector(storage, counter, auth_status=200, rest_status=200):
+        async def handler(request: httpx.Request) -> httpx.Response:
+            await asyncio.sleep(0.05)  # a real round trip: the caller suspends here
+            if request.url.path.endswith("/authenticate"):
+                counter["auth"] += 1
+                if auth_status != 200:
+                    return httpx.Response(auth_status, json={"error": "rate limited"})
+                return httpx.Response(200, json=AUTH_RESPONSE)
+            counter["rest"] += 1
+            return httpx.Response(rest_status, json={})
+
+        c = SenseCollector("u", "p", storage)
+        c.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        c.access_token, c.monitor_id = "t1", "9"
+        c.auth_time = datetime.now(UTC) - timedelta(
+            seconds=config.TOKEN_RENEW_INTERVAL + 1
+        )
+        return c
+
+    @staticmethod
+    async def _periodic_for(c, seconds):
+        c.shutdown_event = asyncio.Event()
+        tasks = [
+            asyncio.create_task(c.periodic_monitor_status()),
+            asyncio.create_task(c.periodic_device_fetch()),
+        ]
+        await asyncio.sleep(seconds)
+        c.shutdown_event.set()
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await c.client.aclose()
+
+    @pytest.mark.asyncio
+    async def test_a_due_renewal_logs_in_about_once(self, storage):
+        counter = {"auth": 0, "rest": 0}
+        await self._periodic_for(self._collector(storage, counter), 3.0)
+        assert counter["auth"] <= 2, counter
+
+    @pytest.mark.asyncio
+    async def test_a_failing_auth_endpoint_is_backed_off_not_hammered(self, storage):
+        counter = {"auth": 0, "rest": 0}
+        await self._periodic_for(
+            self._collector(storage, counter, auth_status=429), 5.0
+        )
+        assert counter["auth"] <= 3, f"{counter['auth']} /authenticate calls in 5s"
+
+    @pytest.mark.asyncio
+    async def test_concurrent_callers_share_one_renewal(self, storage):
+        counter = {"auth": 0, "rest": 0}
+        c = self._collector(storage, counter)
+        await asyncio.gather(*(c.fetch_device_data(f"d{i}") for i in range(5)))
+        await c.client.aclose()
+        assert counter["auth"] == 1, f"{counter['auth']} logins for one renewal"
+
+    @pytest.mark.asyncio
+    async def test_a_persistent_401_does_not_log_in_on_every_retry(
+        self, storage, monkeypatch
+    ):
+        """A fresh token that still gets 401 is not fixed by logging in again."""
+
+        async def no_sleep(_seconds: float) -> None:
+            return None
+
+        monkeypatch.setattr(client_mod.asyncio, "sleep", no_sleep)
+        counter = {"auth": 0, "rest": 0}
+        c = self._collector(storage, counter, rest_status=401)
+        c.auth_time = datetime.now(UTC)
+        for i in range(3):
+            await c.fetch_device_data(f"d{i}")
+        await c.client.aclose()
+        assert counter["auth"] <= 1, f"{counter['auth']} logins for 3 lookups"

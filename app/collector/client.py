@@ -159,6 +159,13 @@ class SenseCollector:
         self.api_semaphore = asyncio.Semaphore(config.API_RATE_LIMIT_CONCURRENT)
         self.min_api_interval = config.API_MIN_INTERVAL
 
+        # Password logins are single-flight and paced: one renewal for every concurrent
+        # caller, an exponential backoff after a failed one, and no repeat login for a 401
+        # that a fresh token already got.
+        self._auth_lock = asyncio.Lock()
+        self._auth_failures = 0
+        self._auth_retry_at = 0.0
+
     async def connect(self) -> None:
         """Open the ONE long-lived httpx client for the process lifetime (idempotent)."""
         if self.client is not None:
@@ -229,13 +236,43 @@ class SenseCollector:
             api_logger.error("Authentication failed: %s", e)
             raise
 
-    async def check_token_renewal(self) -> None:
-        """Check if access token needs renewal."""
-        if self.auth_time:
-            time_since_auth = (datetime.now(UTC) - self.auth_time).total_seconds()
-            if time_since_auth > config.TOKEN_RENEW_INTERVAL:
-                api_logger.info("Access token expired, re-authenticating...")
+    def _token_age(self) -> float:
+        """Seconds since the current token was issued (infinite before the first login)."""
+        if self.auth_time is None:
+            return float("inf")
+        return (datetime.now(UTC) - self.auth_time).total_seconds()
+
+    async def _renew(self, reason: str, min_age: float) -> None:
+        """Log in again unless another caller just did, the token is younger than `min_age`,
+        or a failed login is still backing off. A failed renewal keeps the current token."""
+        async with self._auth_lock:
+            if self._token_age() <= min_age or time.monotonic() < self._auth_retry_at:
+                return
+            api_logger.info("%s, re-authenticating...", reason)
+            try:
                 await self.authenticate()
+            except httpx.HTTPError:
+                self._auth_failures += 1
+                delay = min(
+                    config.API_RETRY_BACKOFF_BASE**self._auth_failures,
+                    config.AUTH_RETRY_MAX_DELAY,
+                )
+                self._auth_retry_at = time.monotonic() + delay
+                api_logger.warning(
+                    "Re-authentication failed; keeping the current token, next attempt "
+                    "in %ss",
+                    delay,
+                )
+                return
+            self._auth_failures = 0
+            self._auth_retry_at = 0.0
+
+    async def check_token_renewal(self) -> None:
+        """Renew the access token once it is older than TOKEN_RENEW_INTERVAL."""
+        if self.auth_time and self._token_age() > config.TOKEN_RENEW_INTERVAL:
+            await self._renew(
+                "Access token due for renewal", config.TOKEN_RENEW_INTERVAL
+            )
 
     async def collect_sense_data(
         self, shutdown_event: asyncio.Event | None = None
@@ -450,9 +487,18 @@ class SenseCollector:
 
                 except httpx.HTTPStatusError as e:
                     if e.response.status_code == 401:
-                        # Token expired
-                        api_logger.info("Token expired, re-authenticating...")
-                        await self.authenticate()
+                        # A token older than a minute may have been revoked: log in once.
+                        # A fresh one that still gets 401 is refused for another reason,
+                        # and logging in again would only repeat the password login.
+                        issued = self.auth_time
+                        await self._renew(
+                            "REST request got 401", config.AUTH_MIN_REAUTH_AGE
+                        )
+                        if self.auth_time is issued:
+                            api_logger.error(
+                                "%s refused with 401 on a fresh token; giving up", url
+                            )
+                            return None
                         retry_count += 1
                         continue
                     else:

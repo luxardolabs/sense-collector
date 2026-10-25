@@ -258,6 +258,15 @@ TOKEN_RENEW_INTERVAL = get_env_int(
 )  # 1-24 hours
 
 # Fetch Intervals
+# Pacing for password logins (seconds): the longest backoff after a failed login, and the
+# youngest token a REST 401 may replace (a fresh token that gets 401 is not expired).
+AUTH_RETRY_MAX_DELAY = get_env_int(
+    "SENSE_COLLECTOR_AUTH_RETRY_MAX_DELAY", 900, min_val=60, max_val=86400
+)
+AUTH_MIN_REAUTH_AGE = get_env_int(
+    "SENSE_COLLECTOR_AUTH_MIN_REAUTH_AGE", 60, min_val=0, max_val=3600
+)
+
 MONITOR_STATUS_INTERVAL = get_env_int(
     "SENSE_COLLECTOR_MONITOR_STATUS_INTERVAL", 60, min_val=30, max_val=3600
 )
