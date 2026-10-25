@@ -21,14 +21,14 @@ This document describes all available configuration options for Sense Collector.
 
 These environment variables MUST be set for the application to run:
 
-| Variable                          | Description                   | Example                 |
-| --------------------------------- | ----------------------------- | ----------------------- |
-| `SENSE_COLLECTOR_API_USERNAME`    | Your Sense account email      | `user@example.com`      |
-| `SENSE_COLLECTOR_API_PASSWORD`    | Your Sense account password   | `your-password`         |
-| `SENSE_COLLECTOR_INFLUXDB_URL`    | InfluxDB server URL           | `http://localhost:8086` |
-| `SENSE_COLLECTOR_INFLUXDB_TOKEN`  | InfluxDB authentication token | `your-token`            |
-| `SENSE_COLLECTOR_INFLUXDB_ORG`    | InfluxDB organization         | `your-org`              |
-| `SENSE_COLLECTOR_INFLUXDB_BUCKET` | InfluxDB bucket name          | `sense-data`            |
+| Variable                          | Description                                                                                                                | Example                 |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `SENSE_COLLECTOR_API_USERNAME`    | Your Sense account email                                                                                                   | `user@example.com`      |
+| `SENSE_COLLECTOR_API_PASSWORD`    | Your Sense account password                                                                                                | `your-password`         |
+| `SENSE_COLLECTOR_INFLUXDB_URL`    | InfluxDB server URL                                                                                                        | `http://localhost:8086` |
+| `SENSE_COLLECTOR_INFLUXDB_TOKEN`  | InfluxDB authentication token. A stack that reads the real Sense cloud refuses the demo/e2e tokens committed in this repo. | `your-token`            |
+| `SENSE_COLLECTOR_INFLUXDB_ORG`    | InfluxDB organization                                                                                                      | `your-org`              |
+| `SENSE_COLLECTOR_INFLUXDB_BUCKET` | InfluxDB bucket name                                                                                                       | `sense-data`            |
 
 ## API Configuration
 

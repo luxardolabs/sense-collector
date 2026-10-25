@@ -1,6 +1,7 @@
 import logging
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 # Module logger, never the root logger: a bare `logging.warning(...)` module-level call goes
 # to the root logger, which installs a default handler on first use (this module is imported
@@ -129,10 +130,23 @@ INFLUXDB_TOKEN = os.getenv("SENSE_COLLECTOR_INFLUXDB_TOKEN", "")
 INFLUXDB_ORG = os.getenv("SENSE_COLLECTOR_INFLUXDB_ORG", "")
 INFLUXDB_BUCKET = os.getenv("SENSE_COLLECTOR_INFLUXDB_BUCKET", "")
 
-# API URLs and Endpoints
-API_BASE_URL = os.getenv(
-    "SENSE_COLLECTOR_API_BASE_URL", "https://api.sense.com/apiservice/api/v1"
+# InfluxDB tokens committed in this public repository (.env.demo, .env.e2e). They set up the
+# throwaway demo and e2e InfluxDBs and must never authenticate a stack that holds real data.
+PUBLIC_INFLUXDB_TOKENS = frozenset(
+    {"sense-collector-demo-token-not-secret", "sense-e2e-token"}
 )
+
+# API URLs and Endpoints
+SENSE_CLOUD_API_BASE_URL = "https://api.sense.com/apiservice/api/v1"
+API_BASE_URL = os.getenv("SENSE_COLLECTOR_API_BASE_URL", SENSE_CLOUD_API_BASE_URL)
+
+
+def is_sense_cloud(url: str) -> bool:
+    """The URL names the real Sense cloud (any *.sense.com host), however it is spelled."""
+    host = (urlsplit(url).hostname or "").rstrip(".")
+    return host == "sense.com" or host.endswith(".sense.com")
+
+
 WS_BASE_URL = os.getenv("SENSE_COLLECTOR_WS_BASE_URL", "wss://clientrt.sense.com")
 
 # API Headers and Versions

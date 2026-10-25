@@ -54,6 +54,23 @@ def validate_environment() -> None:
         logger.error("Missing required environment variables: %s", ", ".join(missing))
         raise ValueError("Missing required environment variables")
 
+    # A stack that reads the real Sense cloud holds a household's data, so its InfluxDB
+    # token must be its own: the demo/e2e tokens are public in this repository.
+    # INFLUX_TOKEN is the bundled InfluxDB's admin token (the dev stacks' env file sets it).
+    tokens = {
+        config.INFLUXDB_TOKEN.strip(),
+        os.environ.get("INFLUX_TOKEN", "").strip(),
+    }
+    if tokens & config.PUBLIC_INFLUXDB_TOKENS and config.is_sense_cloud(
+        config.API_BASE_URL
+    ):
+        logger.error(
+            "SENSE_COLLECTOR_INFLUXDB_TOKEN or INFLUX_TOKEN is a token committed in this "
+            "public repository (.env.demo / .env.e2e) and this stack reads the real Sense "
+            "cloud. Give the InfluxDB a token of its own (and rotate it there) before starting."
+        )
+        raise ValueError("Refusing to write real data with a public InfluxDB token")
+
 
 async def create_collector() -> tuple[SenseCollector, InfluxDBStorage]:
     """Create + initialize the InfluxDBStorage and SenseCollector (opens both clients, auths once)."""

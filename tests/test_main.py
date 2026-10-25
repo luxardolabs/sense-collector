@@ -9,6 +9,8 @@ real wiring end to end is the e2e stack.
 import asyncio
 import logging
 import os
+import re
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -138,6 +140,115 @@ class TestValidateEnvironment:
             validate_environment()
         for raw in settings.values():
             assert raw not in caplog.text
+
+
+# The committed files that set an InfluxDB token. An explicit list, never a glob: the main
+# checkout also holds the gitignored .env.dev*/.env.prod* files with real secrets.
+_TOKEN_FILES = (".env.demo", ".env.e2e", ".env.dev.local.example", "Makefile")
+_TOKEN_ASSIGNMENT = re.compile(
+    r"^\s*(?:export\s+)?(INFLUX_TOKEN|SENSE_COLLECTOR_INFLUXDB_TOKEN|TEST_INFLUXDB_TOKEN)"
+    r"\s*=\s*['\"]?([^'\"\s$]+)",
+    re.MULTILINE,
+)
+
+
+def _committed_influx_tokens() -> set[str]:
+    """Every literal InfluxDB token this public repo commits, in any form compose reads."""
+    root = Path(__file__).resolve().parents[1]
+    return {
+        value
+        for name in _TOKEN_FILES
+        if (root / name).exists()
+        for _, value in _TOKEN_ASSIGNMENT.findall((root / name).read_text())
+    }
+
+
+class TestPublicTokenGuard:
+    """A stack that talks to the real Sense cloud must never write with a token that is
+    public in this repository: anyone who reads the repo could read the household's data."""
+
+    @pytest.fixture
+    def required_env(self):
+        with patch.dict(
+            os.environ, dict.fromkeys(config.REQUIRED_ENV_VARS, "set"), clear=False
+        ):
+            yield
+
+    @pytest.mark.parametrize("token", sorted(_committed_influx_tokens()))
+    def test_a_real_account_stack_refuses_a_committed_token(self, required_env, token):
+        with (
+            patch.object(config, "INFLUXDB_TOKEN", token),
+            patch.object(config, "API_BASE_URL", config.SENSE_CLOUD_API_BASE_URL),
+            pytest.raises(ValueError, match="public InfluxDB token"),
+        ):
+            validate_environment()
+
+    def test_the_demo_and_e2e_stacks_may_use_their_committed_token(self, required_env):
+        """They point the collector at the fake Sense, not the real cloud."""
+        token = sorted(_committed_influx_tokens())[0]
+        with (
+            patch.object(config, "INFLUXDB_TOKEN", token),
+            patch.object(config, "API_BASE_URL", "http://sense_fake:8080"),
+        ):
+            validate_environment()
+
+    def test_a_real_account_stack_with_its_own_token_starts(self, required_env):
+        with (
+            patch.object(config, "INFLUXDB_TOKEN", "a-token-of-its-own"),
+            patch.object(config, "API_BASE_URL", config.SENSE_CLOUD_API_BASE_URL),
+        ):
+            validate_environment()
+
+    def test_the_guard_knows_every_committed_token(self):
+        assert _committed_influx_tokens() <= config.PUBLIC_INFLUXDB_TOKENS
+
+    def test_the_bundled_influxdbs_admin_token_is_checked_too(self, required_env):
+        """The dev stacks set up their InfluxDB with INFLUX_TOKEN, a separate variable."""
+        token = sorted(_committed_influx_tokens())[0]
+        with (
+            patch.dict(os.environ, {"INFLUX_TOKEN": token}),
+            patch.object(config, "INFLUXDB_TOKEN", "a-token-of-its-own"),
+            patch.object(config, "API_BASE_URL", config.SENSE_CLOUD_API_BASE_URL),
+            pytest.raises(ValueError, match="public InfluxDB token"),
+        ):
+            validate_environment()
+
+    def test_surrounding_whitespace_does_not_disguise_a_committed_token(
+        self, required_env
+    ):
+        """A quoted env value keeps its spaces, and InfluxDB accepts the token anyway."""
+        token = sorted(_committed_influx_tokens())[0]
+        with (
+            patch.object(config, "INFLUXDB_TOKEN", f"{token} "),
+            patch.object(config, "API_BASE_URL", config.SENSE_CLOUD_API_BASE_URL),
+            pytest.raises(ValueError, match="public InfluxDB token"),
+        ):
+            validate_environment()
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://api.sense.com/apiservice/api/v1/",
+            "https://API.SENSE.COM/apiservice/api/v1",
+            "https://api.sense.com:443/apiservice/api/v1",
+            "https://api.sense.com./apiservice/api/v1",
+        ],
+    )
+    def test_any_spelling_of_the_real_cloud_counts(self, required_env, url):
+        token = sorted(_committed_influx_tokens())[0]
+        with (
+            patch.object(config, "INFLUXDB_TOKEN", token),
+            patch.object(config, "API_BASE_URL", url),
+            pytest.raises(ValueError, match="public InfluxDB token"),
+        ):
+            validate_environment()
+
+    def test_the_token_reader_sees_every_form_compose_accepts(self, tmp_path):
+        text = (
+            "export INFLUX_TOKEN=one\nINFLUX_TOKEN = two\nTEST_INFLUXDB_TOKEN='three'\n"
+        )
+        found = {v for _, v in _TOKEN_ASSIGNMENT.findall(text)}
+        assert found == {"one", "two", "three"}
 
 
 class _FakeCollector:
