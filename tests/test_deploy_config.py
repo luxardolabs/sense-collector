@@ -170,3 +170,22 @@ def test_throwaway_stacks_tear_down_in_their_own_compose_project() -> None:
     dc = re.search(r'^DC="([^"]+)"', e2e, re.M)[1]
     own = re.search(r"(?:-p|--project-name)\s+(\S+)", dc)
     assert own and own[1] != project, dc
+
+
+def test_every_env_template_describes_a_file_a_stack_reads() -> None:
+    """A template for an env file nothing reads sends operators to configure nothing."""
+    readers = "".join(
+        (REPO / name).read_text() for name in ("compose.yml", "Makefile")
+    ) + "".join(p.read_text() for p in (REPO / "scripts").glob("*.sh"))
+    for template in REPO.glob(".env.*.example"):
+        target = template.name.removesuffix(".example")
+        assert target in readers, f"{template.name}: nothing reads {target}"
+
+
+def test_every_setting_in_the_env_template_is_read_by_the_collector() -> None:
+    """A knob in .env.example that no code reads changes nothing when an operator tunes it."""
+    source = "".join(p.read_text() for p in (REPO / "app").rglob("*.py"))
+    template = (REPO / ".env.example").read_text()
+    keys = set(re.findall(r"^#?\s*(SENSE_COLLECTOR_[A-Z0-9_]+)=", template, re.M))
+    assert keys, "the template sets no SENSE_COLLECTOR_ keys"
+    assert not {key for key in keys if key not in source}
