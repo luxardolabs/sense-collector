@@ -467,6 +467,15 @@ class TestProcessTimelineItem:
         await collector.process_timeline_item({"device_id": "ac", "device_name": "AC"})
         assert storage.persist_timeline_data.call_args.kwargs["device_name"] == "AC"
 
+    @pytest.mark.asyncio
+    async def test_a_non_string_event_name_falls_back_to_the_id(
+        self, collector, storage
+    ):
+        await collector.process_timeline_item(
+            {"device_id": "ac", "device_name": {"x": 1}}
+        )
+        assert storage.persist_timeline_data.call_args.kwargs["device_name"] == "ac"
+
 
 # ------------------------------------------------------------------ fetch + API worker
 

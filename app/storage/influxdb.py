@@ -27,10 +27,13 @@ WRITE_ERRORS = (*MALFORMED_PAYLOAD, OSError, InfluxDBError)
 _DROPPED = re.compile(r"dropped=(\d+)")
 
 
-def _tag(value: str) -> str:
+def _tag(value: Any) -> Any:
     """A tag value line protocol can carry exactly: it cannot end in a backslash (the
-    client then appends a space, and InfluxDB stores a name no device has)."""
-    return value.rstrip("\\") or value
+    client then appends a space, and InfluxDB stores a name no device has). A non-string
+    passes through: Point.tag stringifies it, and leaves None out."""
+    if not isinstance(value, str):
+        return value
+    return value.rstrip("\\") or value.replace("\\", "/")
 
 
 def _event_precision(time: Any) -> str:
@@ -763,38 +766,39 @@ class InfluxDBStorage:
                     device_id,
                 )
 
-                points = []
-                for event in events:
-                    # Update the body to use the real device name
-                    updated_body = event["body"].replace(device_id, device_name)
-
-                    timeline_point = (
-                        Point(config.MEASUREMENT_EVENT)
-                        .tag("monitor_id", event["monitor_id"])
-                        .tag("device_id", device_id)
-                        .tag("device_name", _tag(device_name))
-                        .field("time", event["time"])
-                        .field("type", event["event_type"])
-                        .field("icon", device_icon)
-                        .field("body", updated_body)
-                        .field("device_state", event["device_state"])
-                        .field("user_device_type", event["user_device_type"])
-                        .field(
-                            "device_transition_from_state",
-                            event["device_transition_from_state"],
-                        )
-                        .time(
-                            event["time"],
-                            write_precision=_event_precision(event["time"]),
-                        )
-                    )
-                    points.append(timeline_point)
-
+                points = self._queued_event_points(device_id, device_name, device_icon)
                 if points:
                     await self.write_points(points)
 
                 # Remove processed events
                 del self.timeline_event_queue[device_id]
+
+    def _queued_event_points(
+        self, device_id: str, device_name: str, device_icon: str
+    ) -> list[Point]:
+        """One device's queued timeline events as points, named `device_name`."""
+        points = []
+        for event in self.timeline_event_queue.get(device_id, []):
+            # The body names the device by id until its name is known; Sense may send null.
+            body = str(event["body"] or "").replace(device_id, device_name)
+            points.append(
+                Point(config.MEASUREMENT_EVENT)
+                .tag("monitor_id", event["monitor_id"])
+                .tag("device_id", device_id)
+                .tag("device_name", _tag(device_name))
+                .field("time", event["time"])
+                .field("type", event["event_type"])
+                .field("icon", device_icon)
+                .field("body", body)
+                .field("device_state", event["device_state"])
+                .field("user_device_type", event["user_device_type"])
+                .field(
+                    "device_transition_from_state",
+                    event["device_transition_from_state"],
+                )
+                .time(event["time"], write_precision=_event_precision(event["time"]))
+            )
+        return points
 
     async def persist_hello_event(
         self, monitor_id: str, online_status: bool, timestamp: int
@@ -953,17 +957,24 @@ class InfluxDBStorage:
             )
             await self._process_device_batch(remaining_items)
 
-        # Timeline events still waiting for a device name: write them now, under the cached
-        # name where there is one and the device id where not, rather than lose them.
-        for device_id in list(self.timeline_event_queue):
-            events = self.timeline_event_queue[device_id]
-            name = await self.device_queue.get_device_name(device_id) or device_id
-            icon = events[0].get("icon", "") if events else ""
-            await self.process_queued_timeline_events(device_id, name, icon)
-
-        # Every cycle's write is awaited inline, so shutdown just releases the aiohttp session.
-        await self._close_client()
-        storage_logger.info("InfluxDB client closed")
+        try:
+            # Timeline events still waiting for a device name: write them now, in ONE batch,
+            # under the cached name where there is one and the device id where not.
+            points: list[Point] = []
+            async with self.timeline_queue_lock:
+                for device_id, events in list(self.timeline_event_queue.items()):
+                    name = (
+                        await self.device_queue.get_device_name(device_id) or device_id
+                    )
+                    icon = events[0].get("icon", "") if events else ""
+                    points.extend(self._queued_event_points(device_id, name, icon))
+                self.timeline_event_queue.clear()
+            await self.write_points(points)
+        finally:
+            # Every cycle's write is awaited inline, so shutdown just releases the session,
+            # even when a queued event could not be turned into a point.
+            await self._close_client()
+            storage_logger.info("InfluxDB client closed")
 
         # Log final statistics
         storage_logger.info(

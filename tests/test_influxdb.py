@@ -753,3 +753,85 @@ async def test_shutdown_writes_the_batch_the_processor_was_collecting(
 
     written = [p for call in storage.write_points.await_args_list for p in call.args[0]]
     assert any("device_name=Router" in p.to_line_protocol() for p in written)
+
+
+@pytest.mark.parametrize("name", [42, ["a"], None])
+@pytest.mark.asyncio
+async def test_a_non_string_device_name_does_not_escape_the_write(
+    influxdb_params, name
+):
+    """Sense names are untrusted: a number, a list or a null must not raise."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_api = AsyncMock()
+    await storage.persist_realtime_data(
+        monitor_id="m",
+        hertz=60.0,
+        total_current=1.0,
+        total_watts=100.0,
+        epoch=1_760_000_000,
+        voltage=[],
+        devices=[{"id": "d", "name": name, "w": 5.0}],
+        channels=[],
+    )
+    storage.write_api.write.assert_awaited_once()
+
+
+def test_a_name_of_only_backslashes_is_stored_without_a_trailing_backslash():
+    from app.storage.influxdb import _tag
+
+    line = (
+        Point("m").tag("device_name", _tag("\\\\")).field("v", 1.0).to_line_protocol()
+    )
+    assert "\\ " not in line.split(" ", 1)[0] + " "
+
+
+@pytest.mark.asyncio
+async def test_shutdown_closes_the_client_even_when_a_queued_event_is_malformed(
+    influxdb_params, mock_influxdb_client
+):
+    storage = InfluxDBStorage(influxdb_params)
+    await storage.connect()
+    storage.timeline_event_queue["d"] = [
+        {
+            "monitor_id": "m",
+            "device_id": "d",
+            "time": "2026-10-25T16:40:00.100Z",
+            "event_type": "DeviceOn",
+            "icon": "",
+            "body": None,  # Sense may send a null body
+            "device_state": "",
+            "user_device_type": "",
+            "device_transition_from_state": "",
+        }
+    ]
+
+    await storage.close()
+
+    mock_influxdb_client.close.assert_awaited_once()
+    assert storage.client is None
+
+
+@pytest.mark.asyncio
+async def test_shutdown_writes_every_queued_device_in_one_batch(influxdb_params):
+    """Each write may take up to the InfluxDB timeout; one per device would outlast
+    Docker's stop grace."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock()
+    for device in ("a", "b", "c"):
+        await storage.persist_timeline_data(
+            monitor_id="m",
+            device_id=device,
+            device_name=device,
+            time="2026-10-25T16:40:00.100Z",
+            event_type="DeviceOn",
+            icon="",
+            body="",
+            device_state="",
+            user_device_type="",
+            device_transition_from_state="",
+        )
+
+    await storage.close()
+
+    assert storage.write_points.await_count == 1
+    assert len(storage.write_points.await_args.args[0]) == 3

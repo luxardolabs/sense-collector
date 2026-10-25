@@ -771,9 +771,10 @@ class SenseCollector:
                 # The device list names every device (fetch_devices, hourly), and Sense puts
                 # a name on the event itself; only with neither does the id stand in, which
                 # queues the event until a detail fetch names the device.
+                event_name = item.get("device_name")
                 device_name = (
                     await self.influxdb_storage.device_queue.get_device_name(device_id)
-                    or item.get("device_name")
+                    or (event_name if isinstance(event_name, str) else None)
                     or device_id
                 )
                 icon = item.get("icon", "")
