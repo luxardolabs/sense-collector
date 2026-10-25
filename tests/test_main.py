@@ -27,33 +27,19 @@ from app.main import (
 
 
 class TestObscure:
-    """`_obscure` is the last thing standing between a credential and the log file."""
+    """`_obscure` is the last thing standing between a credential and the log file.
 
-    def test_keeps_only_the_first_and_last_two_characters(self):
-        assert _obscure("supersecret") == "su*******et"
+    It says only whether a secret is set: any character of a password, or its length, is
+    entropy handed to everyone who reads the logs."""
 
-    def test_masked_length_matches_the_original(self):
-        """The mask must not leak length information by being a fixed width... but it
-        also must not change length, or the log becomes misleading about the value."""
-        secret = "abcdefghijklmnop"
-        assert len(_obscure(secret)) == len(secret)
+    @pytest.mark.parametrize(
+        "secret", ["a", "abcd", "abcde", "hunter2", "Tr0ub4dor", "a-long-influx-token"]
+    )
+    def test_reveals_no_character_and_no_length(self, secret):
+        assert _obscure(secret) == "<set>"
 
-    @pytest.mark.parametrize("value", ["a", "ab", "abc", "abcd"])
-    def test_short_values_are_fully_redacted(self, value):
-        """<=4 chars: partial masking would reveal the whole thing, so redact entirely."""
-        masked = _obscure(value)
-        assert masked == "*" * len(value)
-        assert not set(masked) & set(value)
-
-    def test_five_characters_is_the_first_partial_mask(self):
-        assert _obscure("abcde") == "ab*de"
-
-    def test_empty_stays_empty(self):
-        assert _obscure("") == ""
-
-    def test_never_returns_the_input_verbatim_for_a_real_secret(self):
-        for secret in ("hunter2", "a-very-long-influx-token-value", "pw12"):
-            assert _obscure(secret) != secret
+    def test_an_unset_secret_says_so(self):
+        assert _obscure("") == "<unset>"
 
 
 class TestValidateEnvironment:
@@ -128,6 +114,29 @@ class TestValidateEnvironment:
         assert "person@example.com" not in logged
         # a non-sensitive setting is shown in full — masking everything would be useless
         assert "INFO" in logged
+
+    def test_credentials_in_the_influxdb_url_are_refused_and_never_logged(self, caplog):
+        """InfluxDB 2.x authenticates by token; a user:password URL cannot work, and its
+        password would be printed by the startup log and the connect error."""
+        password = "placeholder-" + "pw" * 6
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        env["SENSE_COLLECTOR_INFLUXDB_URL"] = f"http://alice:{password}@influx:8086"
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(
+                config,
+                "describe_settings",
+                return_value={
+                    "SENSE_COLLECTOR_INFLUXDB_URL": env["SENSE_COLLECTOR_INFLUXDB_URL"]
+                },
+            ),
+            patch.object(config, "INFLUXDB_URL", env["SENSE_COLLECTOR_INFLUXDB_URL"]),
+            pytest.raises(ValueError, match="credentials"),
+        ):
+            validate_environment()
+
+        assert password not in caplog.text
+        assert "http://influx:8086" in caplog.text
 
     def test_every_sensitive_marker_is_actually_masked(self, caplog):
         """Guards the _SENSITIVE tuple itself: each marker must drive real masking."""

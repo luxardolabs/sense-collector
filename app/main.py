@@ -5,6 +5,7 @@ import os
 import signal
 import sys
 from datetime import UTC, datetime
+from urllib.parse import urlsplit, urlunsplit
 
 from app.collector.client import SenseCollector
 from app.core import config
@@ -17,12 +18,18 @@ _SENSITIVE = ("PASSWORD", "TOKEN", "USERNAME")
 
 
 def _obscure(value: str) -> str:
-    """Partially mask a secret; fully redact values too short to partially mask."""
-    if not value:
-        return value
-    if len(value) <= 4:
-        return "*" * len(value)
-    return value[:2] + "*" * (len(value) - 4) + value[-2:]
+    """Whether a secret is set, and nothing else: no character, no length."""
+    return "<set>" if value else "<unset>"
+
+
+def _without_userinfo(url: str) -> str:
+    """`url` with any user:password@ removed, for logging."""
+    parts = urlsplit(url)
+    if parts.username is None and parts.password is None:
+        return url
+    host = parts.hostname or ""
+    netloc = f"{host}:{parts.port}" if parts.port else host
+    return urlunsplit(parts._replace(netloc=netloc))
 
 
 def _not_http2_internals(record: logging.LogRecord) -> bool:
@@ -56,13 +63,25 @@ def validate_environment() -> None:
     """
     logger.info("Environment variable settings:")
     for var, value in config.describe_settings().items():
-        shown = _obscure(value) if any(s in var for s in _SENSITIVE) else value
+        if any(s in var for s in _SENSITIVE):
+            shown = _obscure(value)
+        elif var.endswith("_URL"):
+            shown = _without_userinfo(value)
+        else:
+            shown = value
         logger.info("  %s: %s", var, shown)
 
     missing = [v for v in config.REQUIRED_ENV_VARS if not os.environ.get(v)]
     if missing:
         logger.error("Missing required environment variables: %s", ", ".join(missing))
         raise ValueError("Missing required environment variables")
+
+    if _without_userinfo(config.INFLUXDB_URL) != config.INFLUXDB_URL:
+        logger.error(
+            "SENSE_COLLECTOR_INFLUXDB_URL must not contain credentials: InfluxDB 2.x "
+            "authenticates with SENSE_COLLECTOR_INFLUXDB_TOKEN."
+        )
+        raise ValueError("SENSE_COLLECTOR_INFLUXDB_URL carries credentials")
 
     # A stack that reads the real Sense cloud holds a household's data, so its InfluxDB
     # token must be its own: the demo/e2e tokens are public in this repository.
