@@ -85,3 +85,6 @@ Thumbs.db
 .claude/.*.lock
 .claude/.*.tmp
 .claude/.*.unreadable-*
+
+# Adversarial audit run files (reproductions; one machine's cache, never committed)
+/.adversarial-audit/

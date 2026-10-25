@@ -1,0 +1,59 @@
+# The whole-platform adversarial audit's record (luxarch --doc FLEET-ADVERSARIAL-TESTING-STANDARD).
+# [profile] says what an attacker wants here and where it sits; [slices."<id>"] records what was
+# attacked, when, and the findings. Written by /adversarial-audit; the owner owns the profile.
+
+[profile]
+written = "2026-10-25"
+commit = "d1b158cb7033c7d14d25f6dd38b161bf1bcc7956"
+crown_jewels = [
+  "the Sense account credentials (SENSE_COLLECTOR_API_USERNAME / _API_PASSWORD) and the session access_token they mint, which authorises the realtime WebSocket and every REST call for the household's monitor",
+  "the InfluxDB write token (SENSE_COLLECTOR_INFLUXDB_TOKEN), which can write to (and with a broad token, read or delete) the user's whole InfluxDB org",
+  "the household's energy time series and device names: second-by-second mains power and per-appliance on/off reveal occupancy, routines and what is in the home (personal data)",
+  "the integrity of the stored time series: silently dropped, duplicated, mis-tagged or corrupted points that the Grafana dashboards present as truth",
+  "the published image and public repo (ghcr.io/luxardolabs/sense-collector, github.com/luxardolabs/sense-collector): what every user pulls and runs with their credentials, and the private registry host that must never reach either",
+]
+actors = [
+  "the Sense cloud (api.sense.com REST + the clientrt WebSocket): an undocumented, reverse-engineered API whose every response and frame is untrusted input, including after a compromise or a TLS-intercepting network",
+  "the InfluxDB server the collector writes to (a user-run, possibly external instance): its responses and errors",
+  "the operator who sets SENSE_COLLECTOR_* env vars and runs the compose stacks (dev/prod/demo), including mistakes and defaults",
+  "anyone who reads the collector's logs, its export folder (output/) or the Grafana dashboards",
+  "users who pull and run the public image, and contributors or forks of the public repo",
+  "the fake Sense emulator (harness/fake_sense.py) in the demo and e2e stacks",
+]
+boundaries = [
+  "Sense REST JSON (authenticate, monitor status, device list, per-device data, timeline) into app/collector/client.py",
+  "Sense WebSocket frames (realtime_update, new_timeline_event, hello, data_change, device_states, device_states_changed) into app/collector/websocket.py and client.py's dispatch",
+  "Sense-supplied device names, ids and tags into InfluxDB points (tags/fields) and into log lines (app/storage/influxdb.py, app/core/privacy.py)",
+  "Sense-supplied device ids into export file paths under SENSE_COLLECTOR_EXPORT_FOLDER (app/utils/file_validator.py, client.py export_*)",
+  "SENSE_COLLECTOR_* environment into app/core/config.py (URLs, intervals, folders, log levels)",
+  "the build and publish path: Dockerfile stages, .dockerignore, the Makefile image block (publish-sha, dev-deploy, release, release-public) and compose.yml",
+]
+hot_spots = [
+  { path = "app/collector/websocket.py", why = "long-lived connection to an untrusted server: reconnect/backoff, credential refresh, heartbeat and message parsing; a hostile or broken frame stream can stall, spin or crash ingestion" },
+  { path = "app/collector/client.py", why = "authentication, token renewal, the device-lookup queue and workers, WS dispatch and the export writers: every Sense input passes through it" },
+  { path = "app/storage/influxdb.py", why = "the only writer of the stored data: tag/field construction from Sense-supplied names, batching, and error handling decide whether data is lost, duplicated or mis-attributed" },
+  { path = "app/core/privacy.py", why = "the log redactor: it must strip the WS access_token and neutralise control characters in device names at every log level (SENSECOLLE-50)" },
+  { path = "app/utils/file_validator.py", why = "turns Sense-supplied device ids into file paths in the export folder: path traversal and overwrite risk" },
+  { path = "Makefile", why = "publishes the public image and deploys both dev stacks; a wrong name, tag, platform or registry leak ships to every user (SENSECOLLE-55 PLATFORMS)" },
+]
+out_of_scope = [
+  { path = "grafana/", why = "dashboard JSON and provisioning read from InfluxDB and hold no secrets or write path; reviewed in SENSECOLLE-11" },
+]
+history = [
+  "SENSECOLLE-50: /adversarial on 2026.10.1 found DEBUG logs leaking the WS access token, text-mode log forging, arm64 published unscanned and host .pyc in the image (all fixed in 2026.10.2)",
+  "SENSECOLLE-46: the shipped image carried 29 fixable HIGH/CRITICAL CVEs because the runtime stage leaked poetry and pip (fixed in 2026.10.0)",
+  "SENSECOLLE-57: the published 2026.10.2 image carries certifi GHSA-6q48-6c7w-9gw2 CRITICAL and 3 aiohttp HIGHs; fixed in source, no release yet (owner decision)",
+  "SENSECOLLE-55: PLATFORMS ?= let an exported value turn a release single-arch (fixed in 0baffec)",
+  "SENSECOLLE-10: device-name resolution was broken (fixed)",
+  "SENSECOLLE-35: MFA/2FA accounts cannot authenticate (open feature)",
+]
+
+[profile.surface]   # copied verbatim from the sweep's `surface:` line
+routes = 0
+anon = 0
+money = 0
+credential = 0
+upload = 0
+webhook = 0
+mounts = 0
+jobs = 0
