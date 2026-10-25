@@ -15,13 +15,17 @@ import logging
 from app.core import config
 
 # SENSE_COLLECTOR_LOG_LEVEL_{GENERAL,API,STORAGE}. httpx/httpcore log every request at INFO;
-# they stay at WARNING so a poll cycle is not a page of request lines.
+# they stay at WARNING so a poll cycle is not a page of request lines. hpack/h2 log every
+# HTTP/2 header block at DEBUG (the REST Bearer token among them); app.main also drops their
+# records at the handler, so no level setting can bring them back.
 AREA_LEVELS: dict[str, str | int] = {
     "general": config.LOG_LEVEL_GENERAL,
     "api": config.LOG_LEVEL_API,
     "storage": config.LOG_LEVEL_STORAGE,
     "httpx": "WARNING",
     "httpcore": "WARNING",
+    "hpack": "WARNING",
+    "h2": "WARNING",
 }
 
 logger = logging.getLogger("general")

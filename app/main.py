@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import logging
 import os
 import signal
 import sys
@@ -24,11 +25,18 @@ def _obscure(value: str) -> str:
     return value[:2] + "*" * (len(value) - 4) + value[-2:]
 
 
+def _not_http2_internals(record: logging.LogRecord) -> bool:
+    """False for hpack/h2 records: hpack logs each encoded header block, which carries the
+    REST `Authorization: Bearer` token Huffman-coded, out of the token regex's sight."""
+    return record.name.split(".", 1)[0] not in ("hpack", "h2")
+
+
 def setup_logging() -> None:
     """The fleet's one logging setup (JSON lines on stdout), with this collector's levels.
 
     `redact` keeps the WebSocket access token and remote control characters out of every
-    line, at any LOG_LEVEL and in either LOG_FORMAT (app/core/privacy.py).
+    line, at any LOG_LEVEL and in either LOG_FORMAT (app/core/privacy.py). The handler filter
+    drops the HTTP/2 libraries' records whatever LOG_LEVEL or LOG_MODULE_LEVELS say.
     """
     configure_logging(
         service="sense-collector",
@@ -36,6 +44,8 @@ def setup_logging() -> None:
         levels=AREA_LEVELS,
         redact=redact,
     )
+    for handler in logging.getLogger().handlers:
+        handler.addFilter(_not_http2_internals)
 
 
 def validate_environment() -> None:

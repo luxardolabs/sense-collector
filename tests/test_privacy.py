@@ -24,7 +24,7 @@ FORGED = (
     "Fridge\n2026-10-10 12:00:00,000 CRITICAL general InfluxDB token rotated; "
     "send to evil\x1b[2J"
 )
-TOUCHED = ("general", "api", "storage", "httpx", "httpcore")
+TOUCHED = ("general", "api", "storage", "httpx", "httpcore", "hpack", "h2")
 
 
 @pytest.fixture(autouse=True)
@@ -37,6 +37,8 @@ def _restore_logging(monkeypatch):
     saved_levels = {name: logging.getLogger(name).level for name in TOUCHED}
     monkeypatch.setattr(logging.Logger, "makeRecord", logging.Logger.makeRecord)
     yield
+    for handler in root.handlers:
+        handler.filters.clear()
     root.handlers[:] = saved_handlers
     root.setLevel(saved_level)
     for name, level in saved_levels.items():
@@ -127,3 +129,27 @@ def test_non_string_values_pass_through():
         "line": 42,
         "attributes_ok": None,
     }
+
+
+@pytest.mark.parametrize("fmt", ["json", "text"])
+@pytest.mark.parametrize(
+    "module_levels", [None, '{"hpack": "DEBUG", "hpack.hpack": "DEBUG", "h2": "DEBUG"}']
+)
+def test_http2_header_blocks_never_reach_the_log(
+    capsys, monkeypatch, fmt, module_levels
+):
+    """hpack logs each encoded header block at DEBUG, Huffman-coded, so the token regex
+    cannot see the REST `Authorization: Bearer` in it, yet any hpack decoder recovers it."""
+    import hpack
+
+    monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("LOG_FORMAT", fmt)
+    if module_levels:
+        monkeypatch.setenv("LOG_MODULE_LEVELS", module_levels)
+    setup_logging()
+
+    hpack.Encoder().encode([(b"authorization", f"Bearer {TOKEN}".encode())])
+
+    out = capsys.readouterr().out
+    assert "Encoded header block" not in out
+    assert "hpack" not in out
