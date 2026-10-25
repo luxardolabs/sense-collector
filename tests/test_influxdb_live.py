@@ -99,3 +99,60 @@ async def test_rejected_token_is_counted_not_raised(
 
     assert storage.write_stats["successful"] == 0
     assert storage.write_stats["failed"] == 1
+
+
+@pytest.mark.asyncio
+async def test_integral_json_numbers_do_not_conflict_with_float_fields(
+    influx_params: dict[str, str],
+) -> None:
+    """InfluxDB fixes a field's type per shard: an int after a float is refused (422).
+
+    Sense spells most readings as floats, but a whole number can arrive as a JSON int and
+    an omitted device `w` defaults to 0. Both frames must land, whichever comes first.
+    """
+    monitor_id = f"live-{uuid.uuid4().hex[:12]}"
+    epoch = int(time.time()) - 10
+    storage = InfluxDBStorage(influx_params)
+    await storage.connect()
+    try:
+        await storage.device_queue.set_device_name("dev-tv", "TV")
+        frame = {
+            "monitor_id": monitor_id,
+            "total_current": 12,
+            "voltage": [121, 120],
+        }
+        await storage.persist_realtime_data(
+            **frame,
+            hertz=60.0,
+            total_watts=1450.0,
+            epoch=epoch,
+            devices=[{"id": "dev-tv", "w": 55.5, "sd": {"w": 1.5, "v": 120.0}}],
+            channels=[700.0, 750.0],
+        )
+        await storage.persist_realtime_data(
+            **frame,
+            hertz=60,
+            total_watts=1500,
+            epoch=epoch + 1,
+            devices=[{"id": "dev-tv", "sd": {"w": 2, "v": 120}}],
+            channels=[700, 800],
+        )
+    finally:
+        await storage.close()
+
+    rows = await _query(
+        influx_params,
+        f'from(bucket: "{influx_params["bucket"]}") |> range(start: -1h) '
+        f'|> filter(fn: (r) => r.monitor_id == "{monitor_id}")',
+    )
+    second = {
+        (r["_measurement"], r.get("leg"), r["_field"]): r["_value"]
+        for r in rows
+        if r["_time"] == datetime.fromtimestamp(epoch + 1, UTC)
+    }
+    assert second[("sense_mains", None, "watts")] == 1500.0
+    assert second[("sense_mains", None, "hertz")] == 60.0
+    assert second[("sense_mains", "L2", "watts")] == 800.0
+    assert second[("sense_devices", None, "watts")] == 0.0
+    assert second[("sense_devices", None, "sd_watts")] == 2.0
+    assert storage.write_stats["failed"] == 0

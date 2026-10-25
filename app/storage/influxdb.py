@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import logging
+import re
 import time
 from datetime import UTC, datetime
 from typing import Any
@@ -22,6 +23,26 @@ MALFORMED_PAYLOAD = (KeyError, IndexError, TypeError, ValueError)
 
 # The above plus what an actual InfluxDB write can fail with.
 WRITE_ERRORS = (*MALFORMED_PAYLOAD, OSError, InfluxDBError)
+
+_DROPPED = re.compile(r"dropped=(\d+)")
+
+
+def _num(value: Any) -> Any:
+    """A realtime reading as float, so its InfluxDB field type never depends on spelling.
+
+    InfluxDB fixes a field's type per shard and refuses a later write of the other type, so
+    a JSON `60` after `60.0` (or a defaulted `0`) would drop the whole line. Realtime
+    readings are floats in every captured payload, so float is the type buckets already
+    hold. REST usage fields are not passed through here: Sense sends some of them (cents)
+    as whole numbers, which buckets already hold as integers. Booleans, non-numbers and an
+    int too large for a float pass through unchanged.
+    """
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return value
+    try:
+        return float(value)
+    except OverflowError:
+        return value
 
 
 class DeviceDataQueue:
@@ -183,11 +204,22 @@ class InfluxDBStorage:
             await self.write_api.write(bucket=self.bucket, org=self.org, record=points)
             self.write_stats["successful"] += len(points)
         except InfluxDBError as e:
-            self.write_stats["failed"] += len(points)
+            dropped = self._dropped_count(e, len(points))
+            self.write_stats["failed"] += dropped
+            self.write_stats["successful"] += len(points) - dropped
             self._log_write_error(e)
         except Exception as e:
             self.write_stats["failed"] += len(points)
             storage_logger.exception("Error writing to InfluxDB: %s", e)
+
+    @staticmethod
+    def _dropped_count(error: InfluxDBError, sent: int) -> int:
+        """How many points a failed write lost: a 422 partial write names its `dropped=N`."""
+        status = getattr(getattr(error, "response", None), "status", None)
+        match = _DROPPED.search(str(getattr(error, "message", "") or error))
+        if status == 422 and match:
+            return min(int(match.group(1)), sent)
+        return sent
 
     def _log_write_error(self, error: InfluxDBError) -> None:
         """Log an InfluxDB write failure with actionable guidance (auth/bucket)."""
@@ -255,7 +287,7 @@ class InfluxDBStorage:
                     .tag("parent_device_id", "always_on")
                     .tag("device_id", device_id)
                     .tag("device_name", device_name)
-                    .field("watts", item["watts"])
+                    .field("watts", _num(item["watts"]))
                     .time(item["timestamp"], write_precision="s")
                 )
                 points.append(point)
@@ -308,9 +340,9 @@ class InfluxDBStorage:
             main_point = (
                 Point(config.MEASUREMENT_MAINS)
                 .tag("monitor_id", monitor_id)
-                .field("hertz", hertz)
+                .field("hertz", _num(hertz))
                 .field("current", float(total_current))
-                .field("watts", total_watts)
+                .field("watts", _num(total_watts))
                 .time(epoch, write_precision="s")
             )
             points.append(main_point)
@@ -331,8 +363,8 @@ class InfluxDBStorage:
                         Point(config.MEASUREMENT_MAINS)
                         .tag("monitor_id", monitor_id)
                         .tag("leg", leg)
-                        .field("watts", ch_watts)
-                        .field("voltage", ch_voltage)
+                        .field("watts", _num(ch_watts))
+                        .field("voltage", _num(ch_voltage))
                         .time(epoch, write_precision="s")
                     )
 
@@ -350,7 +382,7 @@ class InfluxDBStorage:
                 if not device_id:
                     continue
 
-                device_watts = device.get("w", 0)
+                device_watts = _num(device.get("w", 0.0))
                 # Prefer the friendly name from the device-list cache (fetch_devices ->
                 # set_device_name). The realtime payload's `name` is the device ID for
                 # some accounts, which would otherwise tag sense_devices with raw IDs.
@@ -374,15 +406,15 @@ class InfluxDBStorage:
 
                 # Add plug-specific fields if available
                 if device_sd.get("w") is not None:
-                    device_point.field("sd_watts", device_sd["w"])
+                    device_point.field("sd_watts", _num(device_sd["w"]))
                 if device_sd.get("i") is not None:
                     device_point.field("sd_current", float(device_sd["i"]))
                 if device_sd.get("v") is not None:
-                    device_point.field("sd_voltage", device_sd["v"])
+                    device_point.field("sd_voltage", _num(device_sd["v"]))
                 if device_sd.get("e") is not None:
-                    device_point.field("sd_energy", device_sd["e"])
+                    device_point.field("sd_energy", _num(device_sd["e"]))
                 if device.get("ao_w") is not None:
-                    device_point.field("always_on_watts", device["ao_w"])
+                    device_point.field("always_on_watts", _num(device["ao_w"]))
                 if device.get("ao_st") is not None:
                     device_point.field("always_on_state", device["ao_st"])
 
@@ -577,7 +609,7 @@ class InfluxDBStorage:
         # Individual always-on devices
         for device in always_on.get("devices", []):
             device_id = device.get("id")
-            device_watts = device.get("w", 0)
+            device_watts = _num(device.get("w", 0.0))
 
             if device_id:
                 await self.device_queue.add_device_data(

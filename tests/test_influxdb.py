@@ -537,3 +537,54 @@ async def test_dropped_unnamed_readings_are_logged_once_per_batch(
     assert len(drops) == 1
     assert "2 always-on device(s)" in drops[0].getMessage()
     storage.write_points.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_a_partial_write_counts_only_the_dropped_points(influxdb_params):
+    """A 422 partial write stored most of the batch: only `dropped=N` points failed."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_api = AsyncMock()
+    error = InfluxDBError(message="partial write: field type conflict ... dropped=1")
+    error.response = MagicMock(status=422)
+    storage.write_api.write.side_effect = error
+
+    await storage.write_points([Point("m").field("v", float(i)) for i in range(6)])
+
+    assert storage.write_stats["failed"] == 1
+    assert storage.write_stats["successful"] == 5
+
+
+def test_integral_readings_are_written_as_floats():
+    """The line protocol carries no `i` suffix for a whole-number reading."""
+    from app.storage.influxdb import _num
+
+    line = (
+        Point("m").field("watts", _num(1500)).field("on", _num(True)).to_line_protocol()
+    )
+    assert "watts=1500i" not in line
+    assert "watts=1500" in line
+    assert "on=true" in line
+
+
+def test_an_int_too_large_for_a_float_passes_through():
+    """float() would raise OverflowError, which no catch on the realtime path expects."""
+    from app.storage.influxdb import _num
+
+    assert _num(10**400) == 10**400
+
+
+@pytest.mark.asyncio
+async def test_rest_usage_fields_keep_the_type_sense_sends(influxdb_params):
+    """Whole-number usage fields stay integers: existing buckets already hold them so."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock()
+    detail = {
+        "device": {"id": "fridge", "name": "Fridge"},
+        "usage": {"avg_monthly_cost": 1500, "avg_monthly_KWH": 30.5},
+    }
+
+    await storage.persist_device_data("monitor1", detail)
+
+    line = storage.write_points.call_args[0][0][0].to_line_protocol()
+    assert "avg_monthly_cost=1500i" in line
+    assert "avg_monthly_KWH=30.5" in line
