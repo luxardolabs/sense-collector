@@ -1120,3 +1120,30 @@ class TestAuthenticationRecovery:
         result = await c.make_api_request("https://api.sense.com/x", max_retries=1)
         await c.client.aclose()
         assert result == {"ok": True}, f"gave up, logins={state['auth']}"
+
+
+class TestExportFiles:
+    """Exports hold per-second energy data and device names; on a bind-mounted output
+    directory a 0644 file is readable by every user on the Docker host."""
+
+    @pytest.mark.asyncio
+    async def test_export_files_are_readable_by_their_owner_only(
+        self, collector, tmp_path, monkeypatch
+    ):
+        import stat
+
+        from app.collector.websocket import WebSocketHandler
+
+        monkeypatch.setattr(config, "EXPORT_FOLDER", str(tmp_path))
+        await collector.export_device_data("fridge", {"device": {"id": "fridge"}})
+        await collector.export_device_list([{"id": "fridge"}])
+        ws = WebSocketHandler("wss://x", {}, AsyncMock())
+        await ws._write_received_data_async({"type": "hello"})
+
+        modes = {p.name: stat.S_IMODE(p.stat().st_mode) for p in tmp_path.iterdir()}
+        assert set(modes) == {
+            "device_fridge.json",
+            "devices.json",
+            "received_data.jsonl",
+        }
+        assert all(mode == 0o600 for mode in modes.values()), modes

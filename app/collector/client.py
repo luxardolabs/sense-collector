@@ -14,7 +14,7 @@ from app.collector.endpoints import SenseAPIEndpoints
 from app.collector.websocket import handle_websocket_connection
 from app.core import config
 from app.storage.influxdb import InfluxDBStorage
-from app.utils.file_validator import FilePathValidator
+from app.utils.file_validator import FilePathValidator, private_file
 from app.utils.logging import api_logger
 from app.utils.time import convert_to_epoch
 
@@ -628,7 +628,7 @@ class SenseCollector:
         """Export device list to JSON file."""
         try:
             safe_path = FilePathValidator.get_safe_export_path(
-                config.EXPORT_FOLDER, "device_list", ".json"
+                config.EXPORT_FOLDER, "devices", ".json", prefix=""
             )
 
             if not safe_path:
@@ -637,7 +637,7 @@ class SenseCollector:
 
             # blocking-io: aiofiles.open is the async file API (thread-pool backed),
             # not pathlib.Path.open — the write is already off the event loop.
-            async with aiofiles.open(safe_path, "w") as f:
+            async with aiofiles.open(safe_path, "w", opener=private_file) as f:
                 await f.write(json.dumps(devices, indent=2))
 
             api_logger.info("Exported %s devices to %s", len(devices), safe_path)
@@ -684,7 +684,7 @@ class SenseCollector:
 
             # blocking-io: aiofiles.open is the async file API (thread-pool backed),
             # not pathlib.Path.open — the write is already off the event loop.
-            async with aiofiles.open(safe_path, "w") as f:
+            async with aiofiles.open(safe_path, "w", opener=private_file) as f:
                 await f.write(json.dumps(data, indent=2))
 
         except EXPORT_WRITE_ERRORS as e:

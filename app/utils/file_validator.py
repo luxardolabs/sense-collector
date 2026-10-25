@@ -1,8 +1,20 @@
+import hashlib
+import os
 import re
 from pathlib import Path
+from typing import Any
 
 from app.core import config
 from app.utils.logging import logger
+
+# Characters a device ID keeps as they are in a filename; all others are percent-encoded.
+_KEEP = re.compile(r"[A-Za-z0-9_-]")
+
+
+def private_file(path: str, flags: int) -> int:
+    """An `opener` that creates an export file readable by its owner only (0600): exports
+    hold per-second energy data and device names."""
+    return os.open(path, flags, 0o600)
 
 
 class FilePathValidator:
@@ -53,46 +65,47 @@ class FilePathValidator:
         return True
 
     @classmethod
-    def sanitize_device_id(cls, device_id: str) -> str | None:
+    def sanitize_device_id(cls, device_id: Any) -> str | None:
         """
-        Sanitize a device ID for safe use in filenames.
+        A device ID as a safe, one-to-one filename part.
 
-        Args:
-            device_id: The device ID to sanitize
+        Letters, digits, `_` and `-` are kept; every other character is percent-encoded
+        (UTF-8), so distinct IDs never map to one file and nothing can traverse, hide or
+        carry a control character. An ID longer than MAX_DEVICE_ID_LENGTH is cut and given
+        a hash of the whole ID, so two long IDs sharing a prefix stay distinct. An int is
+        used as its string; any other non-string is refused.
 
         Returns:
-            Sanitized device ID or None if it cannot be made safe
+            The filename part, or None if the ID cannot be used
         """
-        if not device_id:
+        if isinstance(device_id, int) and not isinstance(device_id, bool):
+            device_id = str(device_id)
+        if not isinstance(device_id, str) or not device_id:
             return None
 
-        # Remove or replace dangerous characters
-        # Replace path separators
-        sanitized = device_id.replace("/", "_").replace("\\", "_")
+        encoded = "".join(
+            ch
+            if _KEEP.fullmatch(ch)
+            else "".join(f"%{b:02X}" for b in ch.encode("utf-8", "surrogatepass"))
+            for ch in device_id
+        )
+        if len(encoded) > cls.MAX_DEVICE_ID_LENGTH:
+            digest = hashlib.sha256(
+                device_id.encode("utf-8", "surrogatepass")
+            ).hexdigest()
+            encoded = f"{encoded[: cls.MAX_DEVICE_ID_LENGTH - 9]}-{digest[:8]}"
 
-        # Replace other dangerous characters
-        sanitized = re.sub(r"[<>:|?*\x00-\x1f\x7f]", "_", sanitized)
-
-        # Neutralize parent-directory references BEFORE stripping leading dots, so
-        # ".." becomes "_" (traversal-safe) instead of being removed as leading dots.
-        sanitized = sanitized.replace("..", "_")
-
-        # Remove leading dots (hidden-file guard)
-        sanitized = sanitized.lstrip(".")
-
-        # Truncate if too long
-        if len(sanitized) > cls.MAX_DEVICE_ID_LENGTH:
-            sanitized = sanitized[: cls.MAX_DEVICE_ID_LENGTH]
-
-        # Final validation
-        if sanitized and cls.is_safe_device_id(sanitized):
-            return sanitized
-
+        if cls.is_safe_device_id(encoded):
+            return encoded
         return None
 
     @classmethod
     def get_safe_export_path(
-        cls, export_folder: str, device_id: str, extension: str = ".json"
+        cls,
+        export_folder: str,
+        device_id: Any,
+        extension: str = ".json",
+        prefix: str = "device_",
     ) -> Path | None:
         """
         Get a safe file path for exporting device data.
@@ -132,7 +145,8 @@ class FilePathValidator:
             return None
 
         # Construct filename
-        filename = f"device_{safe_device_id}{extension}"
+        # Non-device exports pass prefix="" so no device ID can name the same file.
+        filename = f"{prefix}{safe_device_id}{extension}"
         file_path = export_path / filename
 
         # Verify the resolved path is still within the export folder. Use is_relative_to,

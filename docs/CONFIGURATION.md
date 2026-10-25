@@ -154,11 +154,13 @@ The collector logs the fleet way (`app/core/logging_config.py`, emitted by luxar
 | Variable                                    | Default         | Description                           |
 | ------------------------------------------- | --------------- | ------------------------------------- |
 | `SENSE_COLLECTOR_OUTPUT_RECEIVED_DATA`      | `false`         | Export raw WebSocket data to files    |
-| `SENSE_COLLECTOR_EXPORT_FOLDER`             | `export`        | Export directory path                 |
+| `SENSE_COLLECTOR_EXPORT_FOLDER`             | `output`        | Export directory path                 |
 | `SENSE_COLLECTOR_EXPORT_FILE_RECEIVED_DATA` | `received_data` | Filename for received data            |
 | `SENSE_COLLECTOR_EXPORT_FILE_DEVICE_PREFIX` | `device_`       | Prefix for device files               |
 | `SENSE_COLLECTOR_EXPORT_FILE_EXTENSION`     | `.json`         | File extension for exports            |
 | `SENSE_COLLECTOR_FILE_MAX_DEVICE_ID_LENGTH` | `100`           | Maximum device ID length in filenames |
+
+With exports on, the collector writes `device_<id>.json` per device, `devices.json` (the device list) and `received_data.jsonl` (raw WebSocket frames), each readable by its owner only (0600). In a device ID, characters other than letters, numbers, `_` and `-` are percent-encoded, so two devices never share a file; an ID too long for the limit is cut and given a hash of the whole ID.
 
 ## Data Processing Configuration
 

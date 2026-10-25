@@ -12,7 +12,7 @@ from websockets.asyncio.client import ClientConnection
 from websockets.exceptions import InvalidStatus, WebSocketException
 
 from app.core import config
-from app.utils.file_validator import FilePathValidator
+from app.utils.file_validator import FilePathValidator, private_file
 from app.utils.logging import api_logger
 
 
@@ -134,7 +134,7 @@ class WebSocketHandler:
             # Use a fixed, safe filename for received data. Raw dumps are newline-delimited
             # JSON (one object per line) — the fleet standard's .jsonl convention.
             safe_path = FilePathValidator.get_safe_export_path(
-                config.EXPORT_FOLDER, "received_data", ".jsonl"
+                config.EXPORT_FOLDER, "received_data", ".jsonl", prefix=""
             )
 
             if not safe_path:
@@ -143,7 +143,7 @@ class WebSocketHandler:
 
             # blocking-io: aiofiles.open is the async file API (thread-pool backed),
             # not pathlib.Path.open — the write is already off the event loop.
-            async with aiofiles.open(safe_path, "a") as f:
+            async with aiofiles.open(safe_path, "a", opener=private_file) as f:
                 await f.write(json.dumps(data) + "\n")
         except (OSError, TypeError, ValueError) as e:
             api_logger.error("Failed to write received data to file: %s", e)
