@@ -52,11 +52,11 @@ No URL setting takes credentials. Startup refuses any `@` (a `user:password@`, e
 
 ### Token Management
 
-| Variable                               | Default            | Min  | Max   | Description                                                                                               |
-| -------------------------------------- | ------------------ | ---- | ----- | --------------------------------------------------------------------------------------------------------- |
-| `SENSE_COLLECTOR_API_TOKEN_RENEW`      | `43200` (12 hours) | 3600 | 86400 | Token renewal interval in seconds                                                                         |
-| `SENSE_COLLECTOR_AUTH_RETRY_MAX_DELAY` | `900`              | 60   | 86400 | Longest wait after a failed login before the next attempt (the current token is kept meanwhile)           |
-| `SENSE_COLLECTOR_AUTH_MIN_REAUTH_AGE`  | `60`               | 0    | 3600  | A REST 401 logs in again only if the token is older than this; a fresh token that gets 401 is not expired |
+| Variable                               | Default            | Min  | Max   | Description                                                                                                                                         |
+| -------------------------------------- | ------------------ | ---- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SENSE_COLLECTOR_API_TOKEN_RENEW`      | `43200` (12 hours) | 3600 | 86400 | Token renewal interval in seconds                                                                                                                   |
+| `SENSE_COLLECTOR_AUTH_RETRY_MAX_DELAY` | `900`              | 60   | 86400 | Longest wait after a failed login before the next attempt (the current token is kept meanwhile); a login 429's `Retry-After` is honoured up to this |
+| `SENSE_COLLECTOR_AUTH_MIN_REAUTH_AGE`  | `60`               | 0    | 3600  | A REST 401 logs in again only if the token is older than this; a fresh token that gets 401 is not expired                                           |
 
 ### Rate Limiting
 

@@ -273,12 +273,23 @@ class SenseCollector:
             api_logger.info("%s, re-authenticating...", reason)
             try:
                 await self.authenticate()
-            except (httpx.HTTPError, *MALFORMED_PAYLOAD):
+            except (httpx.HTTPError, *MALFORMED_PAYLOAD) as e:
                 self._auth_failures += 1
                 delay = min(
                     config.API_RETRY_BACKOFF_BASE**self._auth_failures,
                     config.AUTH_RETRY_MAX_DELAY,
                 )
+                # A 429 says how long it wants: never retry sooner than that.
+                if (
+                    isinstance(e, httpx.HTTPStatusError)
+                    and e.response.status_code == 429
+                ):
+                    delay = max(
+                        delay,
+                        self._retry_after(
+                            e.response, self._auth_failures, config.AUTH_RETRY_MAX_DELAY
+                        ),
+                    )
                 self._auth_retry_at = time.monotonic() + delay
                 api_logger.warning(
                     "Re-authentication failed; keeping the current token, next attempt "
@@ -472,9 +483,11 @@ class SenseCollector:
             api_logger.error("Error processing WebSocket data: %s", e)
 
     @staticmethod
-    def _retry_after(response: httpx.Response, retry_count: int) -> float:
+    def _retry_after(
+        response: httpx.Response, retry_count: int, cap: float | None = None
+    ) -> float:
         """A 429's wait in seconds: its Retry-After when that is a number, else the backoff,
-        clamped to 0..API_RETRY_AFTER_MAX. Sense controls the header."""
+        clamped to 0..`cap` (API_RETRY_AFTER_MAX by default). Sense controls the header."""
         backoff = float(config.API_RETRY_BACKOFF_BASE**retry_count)
         try:
             wait = float(response.headers.get("Retry-After", backoff))
@@ -482,7 +495,9 @@ class SenseCollector:
             wait = backoff  # an HTTP-date or garbage
         if wait != wait:  # NaN
             wait = backoff
-        return min(max(wait, 0.0), float(config.API_RETRY_AFTER_MAX))
+        if cap is None:
+            cap = config.API_RETRY_AFTER_MAX
+        return min(max(wait, 0.0), float(cap))
 
     async def make_api_request(
         self, url: str, max_retries: int | None = None

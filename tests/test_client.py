@@ -1024,6 +1024,27 @@ class TestAuthenticationPacing:
         await c.client.aclose()
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("retry_after", "at_least"),
+        [("600", 590), ("86400", config.AUTH_RETRY_MAX_DELAY - 10)],
+    )
+    async def test_a_login_429_waits_its_retry_after(
+        self, storage, retry_after, at_least
+    ):
+        """The first failure's backoff is seconds; a 429 asking for ten minutes was retried
+        after those seconds, keeping the rate limit going."""
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(429, headers={"Retry-After": retry_after}, json={})
+
+        c = SenseCollector("u", "p", storage)
+        c.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        await c._renew("test", min_age=0)
+        await c.client.aclose()
+        wait = c._auth_retry_at - time.monotonic()
+        assert at_least <= wait <= config.AUTH_RETRY_MAX_DELAY
+
+    @pytest.mark.asyncio
     async def test_a_due_renewal_logs_in_about_once(self, storage):
         counter = {"auth": 0, "rest": 0}
         await self._periodic_for(self._collector(storage, counter), 3.0)
