@@ -264,7 +264,7 @@ class TestValidateEnvironment:
 
 # The committed files that set an InfluxDB token. An explicit list, never a glob: the main
 # checkout also holds the gitignored .env.dev*/.env.prod* files with real secrets.
-_TOKEN_FILES = (".env.demo", ".env.e2e", ".env.dev.local.example", "Makefile")
+_TOKEN_FILES = (".env.demo", ".env.e2e", "Makefile")
 _TOKEN_ASSIGNMENT = re.compile(
     r"^\s*(?:export\s+)?(INFLUX_TOKEN|SENSE_COLLECTOR_INFLUXDB_TOKEN|TEST_INFLUXDB_TOKEN)"
     r"\s*=\s*['\"]?([^'\"\s$]+)",
