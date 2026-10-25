@@ -127,6 +127,38 @@ class TestFilePathValidator:
             )
             assert path is None
 
+    @pytest.mark.parametrize("mode", ["w", "a"])
+    def test_an_existing_world_readable_export_becomes_private(self, tmp_path, mode):
+        """A file created before exports went private keeps its mode on open; the
+        append-only received_data.jsonl would otherwise stay 0644 for good."""
+        import os
+        import stat
+
+        from app.utils.file_validator import private_file
+
+        path = tmp_path / "received_data.jsonl"
+        path.write_text("{}\n")
+        path.chmod(0o644)
+        with open(path, mode, opener=private_file) as f:
+            f.write("{}\n")
+        assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
+
+    def test_a_shortened_long_id_cannot_equal_a_real_id(self):
+        """The hashed form of a long ID must not be a name some other ID maps to."""
+        long_id = "x" * (FilePathValidator.MAX_DEVICE_ID_LENGTH + 1)
+        shortened = FilePathValidator.sanitize_device_id(long_id)
+        assert shortened is not None
+        assert FilePathValidator.sanitize_device_id(shortened) != shortened
+
+    def test_the_longest_allowed_id_still_fits_a_filename(self):
+        """NAME_MAX is 255 bytes: device_ + the ID + the longest extension must fit."""
+        from app.core import config
+
+        longest = (
+            len("device_") + config.FILE_MAX_DEVICE_ID_LENGTH_CEILING + len(".jsonl")
+        )
+        assert longest <= 255
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

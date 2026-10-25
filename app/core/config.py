@@ -368,8 +368,13 @@ EXPORT_FILE_DEVICE_PREFIX = os.getenv(
 EXPORT_FILE_EXTENSION = os.getenv("SENSE_COLLECTOR_EXPORT_FILE_EXTENSION", ".json")
 
 # File Path Security
+# The ceiling keeps "device_" + the ID + the longest extension within NAME_MAX (255 bytes).
+FILE_MAX_DEVICE_ID_LENGTH_CEILING = 240
 FILE_MAX_DEVICE_ID_LENGTH = get_env_int(
-    "SENSE_COLLECTOR_FILE_MAX_DEVICE_ID_LENGTH", 100, min_val=20, max_val=255
+    "SENSE_COLLECTOR_FILE_MAX_DEVICE_ID_LENGTH",
+    100,
+    min_val=20,
+    max_val=FILE_MAX_DEVICE_ID_LENGTH_CEILING,
 )
 
 # Validate export folder. EXPORT_FOLDER_UNWRITABLE names the configured folder when it could
@@ -378,7 +383,8 @@ EXPORT_FOLDER_UNWRITABLE: str | None = None
 _CONFIGURED_EXPORT_FOLDER = EXPORT_FOLDER
 try:
     export_path = Path(EXPORT_FOLDER)
-    export_path.mkdir(parents=True, exist_ok=True)
+    # A folder created here is private; an existing (bind-mounted) one keeps its mode.
+    export_path.mkdir(parents=True, exist_ok=True, mode=0o700)
 
     # Test write permissions
     test_file = export_path / ".write_test"

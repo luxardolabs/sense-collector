@@ -12,9 +12,12 @@ _KEEP = re.compile(r"[A-Za-z0-9_-]")
 
 
 def private_file(path: str, flags: int) -> int:
-    """An `opener` that creates an export file readable by its owner only (0600): exports
-    hold per-second energy data and device names."""
-    return os.open(path, flags, 0o600)
+    """An `opener` that leaves an export file readable by its owner only (0600): exports
+    hold per-second energy data and device names. The mode is set on the open file too,
+    because os.open applies it only when it creates the file."""
+    fd = os.open(path, flags, 0o600)
+    os.fchmod(fd, 0o600)
+    return fd
 
 
 class FilePathValidator:
@@ -93,7 +96,9 @@ class FilePathValidator:
             digest = hashlib.sha256(
                 device_id.encode("utf-8", "surrogatepass")
             ).hexdigest()
-            encoded = f"{encoded[: cls.MAX_DEVICE_ID_LENGTH - 9]}-{digest[:8]}"
+            # `~` is percent-encoded everywhere else, so a shortened name can never equal
+            # the name of an ID that was short enough to keep whole.
+            encoded = f"{encoded[: cls.MAX_DEVICE_ID_LENGTH - 9]}~{digest[:8]}"
 
         if cls.is_safe_device_id(encoded):
             return encoded
