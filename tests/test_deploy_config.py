@@ -140,3 +140,14 @@ def test_the_fake_sense_has_no_fixed_container_name() -> None:
     compose = (REPO / "compose.yml").read_text()
     fake = compose.split("  sense_fake:\n")[1].split("\n  # ")[0]
     assert "container_name" not in fake
+
+
+def test_the_runtime_user_cannot_rewrite_the_app_code() -> None:
+    """Only /app/output is the collector's to write: code owned by appuser lets anything
+    running as it plant a change that survives restarts of the same container."""
+    dockerfile = (REPO / "Dockerfile").read_text()
+    production = dockerfile.split(" AS production")[1].split("\nFROM ")[0]
+    assert "COPY --chown=appuser:appuser app /app/app" not in production
+    assert "COPY app /app/app" in production
+    assert not re.search(r"chown -R \S+ /app\b(?!/)", production)
+    assert "chown appuser:appuser /app/output" in production

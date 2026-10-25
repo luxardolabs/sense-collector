@@ -69,13 +69,13 @@ WORKDIR /app
 # Non-root runtime user
 RUN useradd -m -u 1000 appuser
 
-# Application code (only the package — tests/docs stay out of the runtime image)
-COPY --chown=appuser:appuser app /app/app
+# Application code (only the package — tests/docs stay out of the runtime image), owned by
+# root: the runtime user can read it, never rewrite it.
+COPY app /app/app
 
-# Own the whole workdir by appuser: the output dir must exist for a clean-clone
-# build (bind-mounted at runtime, but the writer + healthcheck reference ./output
-# relative to WORKDIR when unmounted), and tool caches (pytest) need it writable.
-RUN mkdir -p /app/output && chown -R appuser:appuser /app
+# The one directory the collector writes: exports and the heartbeat, ./output relative to
+# WORKDIR when nothing is bind-mounted there.
+RUN mkdir -p /app/output && chown appuser:appuser /app/output
 
 USER appuser
 
