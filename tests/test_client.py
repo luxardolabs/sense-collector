@@ -923,3 +923,103 @@ class TestAuthenticationPacing:
             await c.fetch_device_data(f"d{i}")
         await c.client.aclose()
         assert counter["auth"] <= 1, f"{counter['auth']} logins for 3 lookups"
+
+
+class TestAuthenticationRecovery:
+    """Pacing must never strand the collector with a revoked token. The fake below accepts
+    only the newest token, so every login revokes the one before it."""
+
+    @staticmethod
+    def _collector(state, token_age_s, auth_mode="ok", rest_delay=0.0):
+        tokens = iter(range(2, 1000))
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            if request.url.path.endswith("/authenticate"):
+                state["auth"] += 1
+                await asyncio.sleep(0.01)
+                if auth_mode == "nonjson":
+                    return httpx.Response(200, text="<html>maintenance</html>")
+                if auth_mode == "503":
+                    return httpx.Response(503, text="down")
+                state["valid"] = f"tok-{next(tokens)}"
+                return httpx.Response(
+                    200,
+                    json={
+                        "access_token": state["valid"],
+                        "user_id": 1,
+                        "monitors": [{"id": 9}],
+                    },
+                )
+            sent = request.headers.get("Authorization", "")
+            await asyncio.sleep(rest_delay)  # the request is in flight
+            state["rest"] += 1
+            if sent != f"Bearer {state['valid']}":
+                return httpx.Response(401, json={})
+            return httpx.Response(200, json={"ok": True})
+
+        c = SenseCollector("u", "p", MagicMock())
+        c.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        c.access_token, c.monitor_id = "tok-1", "9"
+        c.headers = {"Authorization": "Bearer tok-1"}
+        c.auth_time = datetime.now(UTC) - timedelta(seconds=token_age_s)
+        c._auth_mono = time.monotonic() - token_age_s
+        c.min_api_interval = 0
+        return c
+
+    @pytest.mark.asyncio
+    async def test_a_stale_token_that_gets_401_is_renewed(self):
+        state = {"auth": 0, "rest": 0, "valid": "tok-revoked"}
+        c = self._collector(state, token_age_s=120)
+        result = await c.make_api_request("https://api.sense.com/x", max_retries=1)
+        await c.client.aclose()
+        assert result == {"ok": True} and state["auth"] == 1
+
+    @pytest.mark.asyncio
+    async def test_a_request_in_flight_during_a_renewal_retries_with_the_new_token(
+        self,
+    ):
+        state = {"auth": 0, "rest": 0, "valid": "tok-1"}
+        c = self._collector(
+            state, token_age_s=config.TOKEN_RENEW_INTERVAL + 5, rest_delay=0.2
+        )
+        request = asyncio.create_task(
+            c.make_api_request("https://api.sense.com/x", max_retries=1)
+        )
+        await asyncio.sleep(0.05)  # sent with tok-1
+        await c.check_token_renewal()  # revokes tok-1 while the request is in flight
+        result = await request
+        await c.client.aclose()
+        assert result == {"ok": True}, f"gave up: {result!r} {state}"
+
+    @pytest.mark.parametrize("auth_mode", ["nonjson", "503"])
+    @pytest.mark.asyncio
+    async def test_a_failed_renewal_is_backed_off_whatever_the_failure(self, auth_mode):
+        state = {"auth": 0, "rest": 0, "valid": "tok-1"}
+        c = self._collector(
+            state, token_age_s=config.TOKEN_RENEW_INTERVAL + 5, auth_mode=auth_mode
+        )
+        for _ in range(10):
+            await c.check_token_renewal()
+        await c.client.aclose()
+        assert state["auth"] == 1, f"{state['auth']} logins in 10 back-to-back checks"
+
+    @pytest.mark.asyncio
+    async def test_a_wall_clock_step_back_does_not_make_an_old_token_look_fresh(self):
+        state = {"auth": 0, "rest": 0, "valid": "tok-revoked"}
+        c = self._collector(state, token_age_s=600)
+        c.auth_time = datetime.now(UTC) + timedelta(minutes=50)  # NTP stepped back 1h
+        result = await c.make_api_request("https://api.sense.com/x", max_retries=1)
+        await c.client.aclose()
+        assert result == {"ok": True}, f"gave up, logins={state['auth']}"
+
+    @pytest.mark.asyncio
+    async def test_any_successful_login_ends_a_backoff(self):
+        state = {"auth": 0, "rest": 0, "valid": "tok-1"}
+        c = self._collector(state, token_age_s=120)
+        c._auth_failures, c._auth_retry_at = 10, time.monotonic() + 900
+        await c.authenticate()  # the WebSocket's refresh path
+        c._auth_mono = time.monotonic() - 120  # two minutes pass
+        state["valid"] = "tok-revoked"  # Sense revokes the token
+        result = await c.make_api_request("https://api.sense.com/x", max_retries=1)
+        await c.client.aclose()
+        assert result == {"ok": True}, f"gave up, logins={state['auth']}"

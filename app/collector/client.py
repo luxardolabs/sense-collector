@@ -165,6 +165,9 @@ class SenseCollector:
         self._auth_lock = asyncio.Lock()
         self._auth_failures = 0
         self._auth_retry_at = 0.0
+        # When the current token was issued, on the monotonic clock: a wall-clock step (NTP)
+        # must not make an old token look fresh.
+        self._auth_mono: float | None = None
 
     async def connect(self) -> None:
         """Open the ONE long-lived httpx client for the process lifetime (idempotent)."""
@@ -221,6 +224,10 @@ class SenseCollector:
             self.user_id = response["user_id"]
             self.monitor_id = response["monitors"][0]["id"]
             self.auth_time = datetime.now(UTC)
+            self._auth_mono = time.monotonic()
+            # Any successful login (the WebSocket's refresh included) ends a backoff.
+            self._auth_failures = 0
+            self._auth_retry_at = 0.0
 
             self.headers = {
                 "Authorization": f"Bearer {self.access_token}",
@@ -238,6 +245,8 @@ class SenseCollector:
 
     def _token_age(self) -> float:
         """Seconds since the current token was issued (infinite before the first login)."""
+        if self._auth_mono is not None:
+            return time.monotonic() - self._auth_mono
         if self.auth_time is None:
             return float("inf")
         return (datetime.now(UTC) - self.auth_time).total_seconds()
@@ -251,7 +260,7 @@ class SenseCollector:
             api_logger.info("%s, re-authenticating...", reason)
             try:
                 await self.authenticate()
-            except httpx.HTTPError:
+            except (httpx.HTTPError, *MALFORMED_PAYLOAD):
                 self._auth_failures += 1
                 delay = min(
                     config.API_RETRY_BACKOFF_BASE**self._auth_failures,
@@ -264,8 +273,6 @@ class SenseCollector:
                     delay,
                 )
                 return
-            self._auth_failures = 0
-            self._auth_retry_at = 0.0
 
     async def check_token_renewal(self) -> None:
         """Renew the access token once it is older than TOKEN_RENEW_INTERVAL."""
@@ -467,6 +474,8 @@ class SenseCollector:
                     if not self.client:
                         api_logger.error("HTTP client not initialized")
                         return None
+                    # The token this attempt is sent with: a 401 answers THIS token.
+                    issued = self.auth_time
                     response = await self.client.get(url, headers=self.headers)
 
                     if response.status_code == 429:  # Rate limited
@@ -490,13 +499,15 @@ class SenseCollector:
                         # A token older than a minute may have been revoked: log in once.
                         # A fresh one that still gets 401 is refused for another reason,
                         # and logging in again would only repeat the password login.
-                        issued = self.auth_time
-                        await self._renew(
-                            "REST request got 401", config.AUTH_MIN_REAUTH_AGE
-                        )
+                        if self.auth_time is issued:
+                            await self._renew(
+                                "REST request got 401", config.AUTH_MIN_REAUTH_AGE
+                            )
                         if self.auth_time is issued:
                             api_logger.error(
-                                "%s refused with 401 on a fresh token; giving up", url
+                                "%s refused with 401 and no newer token could be "
+                                "obtained; giving up",
+                                url,
                             )
                             return None
                         retry_count += 1
