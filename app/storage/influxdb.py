@@ -196,6 +196,22 @@ class InfluxDBStorage:
         if not points or self.write_api is None:
             return
 
+        # A value line protocol cannot carry (a dict or list where Sense should send a
+        # number) raises while the client serialises the batch, which would lose every point
+        # in it. Such a point is set aside alone.
+        writable: list[Point] = []
+        for point in points:
+            try:
+                point.to_line_protocol()
+            except (TypeError, ValueError) as e:
+                self.write_stats["failed"] += 1
+                storage_logger.error("Dropping one unwritable point: %s", e)
+            else:
+                writable.append(point)
+        points = writable
+        if not points:
+            return
+
         try:
             # Guard the eager line-protocol serialization — only pay it when DEBUG is on.
             if storage_logger.isEnabledFor(logging.DEBUG):

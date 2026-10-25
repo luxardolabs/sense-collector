@@ -588,3 +588,35 @@ async def test_rest_usage_fields_keep_the_type_sense_sends(influxdb_params):
     line = storage.write_points.call_args[0][0][0].to_line_protocol()
     assert "avg_monthly_cost=1500i" in line
     assert "avg_monthly_KWH=30.5" in line
+
+
+@pytest.mark.asyncio
+async def test_one_unserialisable_field_costs_its_point_not_the_cycle(influxdb_params):
+    """A dict where Sense should send a number makes line protocol raise; only that
+    device's point may be lost, never the household's mains and every other device."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_api = AsyncMock()
+    await storage.device_queue.set_device_name("tv", "TV")
+    await storage.device_queue.set_device_name("fridge", "Fridge")
+
+    await storage.persist_realtime_data(
+        monitor_id="m",
+        hertz=60.0,
+        total_current=12.5,
+        total_watts=1450.0,
+        epoch=1_760_000_000,
+        voltage=[121.0, 120.5],
+        devices=[
+            {"id": "tv", "w": 55.0, "ao_w": {"w": 3.0}},
+            {"id": "fridge", "w": 140.0},
+        ],
+        channels=[700.0, 750.0],
+    )
+
+    storage.write_api.write.assert_awaited_once()
+    written = storage.write_api.write.await_args.kwargs["record"]
+    lines = [p.to_line_protocol() for p in written]
+    assert any(line.startswith("sense_mains,monitor_id=m ") for line in lines)
+    assert any("device_name=Fridge" in line for line in lines)
+    assert not any("device_name=TV" in line for line in lines)
+    assert storage.write_stats == {"successful": 5, "failed": 1, "pending": 0}
