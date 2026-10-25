@@ -44,6 +44,7 @@ def storage():
     s.persist_hello_event = AsyncMock()
     s.device_queue = MagicMock()
     s.device_queue.set_device_name = AsyncMock()
+    s.device_queue.get_device_name = AsyncMock(return_value=None)
     return s
 
 
@@ -446,6 +447,25 @@ class TestProcessTimelineItem:
         kwargs = storage.persist_timeline_data.call_args.kwargs
         assert kwargs["device_name"] == "ac"
         assert kwargs["icon"] == "bolt"
+
+    @pytest.mark.asyncio
+    async def test_uses_the_device_list_name_when_the_detail_cache_misses(
+        self, collector, storage
+    ):
+        """fetch_devices names every device hourly; a detail-cache miss must not hold the
+        event back waiting for a name the collector already has."""
+        storage.device_queue.get_device_name = AsyncMock(return_value="AC Unit")
+        await collector.process_timeline_item({"device_id": "ac"})
+        assert (
+            storage.persist_timeline_data.call_args.kwargs["device_name"] == "AC Unit"
+        )
+
+    @pytest.mark.asyncio
+    async def test_uses_the_events_own_device_name_before_the_id(
+        self, collector, storage
+    ):
+        await collector.process_timeline_item({"device_id": "ac", "device_name": "AC"})
+        assert storage.persist_timeline_data.call_args.kwargs["device_name"] == "AC"
 
 
 # ------------------------------------------------------------------ fetch + API worker

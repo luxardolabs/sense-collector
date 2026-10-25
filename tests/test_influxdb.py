@@ -620,3 +620,136 @@ async def test_one_unserialisable_field_costs_its_point_not_the_cycle(influxdb_p
     assert any("device_name=Fridge" in line for line in lines)
     assert not any("device_name=TV" in line for line in lines)
     assert storage.write_stats == {"successful": 5, "failed": 1, "pending": 0}
+
+
+@pytest.mark.parametrize(
+    "bad_device",
+    [None, "fridge", {"id": "x", "sd": None}, {"id": "y", "sd": []}],
+    ids=["null", "string", "sd-null", "sd-list"],
+)
+@pytest.mark.asyncio
+async def test_a_malformed_device_entry_is_skipped_not_the_frame(
+    influxdb_params, bad_device
+):
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_api = AsyncMock()
+    await storage.persist_realtime_data(
+        monitor_id="m",
+        hertz=60.0,
+        total_current=1.0,
+        total_watts=100.0,
+        epoch=1_760_000_000,
+        voltage=[120.0, 120.0],
+        devices=[bad_device, {"id": "good", "name": "Good", "w": 5.0}],
+        channels=[50.0, 50.0],
+    )
+    storage.write_api.write.assert_awaited_once()
+    lines = [
+        p.to_line_protocol()
+        for p in storage.write_api.write.await_args.kwargs["record"]
+    ]
+    assert any(line.startswith("sense_mains,monitor_id=m ") for line in lines)
+    assert any("device_id=good" in line for line in lines)
+
+
+@pytest.mark.asyncio
+async def test_a_device_name_ending_in_a_backslash_keeps_its_name(influxdb_params):
+    """Line protocol cannot end a tag in `\\`; the client then appends a space and
+    InfluxDB stores `Garage ` — a name no device has."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_api = AsyncMock()
+    await storage.device_queue.set_device_name("g", "Garage\\")
+    await storage.persist_realtime_data(
+        monitor_id="m",
+        hertz=60.0,
+        total_current=1.0,
+        total_watts=100.0,
+        epoch=1_760_000_000,
+        voltage=[],
+        devices=[{"id": "g", "w": 5.0}],
+        channels=[],
+    )
+    lines = [
+        p.to_line_protocol()
+        for p in storage.write_api.write.await_args.kwargs["record"]
+    ]
+    device = next(line for line in lines if line.startswith("sense_devices"))
+    assert "device_name=Garage," in device or "device_name=Garage " in device
+    assert "Garage\\" not in device
+
+
+@pytest.mark.asyncio
+async def test_two_events_in_one_second_are_two_points(influxdb_params):
+    """Sense stamps timeline events with milliseconds; at second precision an on and an
+    off in the same second share a timestamp and the later one overwrites the earlier."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock()
+    for t, kind in (
+        ("2026-10-25T16:40:00.100Z", "DeviceOn"),
+        ("2026-10-25T16:40:00.900Z", "DeviceOff"),
+    ):
+        await storage.persist_timeline_data(
+            monitor_id="m",
+            device_id="d",
+            device_name="Kettle",
+            time=t,
+            event_type=kind,
+            icon="",
+            body="",
+            device_state="",
+            user_device_type="",
+            device_transition_from_state="",
+        )
+    stamps = {
+        call.args[0][0].to_line_protocol().rsplit(" ", 1)[1]
+        for call in storage.write_points.await_args_list
+    }
+    assert len(stamps) == 2, stamps
+
+
+@pytest.mark.asyncio
+async def test_shutdown_writes_the_timeline_events_still_waiting_for_a_name(
+    influxdb_params,
+):
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock()
+    await storage.device_queue.set_device_name("ac", "AC Unit")
+    await storage.persist_timeline_data(
+        monitor_id="m",
+        device_id="ac",
+        device_name="ac",  # the device-detail cache missed, so it waits for a name
+        time="2026-10-25T16:40:00.100Z",
+        event_type="DeviceOn",
+        icon="",
+        body="ac turned on",
+        device_state="",
+        user_device_type="",
+        device_transition_from_state="",
+    )
+    storage.write_points.assert_not_awaited()
+
+    await storage.close()
+
+    written = [p for call in storage.write_points.await_args_list for p in call.args[0]]
+    assert any("device_name=AC\\ Unit" in p.to_line_protocol() for p in written)
+    assert storage.timeline_event_queue == {}
+
+
+@pytest.mark.asyncio
+async def test_shutdown_writes_the_batch_the_processor_was_collecting(
+    influxdb_params,
+):
+    import asyncio
+
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock()
+    await storage.device_queue.set_device_name("ao1", "Router")
+    processor = asyncio.create_task(storage.process_device_queue())
+    storage.queue_processor_task = processor
+    await storage.device_queue.add_device_data("ao1", "m", 7.0, 1_760_000_000)
+    await asyncio.sleep(0.05)  # taken off the queue, held in the batch being collected
+
+    await storage.close()
+
+    written = [p for call in storage.write_points.await_args_list for p in call.args[0]]
+    assert any("device_name=Router" in p.to_line_protocol() for p in written)

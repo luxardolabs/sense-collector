@@ -27,6 +27,18 @@ WRITE_ERRORS = (*MALFORMED_PAYLOAD, OSError, InfluxDBError)
 _DROPPED = re.compile(r"dropped=(\d+)")
 
 
+def _tag(value: str) -> str:
+    """A tag value line protocol can carry exactly: it cannot end in a backslash (the
+    client then appends a space, and InfluxDB stores a name no device has)."""
+    return value.rstrip("\\") or value
+
+
+def _event_precision(time: Any) -> str:
+    """Sense stamps timeline events with milliseconds (ISO strings); at second precision
+    an on and an off in the same second would share a timestamp and overwrite."""
+    return "ms" if isinstance(time, str) else "s"
+
+
 def _num(value: Any) -> Any:
     """A realtime reading as float, so its InfluxDB field type never depends on spelling.
 
@@ -302,7 +314,7 @@ class InfluxDBStorage:
                     .tag("monitor_id", item["monitor_id"])
                     .tag("parent_device_id", "always_on")
                     .tag("device_id", device_id)
-                    .tag("device_name", device_name)
+                    .tag("device_name", _tag(device_name))
                     .field("watts", _num(item["watts"]))
                     .time(item["timestamp"], write_precision="s")
                 )
@@ -332,7 +344,7 @@ class InfluxDBStorage:
         total_watts: float,
         epoch: int,
         voltage: list[float],
-        devices: list[dict[str, Any]],
+        devices: list[Any],  # straight from the Sense payload: entries are not trusted
         channels: list[float],
     ) -> None:
         """Persist real-time sensor data."""
@@ -394,6 +406,10 @@ class InfluxDBStorage:
 
             # Device data
             for device in devices:
+                # A null, a string or a list where Sense should send a device object is
+                # skipped alone; the frame's other points still go.
+                if not isinstance(device, dict):
+                    continue
                 device_id = device.get("id")
                 if not device_id:
                     continue
@@ -405,7 +421,9 @@ class InfluxDBStorage:
                 cached_name = await self.device_queue.get_device_name(device_id)
                 device_name = cached_name or device.get("name") or "Unknown"
                 device_icon = device.get("icon", "")
-                device_sd = device.get("sd", {})
+                device_sd = device.get("sd")
+                if not isinstance(device_sd, dict):
+                    device_sd = {}
                 is_plug = any(
                     device_sd.get(key) is not None for key in ["w", "i", "v", "e"]
                 )
@@ -414,7 +432,7 @@ class InfluxDBStorage:
                     Point(config.MEASUREMENT_DEVICES)
                     .tag("monitor_id", monitor_id)
                     .tag("device_id", device_id)
-                    .tag("device_name", device_name)
+                    .tag("device_name", _tag(device_name))
                     .tag("is_plug", str(is_plug).lower())
                     .field("icon", device_icon)
                     .field("watts", device_watts)
@@ -497,7 +515,7 @@ class InfluxDBStorage:
         device_detail_point = (
             Point(config.MEASUREMENT_DEVICES)
             .tag("device_id", device_id)
-            .tag("device_name", device_name)
+            .tag("device_name", _tag(device_name))
             .tag("monitor_id", monitor_id)
             .field("icon", icon)
             .time(timestamp, write_precision="s")
@@ -560,7 +578,7 @@ class InfluxDBStorage:
         device_detail_point = (
             Point(config.MEASUREMENT_ALWAYS_ON)
             .tag("device_id", device_id)
-            .tag("device_name", device_name)
+            .tag("device_name", _tag(device_name))
             .tag("monitor_id", monitor_id)
             .field("icon", icon)
         )
@@ -666,7 +684,7 @@ class InfluxDBStorage:
             Point(config.MEASUREMENT_EVENT)
             .tag("monitor_id", monitor_id)
             .tag("device_id", device_id)
-            .tag("device_name", device_name)
+            .tag("device_name", _tag(device_name))
             .field("time", time)
             .field("type", event_type)
             .field("icon", icon)
@@ -674,7 +692,7 @@ class InfluxDBStorage:
             .field("device_state", device_state)
             .field("user_device_type", user_device_type)
             .field("device_transition_from_state", device_transition_from_state)
-            .time(time, write_precision="s")
+            .time(time, write_precision=_event_precision(time))
         )
         await self.write_points([timeline_point])
 
@@ -754,7 +772,7 @@ class InfluxDBStorage:
                         Point(config.MEASUREMENT_EVENT)
                         .tag("monitor_id", event["monitor_id"])
                         .tag("device_id", device_id)
-                        .tag("device_name", device_name)
+                        .tag("device_name", _tag(device_name))
                         .field("time", event["time"])
                         .field("type", event["event_type"])
                         .field("icon", device_icon)
@@ -765,7 +783,10 @@ class InfluxDBStorage:
                             "device_transition_from_state",
                             event["device_transition_from_state"],
                         )
-                        .time(event["time"], write_precision="s")
+                        .time(
+                            event["time"],
+                            write_precision=_event_precision(event["time"]),
+                        )
                     )
                     points.append(timeline_point)
 
@@ -887,7 +908,7 @@ class InfluxDBStorage:
                         Point(config.MEASUREMENT_DEVICE_DETECTION)
                         .tag("monitor_id", monitor_id)
                         .tag("status", status)
-                        .tag("name", device.get("name", "Unknown"))
+                        .tag("name", _tag(device.get("name", "Unknown")))
                         .field("icon", device.get("icon", ""))
                         .field("progress", float(device.get("progress", 0)))
                         .time(timestamp, write_precision="s")
@@ -905,11 +926,18 @@ class InfluxDBStorage:
         storage_logger.info("Starting InfluxDB storage shutdown...")
         self.is_shutting_down = True
 
-        # Stop the queue processor
+        # Let the queue processor finish the batch it is collecting (it sees
+        # is_shutting_down within one queue timeout); cancel it only if it does not.
         if self.queue_processor_task and not self.queue_processor_task.done():
-            self.queue_processor_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self.queue_processor_task
+            try:
+                await asyncio.wait_for(
+                    asyncio.shield(self.queue_processor_task),
+                    timeout=config.QUEUE_TIMEOUT + config.QUEUE_BATCH_TIMEOUT + 1,
+                )
+            except TimeoutError:
+                self.queue_processor_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self.queue_processor_task
 
         # Process any remaining items in queue
         remaining_items = []
@@ -924,6 +952,14 @@ class InfluxDBStorage:
                 "Processing %s remaining queue items...", len(remaining_items)
             )
             await self._process_device_batch(remaining_items)
+
+        # Timeline events still waiting for a device name: write them now, under the cached
+        # name where there is one and the device id where not, rather than lose them.
+        for device_id in list(self.timeline_event_queue):
+            events = self.timeline_event_queue[device_id]
+            name = await self.device_queue.get_device_name(device_id) or device_id
+            icon = events[0].get("icon", "") if events else ""
+            await self.process_queued_timeline_events(device_id, name, icon)
 
         # Every cycle's write is awaited inline, so shutdown just releases the aiohttp session.
         await self._close_client()
