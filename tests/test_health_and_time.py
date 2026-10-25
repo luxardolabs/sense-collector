@@ -7,7 +7,6 @@ collecting, so its freshness arithmetic and its exit codes are load-bearing.
 import os
 import time
 from datetime import UTC, datetime
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -136,6 +135,19 @@ class TestHealthCheckMain:
         assert "2026-08-01T00:00:00Z" in out
 
 
-def test_heartbeat_path_defaults_under_the_export_folder(tmp_path):
-    check = _reload_check(SENSE_COLLECTOR_EXPORT_FOLDER=str(tmp_path))
-    assert Path(check.HEARTBEAT_FILE) == tmp_path / ".heartbeat"
+def test_the_collector_and_the_healthcheck_agree_on_the_heartbeat_path():
+    """An export folder the collector cannot write makes config fall back to a temp dir;
+    the healthcheck, a separate process, cannot follow that, so the heartbeat must not
+    live under the export folder at all."""
+    import importlib
+
+    import app.core.config as config
+
+    unwritable = {"SENSE_COLLECTOR_EXPORT_FOLDER": "/root/no_permission"}
+    with patch.dict(os.environ, unwritable):
+        os.environ.pop("SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE", None)
+        collector_path = importlib.reload(config).HEALTH_HEARTBEAT_FILE
+        check_path = _reload_check(**unwritable).HEARTBEAT_FILE
+    importlib.reload(config)
+
+    assert collector_path == check_path

@@ -64,6 +64,8 @@ docker run -d \
 
 The collector reaches out to the Sense cloud and your InfluxDB; it exposes no ports.
 
+The output directory is only written when `SENSE_COLLECTOR_OUTPUT_RECEIVED_DATA=true`. Then create it first and give it to the container's user (uid 1000), or the collector refuses to start: `sudo mkdir -p /mnt/docker/sense-collector/output && sudo chown 1000:1000 /mnt/docker/sense-collector/output`. Docker would otherwise create it owned by root.
+
 ## Verify
 
 The container ships a Docker `HEALTHCHECK` driven by a heartbeat the collector touches on every WebSocket message, so an unhealthy container is a real liveness signal.

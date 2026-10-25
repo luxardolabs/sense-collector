@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from app.health.check import DEFAULT_HEARTBEAT_FILE
+
 # Module logger, never the root logger: a bare `logging.warning(...)` module-level call goes
 # to the root logger, which installs a default handler on first use (this module is imported
 # before app.main calls configure_logging) and so bypasses the fleet logging setup. A named
@@ -366,7 +368,9 @@ FILE_MAX_DEVICE_ID_LENGTH = get_env_int(
     "SENSE_COLLECTOR_FILE_MAX_DEVICE_ID_LENGTH", 100, min_val=20, max_val=255
 )
 
-# Validate export folder
+# Validate export folder. EXPORT_FOLDER_UNWRITABLE names the configured folder when it could
+# not be used and the exports fell back to a temp dir.
+EXPORT_FOLDER_UNWRITABLE: str | None = None
 try:
     export_path = Path(EXPORT_FOLDER)
     export_path.mkdir(parents=True, exist_ok=True)
@@ -383,17 +387,18 @@ try:
 
 except Exception as e:
     logger.exception("Failed to create or validate export folder: %s", e)
-    # Use temp directory as fallback
+    # Use temp directory as fallback; app.main refuses to start on it when exports are on.
     import tempfile
 
+    EXPORT_FOLDER_UNWRITABLE = EXPORT_FOLDER
     EXPORT_FOLDER = tempfile.mkdtemp(prefix="sense_collector_")
     logger.warning("Using temporary export folder: %s", EXPORT_FOLDER)
 
 # Health heartbeat — the collector touches this file (throttled) as WebSocket data flows;
-# the Docker healthcheck (app/health/check.py) asserts it stays fresh. Defined after
-# EXPORT_FOLDER is finalized so the default path lands in the real (or fallback) output dir.
+# the Docker healthcheck (app/health/check.py) asserts it stays fresh. Both take the default
+# from the healthcheck, so they name the same file whatever happens to the export folder.
 HEALTH_HEARTBEAT_FILE = os.getenv(
-    "SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE", os.path.join(EXPORT_FOLDER, ".heartbeat")
+    "SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE", DEFAULT_HEARTBEAT_FILE
 )
 HEALTH_HEARTBEAT_INTERVAL = get_env_int(
     "SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL", 15, min_val=1, max_val=300

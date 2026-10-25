@@ -76,6 +76,28 @@ class TestValidateEnvironment:
         ):
             validate_environment()
 
+    def test_exports_to_an_unwritable_folder_are_refused_not_redirected(self, caplog):
+        """With exports on, a temp-dir fallback silently loses every export with the
+        container; say so and stop instead."""
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(config, "OUTPUT_RECEIVED_DATA", True),
+            patch.object(config, "EXPORT_FOLDER_UNWRITABLE", "/root/no_permission"),
+            pytest.raises(ValueError, match="export folder"),
+        ):
+            validate_environment()
+        assert "/root/no_permission" in caplog.text
+
+    def test_the_fallback_is_harmless_with_exports_off(self):
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(config, "OUTPUT_RECEIVED_DATA", False),
+            patch.object(config, "EXPORT_FOLDER_UNWRITABLE", "/root/no_permission"),
+        ):
+            validate_environment()
+
     def test_the_error_names_every_missing_var(self, caplog):
         with patch.dict(os.environ, {}, clear=True), pytest.raises(ValueError):
             validate_environment()

@@ -100,6 +100,16 @@ def validate_environment() -> None:
         logger.error("Missing required environment variables: %s", ", ".join(missing))
         raise ValueError("Missing required environment variables")
 
+    if config.OUTPUT_RECEIVED_DATA and config.EXPORT_FOLDER_UNWRITABLE:
+        logger.error(
+            "SENSE_COLLECTOR_OUTPUT_RECEIVED_DATA is on but the export folder %s is not "
+            "writable by this user (uid %s): create it and give it to that user, or turn "
+            "exports off. Exports to a temp dir would vanish with the container.",
+            config.EXPORT_FOLDER_UNWRITABLE,
+            os.getuid(),
+        )
+        raise ValueError("The export folder is not writable")
+
     problem = _influxdb_url_problem(config.INFLUXDB_URL)
     if problem:
         logger.error("SENSE_COLLECTOR_INFLUXDB_URL %s.", problem)
