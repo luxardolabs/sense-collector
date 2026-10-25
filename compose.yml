@@ -35,6 +35,8 @@ x-influx-init: &influx-init
   DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG}
   DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
   DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+  # Read-only v1 password for Grafana (ops/influxdb/init-dbrp.sh creates the user).
+  GRAFANA_INFLUX_PASSWORD: ${GRAFANA_INFLUX_PASSWORD:-}
 
 x-influx: &influx
   image: influxdb:2.7
@@ -55,7 +57,7 @@ x-grafana: &grafana
     # Panel plugins the bundled dashboards use but that aren't Grafana core.
     GF_INSTALL_PLUGINS: digrich-bubblechart-panel
     INFLUX_BUCKET: ${INFLUX_BUCKET}
-    INFLUX_TOKEN: ${INFLUX_TOKEN}
+    GRAFANA_INFLUX_PASSWORD: ${GRAFANA_INFLUX_PASSWORD:-}
   restart: unless-stopped
 
 x-prod-collector: &prod-collector
@@ -174,7 +176,6 @@ services:
   sense_fake:
     profiles: [demo, e2e]
     image: ${SENSE_FAKE_IMAGE:-sense-collector-fake:local}
-    container_name: sense_fake
     environment:
       SENSE_FAKE_PORT: "8080"
       SENSE_FAKE_MONITOR_ID: "${SENSE_FAKE_MONITOR_ID:-12345}"

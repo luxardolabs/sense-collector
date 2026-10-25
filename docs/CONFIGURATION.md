@@ -228,7 +228,7 @@ Then run the collector — via Docker (the normal path):
 make dev-up      # the dev-tyle stack: collector + bundled InfluxDB + Grafana (uses .env.dev)
 ```
 
-The dev stacks bundle their own InfluxDB and Grafana, so their env file also needs the values those services are set up with on first start (the commented dev-stack block in `.env.example`): `INFLUX_USER`, `INFLUX_PASSWORD`, `INFLUX_ORG`, `INFLUX_BUCKET`, `INFLUX_TOKEN` (the same token as `SENSE_COLLECTOR_INFLUXDB_TOKEN`, and never the demo token) and `GRAFANA_PASSWORD`. Grafana listens on `127.0.0.1` only; set `GRAFANA_BIND=0.0.0.0` to reach it from the LAN.
+The dev stacks bundle their own InfluxDB and Grafana, so their env file also needs the values those services are set up with on first start (the commented dev-stack block in `.env.example`): `INFLUX_USER`, `INFLUX_PASSWORD`, `INFLUX_ORG`, `INFLUX_BUCKET`, `INFLUX_TOKEN` (the same token as `SENSE_COLLECTOR_INFLUXDB_TOKEN`, and never the demo token), `GRAFANA_PASSWORD` and `GRAFANA_INFLUX_PASSWORD` (Grafana's read-only InfluxDB sign-in). Grafana listens on `127.0.0.1` only; set `GRAFANA_BIND=0.0.0.0` to reach it from the LAN.
 
 …or directly for local hacking (env must be exported into the shell first):
 

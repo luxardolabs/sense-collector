@@ -110,3 +110,33 @@ def test_each_grafana_reaches_its_own_stacks_influxdb() -> None:
         service = compose.split(f"  sense_{stack}_grafana:")[1].split("\n  sense_")[0]
         assert f"INFLUX_HOST: sense_{stack}_influxdb" in service, stack
         assert f"  sense_{stack}_influxdb:" in compose
+
+
+def test_grafana_never_holds_the_influxdb_admin_token() -> None:
+    """Grafana's datasource proxy forwards any path with the datasource's credentials, so
+    every Grafana user (Viewers too) can use them. They must be read-only."""
+    datasource = (
+        REPO / "grafana" / "provisioning" / "datasources" / "influxdb.yml"
+    ).read_text()
+    assert "INFLUX_TOKEN" not in datasource
+    assert "user: grafana" in datasource
+    assert "password: ${GRAFANA_INFLUX_PASSWORD}" in datasource
+
+    compose = (REPO / "compose.yml").read_text()
+    grafana_env = compose.split("x-grafana: &grafana")[1].split("\nx-")[0]
+    assert "INFLUX_TOKEN" not in grafana_env
+    assert (
+        "GRAFANA_INFLUX_PASSWORD" in compose.split("x-influx-init:")[1].split("\nx-")[0]
+    )
+
+    init = (REPO / "ops" / "influxdb" / "init-dbrp.sh").read_text()
+    assert "influx v1 auth create" in init
+    assert "--read-bucket" in init
+    assert "--write-bucket" not in init
+
+
+def test_the_fake_sense_has_no_fixed_container_name() -> None:
+    """The demo and e2e projects both run it; one fixed name makes them collide."""
+    compose = (REPO / "compose.yml").read_text()
+    fake = compose.split("  sense_fake:\n")[1].split("\n  # ")[0]
+    assert "container_name" not in fake

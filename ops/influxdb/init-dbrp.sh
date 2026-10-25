@@ -22,3 +22,17 @@ influx v1 dbrp create \
   --bucket-id "$BUCKET_ID"
 
 echo "init-dbrp: mapped v1 database '$BUCKET' -> bucket '$BUCKET' (id $BUCKET_ID)"
+
+# Grafana's read-only sign-in: a v1 user with READ on this bucket only. Grafana never gets
+# the admin token, because its datasource proxy lets every Grafana user act with the
+# datasource's credentials.
+if [ -n "${GRAFANA_INFLUX_PASSWORD:-}" ]; then
+  influx v1 auth create \
+    --org "$ORG" \
+    --username grafana \
+    --password "$GRAFANA_INFLUX_PASSWORD" \
+    --read-bucket "$BUCKET_ID"
+  echo "init-dbrp: created read-only v1 user 'grafana' for bucket '$BUCKET'"
+else
+  echo "init-dbrp: GRAFANA_INFLUX_PASSWORD unset; Grafana's datasource will not sign in"
+fi

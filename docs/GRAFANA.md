@@ -11,11 +11,12 @@ Create an InfluxDB data source in Grafana pointed at your InfluxDB 2.x instance,
 1. **Custom HTTP Headers → Add header**:
    - **Header**: `Authorization`
    - **Value**: `Token <your-influxdb-api-token>` (the literal word `Token`, a space, then the token).
+   - Use a **read-only** token for the bucket, never the admin token: Grafana's data source proxy lets every Grafana user, Viewers included, send requests with it.
 1. **Database**: your bucket name (e.g. `sense`); leave user/password blank.
 
 InfluxQL against a v2 bucket also requires a **DBRP mapping** (database/retention-policy → bucket) in InfluxDB. See the InfluxData guide for the current steps: <https://docs.influxdata.com/influxdb/v2/tools/grafana/?t=InfluxQL>.
 
-> The bundled dev/demo stacks (`make dev-up` / `make demo-up`) provision this data source and the DBRP mapping automatically — this section is for wiring the collector into your own Grafana.
+> The bundled dev/demo stacks (`make dev-up` / `make demo-up`) provision this data source and the DBRP mapping automatically, signing in as a read-only v1 user `grafana` (password `GRAFANA_INFLUX_PASSWORD`) — this section is for wiring the collector into your own Grafana.
 
 ## Dashboards
 
