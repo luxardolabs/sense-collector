@@ -112,7 +112,7 @@ def test_a_remote_device_name_cannot_forge_a_line_or_emit_escapes(
     )
 
 
-@pytest.mark.parametrize("separator", [" ", " ", "\x85", "\x9b"])
+@pytest.mark.parametrize("separator", [" ", " ", "\x85", "\x9b", "\ud800"])
 @pytest.mark.parametrize("fmt", ["json", "text"])
 def test_unicode_line_breaks_and_c1_controls_cannot_forge_a_line(
     capsys, monkeypatch, fmt, separator
