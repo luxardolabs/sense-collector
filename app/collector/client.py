@@ -746,7 +746,8 @@ class SenseCollector:
 
     async def handle_realtime_update(self, payload: dict[str, Any]) -> bool:
         """Handle real-time power usage updates; False when the frame could not be used."""
-        required_keys = ["hz", "c", "w", "epoch"]
+        # No hz: a monitor without voltage sensing sends none (json/missing_hz.json).
+        required_keys = ["c", "w", "epoch"]
         if not isinstance(payload, dict) or not all(
             key in payload for key in required_keys
         ):
@@ -772,7 +773,7 @@ class SenseCollector:
 
             usable = await self.influxdb_storage.persist_realtime_data(
                 monitor_id=self.monitor_id,
-                hertz=payload["hz"],
+                hertz=payload.get("hz"),
                 total_current=payload["c"],
                 total_watts=total_watts,
                 epoch=payload["epoch"],

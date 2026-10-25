@@ -352,6 +352,53 @@ class TestProcessWebSocketData:
             await c.process_websocket_data(frame)
         beat.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_a_monitor_without_voltage_sensing_keeps_it_healthy(self):
+        """json/missing_hz.json is a real capture: no hz, voltage or channels, good watts.
+        Every such frame was rejected, so the collector could never be healthy."""
+        from pathlib import Path
+
+        capture = json.loads(
+            (Path(__file__).parent.parent / "json" / "missing_hz.json").read_text()
+        )
+        storage = self._real_storage()
+        c = SenseCollector("u", "p", storage)
+        c.monitor_id = "m1"
+        with patch.object(c, "_touch_heartbeat") as beat:
+            await c.process_websocket_data(
+                {"type": "realtime_update", "payload": capture}
+            )
+        beat.assert_called_once()
+        lines = [
+            p.to_line_protocol()
+            for call in storage.write_api.write.await_args_list
+            for p in call.kwargs["record"]
+        ]
+        mains = next(x for x in lines if x.startswith(config.MEASUREMENT_MAINS + ","))
+        assert "watts=" in mains and "hertz=" not in mains
+
+    @pytest.mark.parametrize("current", ["", {}, None], ids=["empty", "object", "null"])
+    @pytest.mark.asyncio
+    async def test_one_bad_plug_reading_does_not_cost_the_frame(self, current):
+        """float() on one plug's sd.i raised inside the frame's try: every point, the
+        good mains included, was lost and the heartbeat denied."""
+        storage = self._real_storage()
+        c = SenseCollector("u", "p", storage)
+        frame = {
+            "type": "realtime_update",
+            "payload": {
+                "hz": 60.0,
+                "c": 1.0,
+                "w": 100.0,
+                "epoch": 1_760_000_000,
+                "devices": [{"id": "plug", "w": 5.0, "sd": {"w": 5.0, "i": current}}],
+            },
+        }
+        with patch.object(c, "_touch_heartbeat") as beat:
+            await c.process_websocket_data(frame)
+        beat.assert_called_once()
+        storage.write_api.write.assert_awaited_once()
+
     @pytest.mark.parametrize("write_fails", [False, True], ids=["written", "sink-down"])
     @pytest.mark.asyncio
     async def test_a_usable_frame_keeps_it_healthy_even_when_influxdb_is_down(
@@ -444,7 +491,7 @@ class TestHandleRealtimeUpdate:
         assert kwargs["total_watts"] == 1260.0
         assert kwargs["hertz"] == 60.0
 
-    @pytest.mark.parametrize("missing", ["hz", "c", "w", "epoch"])
+    @pytest.mark.parametrize("missing", ["c", "w", "epoch"])
     @pytest.mark.asyncio
     async def test_incomplete_payload_is_rejected_before_persisting(
         self, collector, storage, missing

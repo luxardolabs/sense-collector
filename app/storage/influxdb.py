@@ -37,6 +37,16 @@ def _tag(value: Any) -> Any:
     return value.rstrip("\\") or value.replace("\\", "/")
 
 
+def _as_float(value: Any) -> float | None:
+    """`value` as a float, or None when it is not a number (or a numeric string)."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except TypeError, ValueError, OverflowError:
+        return None
+
+
 def _whole(value: Any) -> Any:
     """A count as an int, so `3.0` and `3` land in the same integer field. Anything that
     is not a whole number, or is beyond InfluxDB's int64 range, passes through unchanged."""
@@ -371,7 +381,7 @@ class InfluxDBStorage:
     async def persist_realtime_data(
         self,
         monitor_id: str,
-        hertz: float,
+        hertz: float | None,
         total_current: float,
         total_watts: float,
         epoch: int,
@@ -381,12 +391,12 @@ class InfluxDBStorage:
     ) -> bool:
         """Persist real-time sensor data; True when the mains reading itself was usable.
 
-        Usable means hertz, current and watts are finite numbers, judged here before the
-        write: the answer is about what the collector received, never about whether
+        Usable means current and watts (and hertz, when the monitor measures it) are finite
+        numbers, judged here before the write: the answer is about what the collector received, never about whether
         InfluxDB took it (the healthcheck reports on the collector, not the sink).
         """
         storage_logger.debug(
-            "Persisting realtime data: %.1fW, %s devices, %.1fHz",
+            "Persisting realtime data: %sW, %s devices, %sHz",
             total_watts,
             len(devices),
             hertz,
@@ -402,16 +412,19 @@ class InfluxDBStorage:
             points = []
 
             # Main power data
-            mains = (_num(hertz), float(total_current), _num(total_watts))
+            mains = (float(total_current), _num(total_watts)) + (
+                () if hertz is None else (_num(hertz),)
+            )
             usable = all(isinstance(v, float) and math.isfinite(v) for v in mains)
             main_point = (
                 Point(config.MEASUREMENT_MAINS)
                 .tag("monitor_id", monitor_id)
-                .field("hertz", mains[0])
-                .field("current", mains[1])
-                .field("watts", mains[2])
+                .field("current", mains[0])
+                .field("watts", mains[1])
                 .time(epoch, write_precision="s")
             )
+            if hertz is not None:
+                main_point.field("hertz", mains[2])
             points.append(main_point)
 
             # Channel data
@@ -480,8 +493,10 @@ class InfluxDBStorage:
                 # Add plug-specific fields if available
                 if device_sd.get("w") is not None:
                     device_point.field("sd_watts", _num(device_sd["w"]))
-                if device_sd.get("i") is not None:
-                    device_point.field("sd_current", float(device_sd["i"]))
+                # One plug's unreadable current must not cost the frame its other points.
+                sd_current = _as_float(device_sd.get("i"))
+                if sd_current is not None:
+                    device_point.field("sd_current", sd_current)
                 if device_sd.get("v") is not None:
                     device_point.field("sd_voltage", _num(device_sd["v"]))
                 if device_sd.get("e") is not None:
