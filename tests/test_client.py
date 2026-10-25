@@ -625,6 +625,44 @@ class TestMakeApiRequest:
             assert await collector.make_api_request("http://x/y") == {"ok": True}
         assert collector.client.get.await_count == 2
 
+    @pytest.mark.parametrize(
+        ("header", "expected"),
+        [
+            ("86400", config.API_RETRY_AFTER_MAX),  # a day would park the REST path
+            ("-5", 0.0),
+            ("2.5", 2.5),
+            ("Wed, 21 Oct 2026 07:28:00 GMT", 1.0),  # HTTP-date: fall back to backoff
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_retry_after_is_parsed_and_capped(self, collector, header, expected):
+        collector.client = MagicMock()
+        collector.client.get = AsyncMock(
+            side_effect=[
+                _response(status=429, headers={"Retry-After": header}),
+                _response(json_body={"ok": True}),
+            ]
+        )
+        collector.min_api_interval = 0
+        slept = AsyncMock()
+        with patch("app.collector.client.asyncio.sleep", slept):
+            assert await collector.make_api_request("http://x/y") == {"ok": True}
+        assert slept.await_args_list[0].args[0] == expected
+
+    @pytest.mark.asyncio
+    async def test_a_rate_limit_wait_ends_at_shutdown(self, collector):
+        """A Retry-After wait must not hold the process past a SIGTERM."""
+        collector.client = MagicMock()
+        collector.client.get = AsyncMock(
+            return_value=_response(status=429, headers={"Retry-After": "300"})
+        )
+        collector.min_api_interval = 0
+        collector.shutdown_event = asyncio.Event()
+        task = asyncio.create_task(collector.make_api_request("http://x/y"))
+        await asyncio.sleep(0.05)
+        collector.shutdown_event.set()
+        assert await asyncio.wait_for(task, timeout=2) is None
+
     @pytest.mark.asyncio
     async def test_401_triggers_reauthentication_and_retries(self, collector):
         collector.client = MagicMock()

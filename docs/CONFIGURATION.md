@@ -58,12 +58,13 @@ These environment variables MUST be set for the application to run:
 
 ### Rate Limiting
 
-| Variable                                    | Default | Min  | Max | Description                                  |
-| ------------------------------------------- | ------- | ---- | --- | -------------------------------------------- |
-| `SENSE_COLLECTOR_API_RATE_LIMIT_CONCURRENT` | `10`    | 1    | 50  | Maximum concurrent API calls                 |
-| `SENSE_COLLECTOR_API_MIN_INTERVAL`          | `0.1`   | 0.01 | 5.0 | Minimum interval between API calls (seconds) |
-| `SENSE_COLLECTOR_API_RETRY_MAX`             | `3`     | 1    | 10  | Maximum API call retries                     |
-| `SENSE_COLLECTOR_API_RETRY_BACKOFF_BASE`    | `2`     | 2    | 10  | Exponential backoff base for retries         |
+| Variable                                    | Default | Min  | Max  | Description                                            |
+| ------------------------------------------- | ------- | ---- | ---- | ------------------------------------------------------ |
+| `SENSE_COLLECTOR_API_RATE_LIMIT_CONCURRENT` | `10`    | 1    | 50   | Maximum concurrent API calls                           |
+| `SENSE_COLLECTOR_API_MIN_INTERVAL`          | `0.1`   | 0.01 | 5.0  | Minimum interval between API calls (seconds)           |
+| `SENSE_COLLECTOR_API_RETRY_MAX`             | `3`     | 1    | 10   | Maximum API call retries                               |
+| `SENSE_COLLECTOR_API_RETRY_BACKOFF_BASE`    | `2`     | 2    | 10   | Exponential backoff base for retries                   |
+| `SENSE_COLLECTOR_API_RETRY_AFTER_MAX`       | `300`   | 10   | 3600 | Longest a 429 Retry-After may park a request (seconds) |
 
 ### Fetch Intervals
 

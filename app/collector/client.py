@@ -450,6 +450,19 @@ class SenseCollector:
         except Exception as e:
             api_logger.error("Error processing WebSocket data: %s", e)
 
+    @staticmethod
+    def _retry_after(response: httpx.Response, retry_count: int) -> float:
+        """A 429's wait in seconds: its Retry-After when that is a number, else the backoff,
+        clamped to 0..API_RETRY_AFTER_MAX. Sense controls the header."""
+        backoff = float(config.API_RETRY_BACKOFF_BASE**retry_count)
+        try:
+            wait = float(response.headers.get("Retry-After", backoff))
+        except TypeError, ValueError:
+            wait = backoff  # an HTTP-date or garbage
+        if wait != wait:  # NaN
+            wait = backoff
+        return min(max(wait, 0.0), float(config.API_RETRY_AFTER_MAX))
+
     async def make_api_request(
         self, url: str, max_retries: int | None = None
     ) -> dict[str, Any] | list[Any] | None:
@@ -479,14 +492,11 @@ class SenseCollector:
                     response = await self.client.get(url, headers=self.headers)
 
                     if response.status_code == 429:  # Rate limited
-                        retry_after = int(
-                            response.headers.get(
-                                "Retry-After",
-                                config.API_RETRY_BACKOFF_BASE**retry_count,
-                            )
-                        )
+                        retry_after = self._retry_after(response, retry_count)
                         api_logger.warning("Rate limited, waiting %ss", retry_after)
-                        await asyncio.sleep(retry_after)
+                        await self._interruptible_sleep(retry_after)
+                        if self._shutdown_requested():
+                            return None
                         retry_count += 1
                         continue
 

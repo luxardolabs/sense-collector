@@ -258,6 +258,12 @@ TOKEN_RENEW_INTERVAL = get_env_int(
 )  # 1-24 hours
 
 # Fetch Intervals
+# The longest a 429's Retry-After may park a request (seconds): Sense controls the header,
+# and one day-long value would stall the REST path, or startup, for a day.
+API_RETRY_AFTER_MAX = get_env_int(
+    "SENSE_COLLECTOR_API_RETRY_AFTER_MAX", 300, min_val=10, max_val=3600
+)
+
 # Pacing for password logins (seconds): the longest backoff after a failed login, and the
 # youngest token a REST 401 may replace (a fresh token that gets 401 is not expired).
 AUTH_RETRY_MAX_DELAY = get_env_int(
