@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import logging
+import math
 import re
 import time
 from datetime import UTC, datetime
@@ -377,8 +378,13 @@ class InfluxDBStorage:
         voltage: list[float],
         devices: list[Any],  # straight from the Sense payload: entries are not trusted
         channels: list[float],
-    ) -> None:
-        """Persist real-time sensor data."""
+    ) -> bool:
+        """Persist real-time sensor data; True when the mains reading itself was usable.
+
+        Usable means hertz, current and watts are finite numbers, judged here before the
+        write: the answer is about what the collector received, never about whether
+        InfluxDB took it (the healthcheck reports on the collector, not the sink).
+        """
         storage_logger.debug(
             "Persisting realtime data: %.1fW, %s devices, %.1fHz",
             total_watts,
@@ -396,12 +402,14 @@ class InfluxDBStorage:
             points = []
 
             # Main power data
+            mains = (_num(hertz), float(total_current), _num(total_watts))
+            usable = all(isinstance(v, float) and math.isfinite(v) for v in mains)
             main_point = (
                 Point(config.MEASUREMENT_MAINS)
                 .tag("monitor_id", monitor_id)
-                .field("hertz", _num(hertz))
-                .field("current", float(total_current))
-                .field("watts", _num(total_watts))
+                .field("hertz", mains[0])
+                .field("current", mains[1])
+                .field("watts", mains[2])
                 .time(epoch, write_precision="s")
             )
             points.append(main_point)
@@ -489,7 +497,14 @@ class InfluxDBStorage:
             await self.write_points(points)
 
         except WRITE_ERRORS as e:
+            # The frame never reached a write: the collector itself could not use it.
             storage_logger.error("Error preparing realtime data points: %s", e)
+            return False
+        if not usable:
+            storage_logger.debug(
+                "Realtime frame without usable mains values: %s", mains
+            )
+        return usable
 
     async def persist_device_data(
         self, monitor_id: str, device_data: dict[str, Any]

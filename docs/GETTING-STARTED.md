@@ -68,7 +68,7 @@ The output directory is only written when `SENSE_COLLECTOR_OUTPUT_RECEIVED_DATA=
 
 ## Verify
 
-The container ships a Docker `HEALTHCHECK` driven by a heartbeat the collector touches for every WebSocket frame it can use, so an unhealthy container is a real liveness signal: a dead WebSocket, a stuck collector, or a Sense payload change that makes every frame unusable.
+The container ships a Docker `HEALTHCHECK` driven by a heartbeat the collector touches for every realtime frame whose power reading it can use, so an unhealthy container is a real liveness signal: a dead WebSocket, a stuck collector, a Sense payload change that makes every frame unusable, or a Sense monitor that has gone offline (it may still send hello and state frames, which do not count).
 
 ```bash
 docker compose --profile prod-tyle ps        # HEALTH shows healthy once data is flowing

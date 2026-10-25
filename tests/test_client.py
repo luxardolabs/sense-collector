@@ -300,11 +300,71 @@ class TestProcessWebSocketData:
         await collector.process_websocket_data({"type": "who_knows", "payload": {}})
         storage.persist_realtime_data.assert_not_called()
 
+    @pytest.mark.parametrize("message_type", ["hello", "data_change", "device_states"])
     @pytest.mark.asyncio
-    async def test_a_handled_frame_touches_the_heartbeat(self, collector):
-        """The healthcheck reads this file — a delivering WS must keep it fresh."""
+    async def test_only_realtime_data_keeps_the_collector_healthy(
+        self, collector, message_type
+    ):
+        """A monitor that has gone offline can still send hello and state frames while no
+        power reading arrives; the owner's choice is that this shows unhealthy."""
         with patch.object(collector, "_touch_heartbeat") as beat:
-            await collector.process_websocket_data({"type": "hello", "payload": {}})
+            await collector.process_websocket_data(
+                {"type": message_type, "payload": {}}
+            )
+        beat.assert_not_called()
+
+    @staticmethod
+    def _real_storage(write_fails: bool = False):
+        from influxdb_client.client.exceptions import InfluxDBError
+
+        from app.storage.influxdb import InfluxDBStorage
+
+        storage = InfluxDBStorage(
+            {"url": "http://influx:8086", "token": "t", "org": "o", "bucket": "b"}
+        )
+        storage.write_api = MagicMock()
+        storage.write_api.write = AsyncMock(
+            side_effect=InfluxDBError(message="503 unavailable")
+            if write_fails
+            else None
+        )
+        return storage
+
+    @pytest.mark.parametrize(
+        "mains",
+        [
+            {"hz": {}, "c": 1.0, "w": 100.0},
+            {"hz": 60.0, "c": 1.0, "w": {"value": 100}},
+            {"hz": 60.0, "c": 1.0, "w": "100"},
+            {"hz": float("nan"), "c": 1.0, "w": 100.0},
+        ],
+        ids=["hz-object", "w-object", "w-string", "hz-nan"],
+    )
+    @pytest.mark.asyncio
+    async def test_a_frame_with_unusable_mains_does_not_keep_it_healthy(self, mains):
+        """Only the time-sync point was written, and no household reading landed."""
+        c = SenseCollector("u", "p", self._real_storage())
+        frame = {
+            "type": "realtime_update",
+            "payload": {**mains, "epoch": 1_760_000_000},
+        }
+        with patch.object(c, "_touch_heartbeat") as beat:
+            await c.process_websocket_data(frame)
+        beat.assert_not_called()
+
+    @pytest.mark.parametrize("write_fails", [False, True], ids=["written", "sink-down"])
+    @pytest.mark.asyncio
+    async def test_a_usable_frame_keeps_it_healthy_even_when_influxdb_is_down(
+        self, write_fails
+    ):
+        """Health reports on the collector, never on the sink."""
+        c = SenseCollector("u", "p", self._real_storage(write_fails))
+        frame = {
+            "type": "realtime_update",
+            "payload": {"hz": 60, "c": 1.0, "w": 100, "epoch": 1_760_000_000},
+        }
+        with patch.object(c, "_touch_heartbeat") as beat:
+            await c.process_websocket_data(frame)
         beat.assert_called_once()
 
     @pytest.mark.asyncio

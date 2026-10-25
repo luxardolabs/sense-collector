@@ -444,9 +444,12 @@ class SenseCollector:
     async def process_websocket_data(self, data: Any) -> None:
         """Process data received from WebSocket.
 
-        The heartbeat is touched only for a frame the collector could use: if Sense renames
-        a key or a message type, every frame is rejected and the collector has stopped doing
-        its job, which the healthcheck must see. A non-object frame is ignored.
+        The heartbeat is touched only for a realtime frame whose mains reading the collector
+        could use: if Sense renames a key, a message type or a value's shape, nothing
+        useful is written and the collector has stopped doing its job, which the
+        healthcheck must see. Other frame types never count: a monitor that has gone
+        offline still sends hello and state frames, and it is meant to show unhealthy. A
+        non-object frame is ignored.
         """
         if not isinstance(data, dict):
             api_logger.error(
@@ -455,7 +458,7 @@ class SenseCollector:
             return
         try:
             message_type = data.get("type")
-            handled = True
+            handled = False
 
             if message_type == "realtime_update":
                 payload = data.get("payload", {})
@@ -482,7 +485,6 @@ class SenseCollector:
                 await self.handle_hello(payload)
 
             else:
-                handled = False
                 api_logger.debug("Unhandled message type: %s", message_type)
 
             if handled:
@@ -768,7 +770,7 @@ class SenseCollector:
 
             await self._log_periodic_summary()
 
-            await self.influxdb_storage.persist_realtime_data(
+            usable = await self.influxdb_storage.persist_realtime_data(
                 monitor_id=self.monitor_id,
                 hertz=payload["hz"],
                 total_current=payload["c"],
@@ -781,7 +783,7 @@ class SenseCollector:
         except MALFORMED_PAYLOAD as e:
             api_logger.error("Error persisting realtime data: %s", e)
             return False
-        return True
+        return bool(usable)
 
     async def handle_timeline_event(self, payload: dict[str, Any]) -> None:
         """Handle new timeline events."""
