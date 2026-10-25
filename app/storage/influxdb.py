@@ -36,6 +36,23 @@ def _tag(value: Any) -> Any:
     return value.rstrip("\\") or value.replace("\\", "/")
 
 
+def _whole(value: Any) -> Any:
+    """A count as an int, so `3.0` and `3` land in the same integer field. Anything that
+    is not a whole number passes through unchanged."""
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    return value
+
+
+def _yearly_cost(value: Any) -> float | None:
+    """Sense's yearly_cost (cents) in the unit every device's field carries: a float
+    divided by YEARLY_COST_DIVISOR. None when Sense sends no number, so the field is left
+    out instead of losing the point."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    return float(value) / config.YEARLY_COST_DIVISOR
+
+
 def _event_precision(time: Any) -> str:
     """Sense stamps timeline events with milliseconds (ISO strings); at second precision
     an on and an off in the same second would share a timestamp and overwrite."""
@@ -559,9 +576,9 @@ class InfluxDBStorage:
         for field, value in usage.items():
             if value is not None:
                 if field == "yearly_cost":
-                    device_detail_point.field(
-                        field, float(value) / config.YEARLY_COST_DIVISOR
-                    )
+                    cost = _yearly_cost(value)
+                    if cost is not None:
+                        device_detail_point.field(field, cost)
                 else:
                     device_detail_point.field(field, value)
 
@@ -610,6 +627,9 @@ class InfluxDBStorage:
         ]
         for field in usage_fields:
             value = usage.get(field)
+            if field == "yearly_cost":
+                # The unit regular devices write; the raw cents were 100x under one name.
+                value = _yearly_cost(value)
             if value is not None:
                 device_detail_point.field(field, value)
 
@@ -633,8 +653,13 @@ class InfluxDBStorage:
                 "cohort_marker",
                 "cohort_avg_w",
             ]
+            # One type per field, whatever JSON spelling Sense uses: a shard refuses a
+            # write of the other type and drops the whole point.
+            pinned = {"count": _whole, "display_count": _whole, "cohort_avg_w": _num}
             for field in comparison_fields:
                 value = comparison.get(field)
+                if field in pinned:
+                    value = pinned[field](value)
                 if value is not None:
                     comparison_point.field(field, value)
 

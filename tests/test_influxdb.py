@@ -1,9 +1,11 @@
+import re
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from influxdb_client import Point
 from influxdb_client.client.exceptions import InfluxDBError
 
+from app.core import config
 from app.storage.influxdb import DeviceDataQueue, InfluxDBStorage
 
 
@@ -835,3 +837,65 @@ async def test_shutdown_writes_every_queued_device_in_one_batch(influxdb_params)
 
     assert storage.write_points.await_count == 1
     assert len(storage.write_points.await_args.args[0]) == 3
+
+
+def _lines(storage) -> list[str]:
+    return [
+        p.to_line_protocol()
+        for call in storage.write_points.call_args_list
+        for p in call.args[0]
+    ]
+
+
+@pytest.mark.asyncio
+async def test_always_on_yearly_cost_is_in_the_same_unit_as_every_device(
+    influxdb_params, mock_influxdb_client
+):
+    """Regular devices write yearly_cost divided by YEARLY_COST_DIVISOR as a float; the
+    always_on point wrote the raw 5000i, a hundred times larger under the same name."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock(return_value=True)
+    usage = {"yearly_cost": 5000}
+    await storage.persist_device_data(
+        "m1", {"device": {"id": "fridge", "name": "Fridge"}, "usage": usage}
+    )
+    await storage.persist_device_data(
+        "m1", {"device": {"id": "always_on", "name": "Always On"}, "usage": usage}
+    )
+    lines = _lines(storage)
+    regular = next(x for x in lines if x.startswith(config.MEASUREMENT_DEVICES + ","))
+    always_on = next(
+        x for x in lines if x.startswith(config.MEASUREMENT_ALWAYS_ON + ",")
+    )
+    cost = re.compile(r"yearly_cost=([^,\s]+)")
+    assert cost.search(always_on)[1] == cost.search(regular)[1]
+    assert not cost.search(always_on)[1].endswith("i")
+
+
+@pytest.mark.asyncio
+async def test_always_on_comparison_fields_have_one_type_each(
+    influxdb_params, mock_influxdb_client
+):
+    """InfluxDB fixes a field's type per shard: cohort_avg_w 120 after 120.5, or a count
+    of 3.0 after 3, dropped the whole comparison point with a 422."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock(return_value=True)
+    for avg, count in ((120.5, 3), (120, 3.0)):
+        comparison = {"cohort_avg_w": avg, "count": count, "display_count": count}
+        await storage.persist_device_data(
+            "m1",
+            {
+                "device": {"id": "always_on", "name": "Always On"},
+                "usage": {"comparison": comparison},
+            },
+        )
+    lines = [
+        x
+        for x in _lines(storage)
+        if x.startswith(config.MEASUREMENT_ALWAYS_ON_COMPARISON + ",")
+    ]
+    assert len(lines) == 2
+    for line in lines:
+        assert not re.search(r"cohort_avg_w=[^,\s]+i\b", line), line
+        assert re.search(r"\bcount=3i\b", line), line
+        assert re.search(r"display_count=3i\b", line), line

@@ -168,12 +168,12 @@ With exports on, the collector writes `device_<id>.json` per device, `devices.js
 
 ## Data Processing Configuration
 
-| Variable                                | Default | Min    | Max   | Description                       |
-| --------------------------------------- | ------- | ------ | ----- | --------------------------------- |
-| `SENSE_COLLECTOR_MAX_CHANNELS`          | `2`     | 1      | 10    | Maximum power channels to process |
-| `SENSE_COLLECTOR_YEARLY_COST_DIVISOR`   | `100`   | 1      | 1000  | Divisor for yearly cost values    |
-| `SENSE_COLLECTOR_DEFAULT_VOLTAGE`       | `0.0`   | 0.0    | 240.0 | Default voltage value             |
-| `SENSE_COLLECTOR_DEFAULT_WIFI_STRENGTH` | `0.0`   | -100.0 | 0.0   | Default WiFi strength             |
+| Variable                                | Default | Min    | Max   | Description                                                            |
+| --------------------------------------- | ------- | ------ | ----- | ---------------------------------------------------------------------- |
+| `SENSE_COLLECTOR_MAX_CHANNELS`          | `2`     | 1      | 10    | Maximum power channels to process                                      |
+| `SENSE_COLLECTOR_YEARLY_COST_DIVISOR`   | `100`   | 1      | 1000  | Divisor for yearly cost values (`sense_devices` and `sense_always_on`) |
+| `SENSE_COLLECTOR_DEFAULT_VOLTAGE`       | `0.0`   | 0.0    | 240.0 | Default voltage value                                                  |
+| `SENSE_COLLECTOR_DEFAULT_WIFI_STRENGTH` | `0.0`   | -100.0 | 0.0   | Default WiFi strength                                                  |
 
 ## Measurement Names
 
