@@ -25,6 +25,18 @@ class ConfigValidator:
         """Validate and convert string to integer with bounds checking."""
         try:
             num = int(value)
+            # With a default (every setting), an out-of-range number is clamped to the
+            # nearest bound: the operator meant something close, not the default.
+            if default is not None and min_val is not None and num < min_val:
+                logger.warning(
+                    "%s is below the minimum %s; using %s", num, min_val, min_val
+                )
+                return min_val
+            if default is not None and max_val is not None and num > max_val:
+                logger.warning(
+                    "%s exceeds the maximum %s; using %s", num, max_val, max_val
+                )
+                return max_val
             if min_val is not None and num < min_val:
                 raise ValueError(f"Value {num} is below minimum {min_val}")
             if max_val is not None and num > max_val:
@@ -51,6 +63,18 @@ class ConfigValidator:
         """Validate and convert string to float with bounds checking."""
         try:
             num = float(value)
+            # With a default (every setting), an out-of-range number is clamped to the
+            # nearest bound: the operator meant something close, not the default.
+            if default is not None and min_val is not None and num < min_val:
+                logger.warning(
+                    "%s is below the minimum %s; using %s", num, min_val, min_val
+                )
+                return min_val
+            if default is not None and max_val is not None and num > max_val:
+                logger.warning(
+                    "%s exceeds the maximum %s; using %s", num, max_val, max_val
+                )
+                return max_val
             if min_val is not None and num < min_val:
                 raise ValueError(f"Value {num} is below minimum {min_val}")
             if max_val is not None and num > max_val:
@@ -413,8 +437,16 @@ HEALTH_HEARTBEAT_FILE = os.getenv(
     "SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE",
     default_heartbeat_file(_CONFIGURED_EXPORT_FOLDER),
 )
+# The healthcheck's own staleness limit (read there too); the throttle must leave at least
+# one touch inside every max-age window, or a collector receiving data flaps unhealthy.
+HEALTH_CHECK_MAX_AGE = get_env_int(
+    "SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE", 120, min_val=10, max_val=86400
+)
 HEALTH_HEARTBEAT_INTERVAL = get_env_int(
-    "SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL", 15, min_val=1, max_val=300
+    "SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL",
+    15,
+    min_val=1,
+    max_val=min(300, max(1, HEALTH_CHECK_MAX_AGE // 2)),
 )
 
 # Required environment variables

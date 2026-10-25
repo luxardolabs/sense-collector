@@ -48,6 +48,30 @@ class TestConfigValidator:
         # With default
         assert ConfigValidator.validate_int("invalid", default=42) == 42
 
+    def test_an_out_of_range_setting_is_clamped_not_replaced_by_the_default(self):
+        """TOKEN_RENEW=1800 (half an hour, under the 3600 floor) became 43200, 24 times
+        longer than asked; the nearest allowed value is what the operator meant."""
+        assert ConfigValidator.validate_int("1800", 3600, 86400, default=43200) == 3600
+        assert (
+            ConfigValidator.validate_int("999999", 3600, 86400, default=43200) == 86400
+        )
+        assert ConfigValidator.validate_float("0.01", 0.1, 10.0, default=1.0) == 0.1
+
+    def test_the_heartbeat_throttle_stays_under_half_the_healthchecks_max_age(self):
+        """A 300s throttle against a 120s max age flapped a healthy collector unhealthy."""
+        import importlib
+
+        import app.core.config as config
+
+        env = {
+            "SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL": "300",
+            "SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE": "120",
+        }
+        with patch.dict(os.environ, env):
+            interval = importlib.reload(config).HEALTH_HEARTBEAT_INTERVAL
+        importlib.reload(config)
+        assert interval <= 60
+
     def test_validate_float_valid(self):
         """Test valid float validation."""
         assert ConfigValidator.validate_float("3.14") == 3.14

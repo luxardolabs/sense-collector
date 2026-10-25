@@ -87,11 +87,11 @@ These environment variables MUST be set for the application to run:
 
 ## Container Health Check
 
-| Variable                                    | Default                                                                                            | Min | Max | Description                                                                                |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------- | --- | --- | ------------------------------------------------------------------------------------------ |
-| `SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE`      | `120`                                                                                              | —   | —   | Max heartbeat age before unhealthy (seconds)                                               |
-| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE`     | `<export folder>/.heartbeat`, or `/tmp/sense-collector.heartbeat` when that folder is not writable | —   | —   | Heartbeat file the collector touches as data flows; the healthcheck picks the same default |
-| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL` | `15`                                                                                               | 1   | 300 | Min seconds between heartbeat touches (throttle)                                           |
+| Variable                                    | Default                                                                                            | Min | Max                                         | Description                                                                                |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------- | --- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE`      | `120`                                                                                              | —   | —                                           | Max heartbeat age before unhealthy (seconds)                                               |
+| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE`     | `<export folder>/.heartbeat`, or `/tmp/sense-collector.heartbeat` when that folder is not writable | —   | —                                           | Heartbeat file the collector touches as data flows; the healthcheck picks the same default |
+| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL` | `15`                                                                                               | 1   | half of `HEALTH_CHECK_MAX_AGE`, at most 300 | Min seconds between heartbeat touches (throttle)                                           |
 
 ## HTTP Configuration
 
@@ -148,6 +148,8 @@ The collector logs the fleet way (`app/core/logging_config.py`, emitted by luxar
 | `LOG_LEVEL`                         | `INFO`  | DEBUG, INFO, WARNING, ERROR, CRITICAL | Root level (third-party libraries)                       |
 | `LOG_MODULE_LEVELS`                 | \`\`    | JSON object                           | Per-logger overrides at runtime, e.g. `{"api": "DEBUG"}` |
 | `LOG_FORMAT`                        | `json`  | json, text                            | `text` gives a readable line for local development only  |
+
+A number outside a setting's Min/Max is clamped to the nearest bound (and logged); a value that is not a number falls back to the default.
 
 ## Export Configuration
 
