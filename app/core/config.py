@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from app.health.check import DEFAULT_HEARTBEAT_FILE
+from app.health.heartbeat import default_heartbeat_file
 
 # Module logger, never the root logger: a bare `logging.warning(...)` module-level call goes
 # to the root logger, which installs a default handler on first use (this module is imported
@@ -375,6 +375,7 @@ FILE_MAX_DEVICE_ID_LENGTH = get_env_int(
 # Validate export folder. EXPORT_FOLDER_UNWRITABLE names the configured folder when it could
 # not be used and the exports fell back to a temp dir.
 EXPORT_FOLDER_UNWRITABLE: str | None = None
+_CONFIGURED_EXPORT_FOLDER = EXPORT_FOLDER
 try:
     export_path = Path(EXPORT_FOLDER)
     export_path.mkdir(parents=True, exist_ok=True)
@@ -399,10 +400,12 @@ except Exception as e:
     logger.warning("Using temporary export folder: %s", EXPORT_FOLDER)
 
 # Health heartbeat — the collector touches this file (throttled) as WebSocket data flows;
-# the Docker healthcheck (app/health/check.py) asserts it stays fresh. Both take the default
-# from the healthcheck, so they name the same file whatever happens to the export folder.
+# the Docker healthcheck (app/health/check.py) asserts it stays fresh. Both choose the default
+# from the CONFIGURED export folder with the same function, never from the temp fallback the
+# healthcheck cannot know, so they always name the same file.
 HEALTH_HEARTBEAT_FILE = os.getenv(
-    "SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE", DEFAULT_HEARTBEAT_FILE
+    "SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE",
+    default_heartbeat_file(_CONFIGURED_EXPORT_FOLDER),
 )
 HEALTH_HEARTBEAT_INTERVAL = get_env_int(
     "SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL", 15, min_val=1, max_val=300

@@ -87,11 +87,11 @@ These environment variables MUST be set for the application to run:
 
 ## Container Health Check
 
-| Variable                                    | Default                                | Min | Max | Description                                                                        |
-| ------------------------------------------- | -------------------------------------- | --- | --- | ---------------------------------------------------------------------------------- |
-| `SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE`      | `120`                                  | —   | —   | Max heartbeat age before unhealthy (seconds)                                       |
-| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE`     | `<temp dir>/sense-collector.heartbeat` | —   | —   | Heartbeat file the collector touches as data flows (never under the export folder) |
-| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL` | `15`                                   | 1   | 300 | Min seconds between heartbeat touches (throttle)                                   |
+| Variable                                    | Default                                                                                            | Min | Max | Description                                                                                |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------- | --- | --- | ------------------------------------------------------------------------------------------ |
+| `SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE`      | `120`                                                                                              | —   | —   | Max heartbeat age before unhealthy (seconds)                                               |
+| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE`     | `<export folder>/.heartbeat`, or `/tmp/sense-collector.heartbeat` when that folder is not writable | —   | —   | Heartbeat file the collector touches as data flows; the healthcheck picks the same default |
+| `SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL` | `15`                                                                                               | 1   | 300 | Min seconds between heartbeat touches (throttle)                                           |
 
 ## HTTP Configuration
 

@@ -151,3 +151,54 @@ def test_the_collector_and_the_healthcheck_agree_on_the_heartbeat_path():
     importlib.reload(config)
 
     assert collector_path == check_path
+
+
+def test_each_instance_keeps_its_heartbeat_in_its_own_writable_export_folder(
+    tmp_path,
+):
+    """Two collectors on one host must not share a heartbeat (one would keep a dead
+    sibling looking healthy), and under a read-only root the export volume is the
+    writable place."""
+    from app.health.heartbeat import FALLBACK_HEARTBEAT_FILE, default_heartbeat_file
+
+    tyle, bb = tmp_path / "tyle", tmp_path / "bb"
+    tyle.mkdir()
+    bb.mkdir()
+    assert default_heartbeat_file(str(tyle)) == str(tyle / ".heartbeat")
+    assert default_heartbeat_file(str(bb)) == str(bb / ".heartbeat")
+    assert default_heartbeat_file("/root/no_permission") == FALLBACK_HEARTBEAT_FILE
+
+
+def test_a_bad_healthcheck_setting_cannot_stop_the_collector_starting(monkeypatch):
+    """The collector must not import the healthcheck, whose settings it never uses."""
+    import importlib
+    import sys
+
+    import app.core.config as config
+
+    monkeypatch.delitem(sys.modules, "app.health.check", raising=False)
+    with patch.dict(os.environ, {"SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE": "2m"}):
+        importlib.reload(config)
+    importlib.reload(config)
+
+
+def test_a_read_only_root_does_not_stop_the_collector_or_the_healthcheck(
+    tmp_path, monkeypatch
+):
+    """With a read-only root no temp dir is usable; the export volume still is."""
+    import importlib
+    import tempfile
+
+    import app.core.config as config
+
+    def no_temp_dir() -> str:
+        raise FileNotFoundError("No usable temporary directory found")
+
+    monkeypatch.setattr(tempfile, "gettempdir", no_temp_dir)
+    with patch.dict(os.environ, {"SENSE_COLLECTOR_EXPORT_FOLDER": str(tmp_path)}):
+        os.environ.pop("SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE", None)
+        collector_path = importlib.reload(config).HEALTH_HEARTBEAT_FILE
+        check_path = _reload_check().HEARTBEAT_FILE
+    monkeypatch.undo()
+    importlib.reload(config)
+    assert collector_path == check_path == str(tmp_path / ".heartbeat")

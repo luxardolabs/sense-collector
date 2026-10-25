@@ -13,25 +13,21 @@ Exit codes:
 
 Configuration:
     SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE:     Max heartbeat age in seconds (default 120).
-    SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE:    Heartbeat file path (default DEFAULT_HEARTBEAT_FILE).
+    SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE:    Heartbeat file path (default: app.health.heartbeat).
+    SENSE_COLLECTOR_EXPORT_FOLDER:            The folder the default heartbeat path is chosen from.
 """
 
 import os
 import sys
-import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-# The heartbeat lives in the temp dir, never under the export folder: when that folder is not
-# writable the collector falls back to a temp export dir this separate process cannot know.
-# app.core.config imports this default, so both sides always name the same file.
-DEFAULT_HEARTBEAT_FILE = os.path.join(
-    tempfile.gettempdir(), "sense-collector.heartbeat"
-)
+from app.health.heartbeat import default_heartbeat_file
 
 MAX_AGE_SECONDS = int(os.getenv("SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE", "120"))
 HEARTBEAT_FILE = os.getenv(
-    "SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE", DEFAULT_HEARTBEAT_FILE
+    "SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE",
+    default_heartbeat_file(os.getenv("SENSE_COLLECTOR_EXPORT_FOLDER", "output")),
 )
 
 
