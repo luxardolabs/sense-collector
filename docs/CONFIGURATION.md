@@ -75,14 +75,15 @@ These environment variables MUST be set for the application to run:
 
 ## WebSocket Configuration
 
-| Variable                                     | Default | Min | Max  | Description                            |
-| -------------------------------------------- | ------- | --- | ---- | -------------------------------------- |
-| `SENSE_COLLECTOR_WS_HEARTBEAT_INTERVAL`      | `10`    | 1   | 300  | WebSocket heartbeat interval (seconds) |
-| `SENSE_COLLECTOR_WS_HEARTBEAT_TIMEOUT`       | `30`    | 5   | 600  | WebSocket heartbeat timeout (seconds)  |
-| `SENSE_COLLECTOR_WS_RECONNECT_DELAY_INITIAL` | `5`     | 1   | 60   | Initial reconnection delay (seconds)   |
-| `SENSE_COLLECTOR_WS_RECONNECT_DELAY_CAP`     | `60`    | 10  | 3600 | Maximum reconnection delay (seconds)   |
-| `SENSE_COLLECTOR_WS_HEALTH_LOG_INTERVAL`     | `300`   | 60  | 3600 | Health status log interval (seconds)   |
-| `SENSE_COLLECTOR_WS_HEALTH_CHECK_INTERVAL`   | `1`     | 1   | 10   | Health check interval (seconds)        |
+| Variable                                     | Default | Min | Max  | Description                                                           |
+| -------------------------------------------- | ------- | --- | ---- | --------------------------------------------------------------------- |
+| `SENSE_COLLECTOR_WS_HEARTBEAT_INTERVAL`      | `10`    | 1   | 300  | WebSocket heartbeat interval (seconds)                                |
+| `SENSE_COLLECTOR_WS_HEARTBEAT_TIMEOUT`       | `30`    | 5   | 600  | WebSocket heartbeat timeout (seconds)                                 |
+| `SENSE_COLLECTOR_WS_CLOSE_TIMEOUT`           | `2.0`   | 0.5 | 10   | Seconds to wait for the server's close frame on shutdown or reconnect |
+| `SENSE_COLLECTOR_WS_RECONNECT_DELAY_INITIAL` | `5`     | 1   | 60   | Initial reconnection delay (seconds)                                  |
+| `SENSE_COLLECTOR_WS_RECONNECT_DELAY_CAP`     | `60`    | 10  | 3600 | Maximum reconnection delay (seconds)                                  |
+| `SENSE_COLLECTOR_WS_HEALTH_LOG_INTERVAL`     | `300`   | 60  | 3600 | Health status log interval (seconds)                                  |
+| `SENSE_COLLECTOR_WS_HEALTH_CHECK_INTERVAL`   | `1`     | 1   | 10   | Health check interval (seconds)                                       |
 
 ## Container Health Check
 

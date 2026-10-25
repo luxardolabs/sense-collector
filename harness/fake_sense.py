@@ -139,7 +139,9 @@ def monitor_status() -> dict[str, Any]:
         "signals": {"progress": 100, "status": "OK"},
         "device_detection": {
             "in_progress": [],
-            "found": len(DEVICES),
+            "found": [
+                {"name": d["name"], "icon": d["icon"], "progress": 100} for d in DEVICES
+            ],
             "num_detected": len(DEVICES),
         },
         "monitor_info": {
@@ -293,7 +295,11 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 while not stop.is_set():
                     opcode, data = ws_read_frame(self.rfile)
-                    if opcode is None or opcode == 0x8:  # EOF or close
+                    if opcode is None:  # EOF
+                        break
+                    if opcode == 0x8:  # close: echo it, as RFC 6455 requires
+                        with contextlib.suppress(OSError):
+                            send(raw=data or b"", opcode=0x8)
                         break
                     if opcode == 0x9:  # ping -> pong
                         send(raw=data, opcode=0xA)
@@ -356,6 +362,8 @@ class Handler(BaseHTTPRequestHandler):
             pass
         finally:
             stop.set()
+            # The upgraded socket carries no more HTTP requests: end the connection.
+            self.close_connection = True
 
 
 def main() -> None:

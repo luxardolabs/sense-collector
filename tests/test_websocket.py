@@ -144,6 +144,33 @@ class TestWebSocketHandler:
         assert result is True  # bad frame is logged, connection kept
         handler.process_data_callback.assert_not_called()
 
+    @pytest.mark.parametrize("frame", ["[]", "null", "1", '"x"'])
+    @pytest.mark.asyncio
+    async def test_a_valid_json_non_object_frame_keeps_the_connection(
+        self, handler, frame
+    ):
+        """It used to raise AttributeError past the narrowed catch, so the reader died
+        and the supervisor reconnected on every such frame."""
+        with patch("app.core.config.OUTPUT_RECEIVED_DATA", False):
+            assert await handler.handle_message(frame) is True
+        handler.process_data_callback.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_the_close_handshake_is_bounded_well_inside_dockers_stop_grace(
+        self, handler
+    ):
+        """websockets waits close_timeout (10s by default) for a peer that never answers
+        the close frame, exactly Docker's stop grace: the stop then ends in SIGKILL."""
+        captured = {}
+
+        async def fake_connect(url, **kwargs):
+            captured.update(kwargs)
+            return MockWS()
+
+        with patch("app.collector.websocket.websockets.connect", fake_connect):
+            await handler.connect()
+        assert captured.get("close_timeout", 10) <= 3
+
     @pytest.mark.asyncio
     async def test_write_received_data_async_handles_unsafe_path(self, handler):
         with (

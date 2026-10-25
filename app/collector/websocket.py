@@ -48,6 +48,9 @@ class WebSocketHandler:
                 additional_headers=self.headers,
                 ping_interval=config.WS_HEARTBEAT_INTERVAL,
                 ping_timeout=config.WS_HEARTBEAT_TIMEOUT,
+                # A peer that never answers the close frame (a dead link) would otherwise
+                # hold shutdown for websockets' 10s default, Docker's whole stop grace.
+                close_timeout=config.WS_CLOSE_TIMEOUT,
             )
             self.connection_start_time = time.time()
             self.last_message_time = time.time()
@@ -93,6 +96,12 @@ class WebSocketHandler:
         """Process incoming WebSocket message. Returns False if connection should close."""
         try:
             data = json.loads(msg)
+            if not isinstance(data, dict):
+                # Valid JSON that is not an object: nothing in it to dispatch.
+                api_logger.error(
+                    "Ignoring a non-object WebSocket frame (%s)", type(data).__name__
+                )
+                return True
 
             # Write to file asynchronously if enabled
             if config.OUTPUT_RECEIVED_DATA:

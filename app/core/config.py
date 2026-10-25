@@ -191,6 +191,10 @@ WS_HEARTBEAT_INTERVAL = get_env_int(
 WS_HEARTBEAT_TIMEOUT = get_env_int(
     "SENSE_COLLECTOR_WS_HEARTBEAT_TIMEOUT", 30, min_val=5, max_val=600
 )
+# Seconds to wait for the peer's close frame on shutdown or reconnect.
+WS_CLOSE_TIMEOUT = get_env_float(
+    "SENSE_COLLECTOR_WS_CLOSE_TIMEOUT", 2.0, min_val=0.5, max_val=10.0
+)
 WS_RECONNECT_DELAY_INITIAL = get_env_int(
     "SENSE_COLLECTOR_WS_RECONNECT_DELAY_INITIAL", 5, min_val=1, max_val=60
 )
