@@ -202,3 +202,27 @@ def test_a_read_only_root_does_not_stop_the_collector_or_the_healthcheck(
     monkeypatch.undo()
     importlib.reload(config)
     assert collector_path == check_path == str(tmp_path / ".heartbeat")
+
+
+@pytest.mark.parametrize("max_age", ["120", "60", "4", "120s", "999999"])
+def test_the_collector_and_the_healthcheck_read_the_same_max_age(max_age):
+    """The collector sizes its heartbeat throttle from the max age: a probe that reads it
+    differently (unclamped, or crashing on a non-number) fails a collector that is fine."""
+    import subprocess
+    import sys
+
+    env = dict(os.environ, SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE=max_age)
+
+    def read(code: str) -> str:
+        done = subprocess.run(
+            [sys.executable, "-c", code],
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return done.stdout.strip() or done.stderr[-300:]
+
+    collector = read("from app.core import config; print(config.HEALTH_CHECK_MAX_AGE)")
+    probe = read("from app.health import check; print(check.MAX_AGE_SECONDS)")
+    assert collector == probe

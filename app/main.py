@@ -31,12 +31,12 @@ def _without_userinfo(url: str) -> str:
     except ValueError:
         return "<unparseable URL>"
     _, at, hostport = parts.netloc.rpartition("@")
-    if at:
-        return urlunsplit(parts._replace(netloc=hostport))
-    if not parts.netloc and "@" in parts.path.split("/", 1)[0]:
-        # No scheme, so urlsplit read `user:pw@host` as a path.
+    shown = urlunsplit(parts._replace(netloc=hostport)) if at else url
+    if "@" in shown:
+        # Userinfo urlsplit did not see: no scheme (`user:pw@host` read as a path), or an
+        # unencoded `/`, `?` or `#` in the password ending the authority early.
         return "<URL with credentials>"
-    return url
+    return shown
 
 
 def _url_problem(url: str, authenticates_with: str) -> str | None:
@@ -51,9 +51,10 @@ def _url_problem(url: str, authenticates_with: str) -> str | None:
         _ = parts.port
     except ValueError:
         return "is not a valid URL"
-    # Without a scheme, urlsplit reads `user:pw@host` as a path: any `@` before a path is
-    # userinfo either way.
-    if "@" in parts.netloc or (not parts.netloc and "@" in parts.path.split("/", 1)[0]):
+    # Any `@` is refused, not only one urlsplit reads as userinfo: without a scheme it reads
+    # `user:pw@host` as a path, and an unencoded `/`, `?` or `#` in the password ends the
+    # authority early (`http://admin:2024/pw@host`). None of these URLs needs an `@`.
+    if "@" in url:
         return f"must not contain credentials: {authenticates_with}"
     return None
 

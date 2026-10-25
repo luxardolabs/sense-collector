@@ -22,9 +22,11 @@ import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from app.health.heartbeat import default_heartbeat_file
+from app.health.heartbeat import default_heartbeat_file, health_check_max_age
 
-MAX_AGE_SECONDS = int(os.getenv("SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE", "120"))
+MAX_AGE_SECONDS = health_check_max_age(
+    os.getenv("SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE")
+)
 HEARTBEAT_FILE = os.getenv(
     "SENSE_COLLECTOR_HEALTH_HEARTBEAT_FILE",
     default_heartbeat_file(os.getenv("SENSE_COLLECTOR_EXPORT_FOLDER", "output")),

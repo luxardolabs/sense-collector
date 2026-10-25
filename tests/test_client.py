@@ -195,6 +195,9 @@ class TestLifecycle:
             {"access_token": "tok-new", "user_id": 1, "monitors": []},
             {"access_token": "tok-new", "monitors": [{"id": 9}]},
             {"access_token": "tok-new", "user_id": 1, "monitors": [{}]},
+            {"access_token": None, "user_id": 1, "monitors": [{"id": 9}]},
+            {"access_token": "", "user_id": 1, "monitors": [{"id": 9}]},
+            {"access_token": "tok-new", "user_id": 1, "monitors": [{"id": None}]},
         ],
     )
     async def test_a_malformed_login_changes_nothing(self, collector, response):
@@ -213,7 +216,7 @@ class TestLifecycle:
                 "app.collector.client.authenticate_with_sense",
                 AsyncMock(return_value=response),
             ),
-            pytest.raises((KeyError, IndexError)),
+            pytest.raises((KeyError, IndexError, ValueError)),
         ):
             await collector.authenticate()
 
@@ -1186,3 +1189,44 @@ class TestExportFiles:
             "received_data.jsonl",
         }
         assert all(mode == 0o600 for mode in modes.values()), modes
+
+
+class TestDeviceDetailCaching:
+    """A cache hit writes nothing, so a detail must be cached only once InfluxDB has it."""
+
+    @staticmethod
+    async def _two_events_for_one_device(first_write_fails: bool) -> AsyncMock:
+        from influxdb_client.client.exceptions import InfluxDBError
+
+        from app.storage.influxdb import InfluxDBStorage
+
+        storage = InfluxDBStorage(
+            {"url": "http://influx:8086", "token": "t", "org": "o", "bucket": "b"}
+        )
+        storage.write_api = MagicMock()
+        storage.write_api.write = AsyncMock(
+            side_effect=[InfluxDBError(message="503 unavailable"), None]
+            if first_write_fails
+            else None
+        )
+        c = SenseCollector("u@example.com", "pw", storage)
+        c.monitor_id = "m1"
+        detail = {"device": {"id": "fridge", "name": "Fridge"}, "usage": {"w": 120.0}}
+        for _ in range(2):
+            await c.api_call_queue.put({"device_id": "fridge"})
+        await c.api_call_queue.put(None)
+        with (
+            patch.object(c, "make_api_request", AsyncMock(return_value=detail)),
+            patch.object(c, "check_token_renewal", AsyncMock()),
+        ):
+            await c.api_worker(0)
+        return storage.write_api.write
+
+    @pytest.mark.asyncio
+    async def test_a_written_detail_is_cached_and_not_fetched_again(self):
+        assert (await self._two_events_for_one_device(False)).await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_a_detail_whose_write_failed_is_fetched_and_written_again(self):
+        """Cached before a failed write, the device had no point for the whole cache TTL."""
+        assert (await self._two_events_for_one_device(True)).await_count == 2

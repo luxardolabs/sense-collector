@@ -225,6 +225,13 @@ class SenseCollector:
             access_token = response["access_token"]
             user_id = response["user_id"]
             monitor_id = response["monitors"][0]["id"]
+            if (
+                not isinstance(access_token, str)
+                or not access_token
+                or monitor_id is None
+            ):
+                # The message names no value: the token must never reach a log.
+                raise ValueError("The login response has no usable token or monitor id")
 
             self.access_token = access_token
             self.user_id = user_id
@@ -657,13 +664,12 @@ class SenseCollector:
             response = await self.make_api_request(url)
 
             if isinstance(response, dict):
-                # Cache the data
-                await self.device_cache.put(device_id, response)
-
-                # Persist to InfluxDB
-                await self.influxdb_storage.persist_device_data(
+                # Cached only once InfluxDB has it: a cache hit writes nothing, so a detail
+                # whose write failed must be fetched (and written) again on the next event.
+                if await self.influxdb_storage.persist_device_data(
                     self.monitor_id, response
-                )
+                ):
+                    await self.device_cache.put(device_id, response)
 
                 # Export if enabled
                 if config.OUTPUT_RECEIVED_DATA and isinstance(response, dict):

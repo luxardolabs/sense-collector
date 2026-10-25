@@ -166,6 +166,10 @@ class TestValidateEnvironment:
             ("http://influx:99999", "not a valid URL"),
             ("http://[::1", "not a valid URL"),
             ("alice:placeholder-pw@influx:8086", "credentials"),
+            # An unencoded `/`, `?` or `#` in the password ends the authority early.
+            ("http://admin:2024/placeholder-pw@influx:8086", "credentials"),
+            ("http://admin:8086?placeholder-pw@influx:8086", "credentials"),
+            ("https://admin:443#placeholder-pw@influx", "credentials"),
         ],
     )
     def test_an_unusable_influxdb_url_is_refused_with_a_reason(

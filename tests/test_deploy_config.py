@@ -151,3 +151,12 @@ def test_the_runtime_user_cannot_rewrite_the_app_code() -> None:
     assert "COPY app /app/app" in production
     assert not re.search(r"chown -R \S+ /app\b(?!/)", production)
     assert "chown appuser:appuser /app/output" in production
+
+
+def test_the_app_code_is_readable_whatever_the_checkouts_umask() -> None:
+    """COPY keeps the build context's modes: from a umask-077 checkout appuser could not
+    import the root-owned code, and the image would not start."""
+    dockerfile = (REPO / "Dockerfile").read_text()
+    production = dockerfile.split(" AS production")[1].split("\nFROM ")[0]
+    copy = production.index("COPY app /app/app")
+    assert re.search(r"RUN chmod -R a\+rX,go-w /app/app\b", production[copy:])

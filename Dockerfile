@@ -70,8 +70,10 @@ WORKDIR /app
 RUN useradd -m -u 1000 appuser
 
 # Application code (only the package — tests/docs stay out of the runtime image), owned by
-# root: the runtime user can read it, never rewrite it.
+# root: the runtime user can read it, never rewrite it. COPY keeps the checkout's modes, so
+# they are set here: a checkout made under umask 077 would leave appuser unable to import.
 COPY app /app/app
+RUN chmod -R a+rX,go-w /app/app
 
 # The one directory the collector writes: exports and the heartbeat, ./output relative to
 # WORKDIR when nothing is bind-mounted there.

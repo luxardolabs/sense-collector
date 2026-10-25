@@ -57,6 +57,12 @@ class TestConfigValidator:
         )
         assert ConfigValidator.validate_float("0.01", 0.1, 10.0, default=1.0) == 0.1
 
+    def test_a_clamped_setting_is_named_in_the_warning(self, caplog):
+        """`30 is below the minimum 5000` does not say which of forty settings was wrong."""
+        with patch.dict(os.environ, {"SENSE_COLLECTOR_INFLUXDB_TIMEOUT": "30"}):
+            assert get_env_int("SENSE_COLLECTOR_INFLUXDB_TIMEOUT", 30000, 5000) == 5000
+        assert "SENSE_COLLECTOR_INFLUXDB_TIMEOUT" in caplog.text
+
     def test_the_heartbeat_throttle_stays_under_half_the_healthchecks_max_age(self):
         """A 300s throttle against a 120s max age flapped a healthy collector unhealthy."""
         import importlib

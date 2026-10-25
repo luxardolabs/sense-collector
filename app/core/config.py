@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from app.health.heartbeat import default_heartbeat_file
+from app.health.heartbeat import default_heartbeat_file, health_check_max_age
 
 # Module logger, never the root logger: a bare `logging.warning(...)` module-level call goes
 # to the root logger, which installs a default handler on first use (this module is imported
@@ -21,6 +21,7 @@ class ConfigValidator:
         min_val: int | None = None,
         max_val: int | None = None,
         default: int | None = None,
+        name: str = "value",
     ) -> int:
         """Validate and convert string to integer with bounds checking."""
         try:
@@ -29,12 +30,20 @@ class ConfigValidator:
             # nearest bound: the operator meant something close, not the default.
             if default is not None and min_val is not None and num < min_val:
                 logger.warning(
-                    "%s is below the minimum %s; using %s", num, min_val, min_val
+                    "%s=%s is below the minimum %s; using %s",
+                    name,
+                    num,
+                    min_val,
+                    min_val,
                 )
                 return min_val
             if default is not None and max_val is not None and num > max_val:
                 logger.warning(
-                    "%s exceeds the maximum %s; using %s", num, max_val, max_val
+                    "%s=%s exceeds the maximum %s; using %s",
+                    name,
+                    num,
+                    max_val,
+                    max_val,
                 )
                 return max_val
             if min_val is not None and num < min_val:
@@ -59,6 +68,7 @@ class ConfigValidator:
         min_val: float | None = None,
         max_val: float | None = None,
         default: float | None = None,
+        name: str = "value",
     ) -> float:
         """Validate and convert string to float with bounds checking."""
         try:
@@ -67,12 +77,20 @@ class ConfigValidator:
             # nearest bound: the operator meant something close, not the default.
             if default is not None and min_val is not None and num < min_val:
                 logger.warning(
-                    "%s is below the minimum %s; using %s", num, min_val, min_val
+                    "%s=%s is below the minimum %s; using %s",
+                    name,
+                    num,
+                    min_val,
+                    min_val,
                 )
                 return min_val
             if default is not None and max_val is not None and num > max_val:
                 logger.warning(
-                    "%s exceeds the maximum %s; using %s", num, max_val, max_val
+                    "%s=%s exceeds the maximum %s; using %s",
+                    name,
+                    num,
+                    max_val,
+                    max_val,
                 )
                 return max_val
             if min_val is not None and num < min_val:
@@ -120,7 +138,7 @@ def get_env_int(
 ) -> int:
     """Get integer from environment with validation."""
     value = os.getenv(key, str(default))
-    return ConfigValidator.validate_int(value, min_val, max_val, default)
+    return ConfigValidator.validate_int(value, min_val, max_val, default, key)
 
 
 def get_env_float(
@@ -128,7 +146,7 @@ def get_env_float(
 ) -> float:
     """Get float from environment with validation."""
     value = os.getenv(key, str(default))
-    return ConfigValidator.validate_float(value, min_val, max_val, default)
+    return ConfigValidator.validate_float(value, min_val, max_val, default, key)
 
 
 def get_env_bool(key: str, default: bool) -> bool:
@@ -439,8 +457,8 @@ HEALTH_HEARTBEAT_FILE = os.getenv(
 )
 # The healthcheck's own staleness limit (read there too); the throttle must leave at least
 # one touch inside every max-age window, or a collector receiving data flaps unhealthy.
-HEALTH_CHECK_MAX_AGE = get_env_int(
-    "SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE", 120, min_val=10, max_val=86400
+HEALTH_CHECK_MAX_AGE = health_check_max_age(
+    os.getenv("SENSE_COLLECTOR_HEALTH_CHECK_MAX_AGE")
 )
 HEALTH_HEARTBEAT_INTERVAL = get_env_int(
     "SENSE_COLLECTOR_HEALTH_HEARTBEAT_INTERVAL",

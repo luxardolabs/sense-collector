@@ -201,15 +201,18 @@ class InfluxDBStorage:
         if not url.startswith(("http://", "https://")):
             raise ValueError(f"Invalid InfluxDB URL format: {url}")
 
-    async def write_points(self, points: list[Point]) -> None:
-        """Write the cycle's points as ONE batched async write, awaited inline.
+    async def write_points(self, points: list[Point]) -> bool:
+        """Write the cycle's points as ONE batched async write, awaited inline; True when
+        every point was written.
 
         Each Point already carries its own timestamp precision (set in the persist methods),
         so no write_precision is passed here. Auth/bucket errors are logged with actionable
         guidance but never crash the collector — the next cycle simply retries.
         """
-        if not points or self.write_api is None:
-            return
+        if not points:
+            return True
+        if self.write_api is None:
+            return False
 
         # A value line protocol cannot carry (a dict or list where Sense should send a
         # number) raises while the client serialises the batch, which would lose every point
@@ -223,9 +226,10 @@ class InfluxDBStorage:
                 storage_logger.error("Dropping one unwritable point: %s", e)
             else:
                 writable.append(point)
+        lost = len(points) - len(writable)
         points = writable
         if not points:
-            return
+            return False
 
         try:
             # Guard the eager line-protocol serialization — only pay it when DEBUG is on.
@@ -239,9 +243,12 @@ class InfluxDBStorage:
             self.write_stats["failed"] += dropped
             self.write_stats["successful"] += len(points) - dropped
             self._log_write_error(e)
+            return False
         except Exception as e:
             self.write_stats["failed"] += len(points)
             storage_logger.exception("Error writing to InfluxDB: %s", e)
+            return False
+        return lost == 0
 
     @staticmethod
     def _dropped_count(error: InfluxDBError, sent: int) -> int:
@@ -465,8 +472,13 @@ class InfluxDBStorage:
 
     async def persist_device_data(
         self, monitor_id: str, device_data: dict[str, Any]
-    ) -> None:
-        """Persist device details and usage data."""
+    ) -> bool:
+        """Persist device details and usage data.
+
+        False only when the detail point failed to write, so the caller can fetch again
+        rather than cache a detail InfluxDB never received. A payload that cannot be
+        written at all is True: fetching it again would only spend the API's rate limit.
+        """
         try:
             device_info = device_data.get("device", {})
             device_id = device_info.get("id")
@@ -475,7 +487,7 @@ class InfluxDBStorage:
 
             if not device_id:
                 storage_logger.warning("Device data missing device ID")
-                return
+                return True
 
             storage_logger.debug(
                 "Persisting device data for %s (%s)", device_name, device_id
@@ -490,16 +502,16 @@ class InfluxDBStorage:
             timestamp = int(datetime.now(UTC).timestamp())
 
             if device_id == "always_on":
-                await self.process_always_on_device(
+                return await self.process_always_on_device(
                     device_id, device_name, device_data, timestamp, monitor_id, icon
                 )
-            else:
-                await self.process_regular_device(
-                    device_id, device_name, device_data, timestamp, monitor_id, icon
-                )
+            return await self.process_regular_device(
+                device_id, device_name, device_data, timestamp, monitor_id, icon
+            )
 
         except MALFORMED_PAYLOAD as e:
             storage_logger.error("Error in persist_device_data: %s", e)
+            return True
 
     async def process_regular_device(
         self,
@@ -509,8 +521,8 @@ class InfluxDBStorage:
         timestamp: int,
         monitor_id: str,
         icon: str,
-    ) -> None:
-        """Process regular device data."""
+    ) -> bool:
+        """Process regular device data; True when its detail point was written."""
         storage_logger.debug(
             "Processing regular device: %s - %s", device_id, device_name
         )
@@ -557,7 +569,7 @@ class InfluxDBStorage:
         if device_data.get("info") is not None:
             device_detail_point.field("info", str(device_data["info"]))
 
-        await self.write_points([device_detail_point])
+        return await self.write_points([device_detail_point])
 
     async def process_always_on_device(
         self,
@@ -567,8 +579,8 @@ class InfluxDBStorage:
         timestamp: int,
         monitor_id: str,
         icon: str,
-    ) -> None:
-        """Process always-on device data."""
+    ) -> bool:
+        """Process always-on device data; True when its detail point was written."""
         storage_logger.debug(
             "Processing always_on device: %s - %s", device_id, device_name
         )
@@ -602,7 +614,7 @@ class InfluxDBStorage:
                 device_detail_point.field(field, value)
 
         device_detail_point.time(timestamp, write_precision="s")
-        await self.write_points([device_detail_point])
+        detail_written = await self.write_points([device_detail_point])
 
         # Comparison data
         if comparison:
@@ -652,6 +664,7 @@ class InfluxDBStorage:
                 await self.device_queue.add_device_data(
                     device_id, monitor_id, device_watts, timestamp
                 )
+        return detail_written
 
     async def persist_timeline_data(
         self,
