@@ -2,11 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-<!-- luxarch:claude-pointer asset v7 - DO NOT edit this marker line; it is how repo.claude_pointer_present knows your copy is current. Re-emit with `luxarch --emit claude-pointer`. -->
+<!-- luxarch:claude-pointer asset v12 - DO NOT edit this marker line; it is how repo.claude_pointer_present knows your copy is current. Re-emit with `luxarch --emit claude-pointer`. -->
 
 ## How to work here (fleet conduct — read the standard, not just this block)
 
 **`luxarch --doc FLEET-AGENT-CONDUCT-STANDARD` — read it in full before your first change.** It is the one home for *how* agents work in this fleet. This block is a pointer plus the handful of rules that get broken most; it is not a summary and does not replace reading it.
+
+**`luxarch …` is a Docker image, not a host command.** Run `luxarch --doc X` as `docker run --rm -v <checkout>:/repo -w /repo <image> --doc X`, where `<checkout>` is the absolute path of the checkout you are in, written out (your issue's worktree when you are in one: inside a worktree Claude Code refuses a mount computed at run time, such as `"$PWD"`), and `<image>` is the Makefile's pinned `LUXARCH` image (set from `LUXARCH_VERSION`). There is no host install, and the pinned version is the one this repo's rules and docs match. `luxlint …` and `luxaudit …` are the same, with `LUXLINT` and `LUXAUDIT`.
+
+**Which agent are you?** In a repo that hosts a luxios app (a nested `apps/ios/` with its own `CLAUDE.md`, beside the backend), there are two agents. If this machine has no Docker (`command -v docker` prints nothing), you are that app's agent: read its `CLAUDE.md` first, follow the iOS reading below, and leave the root guard gates (`make check`, the luxarch, luxlint and luxaudit images) to the backend agent. Never look for a Docker binary to install.
 
 **Run `/fleet-start` at the start of every session and after every compact.** It rehydrates from LuxPM and restates the session rules.
 
@@ -19,6 +23,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Work the guard reds in `luxarch --plan` order. Never ask which family or sweep is next.** The order is decided. An escalation covers ONE site: its family keeps going.
 
+**Check one rule or one file with a targeted run, never a filtered full scan.** `luxarch --rule <id>` runs only the matching rules (exact or substring, repeatable); add `--path <file>` to show one file's sites. The whole repo's per-rule counts are in `.luxarch-status.json` (`make status`). A full scan piped into `grep`, `head` or `tail` is denied by the emitted `targeted-guard-run` hook.
+
 **An owner hold is exactly as wide as the owner said.** "Hold off on X" excludes X and nothing else. It is not permission to pause, ask, or check in about anything outside X. Skip the held family, say so in one line, and keep burning down the rest.
 
 **End every turn that worked guard reds with `reds: N (was M)`**, plus the held families by name. A turn that ends on a question while N > 0, outside an ask-class, is the failure this block exists to stop.
@@ -30,6 +36,8 @@ When you do ask: **one decision per message**, the evidence that makes it answer
 **You touched it, you own it.** Edit a file for any reason and it has a mypy, ruff or luxarch red: fix every one in that file, not just yours. Never spend time proving a red predates you; fix it. Test what you changed first. **Before fixing any mypy red, read `luxlint --playbook mypy-sweep` in full.**
 
 **Align or escalate; never route around.** A guard red is fixed by changing the code, or escalated to the guard maintainer as genuinely wrong. Never by an exemption, a `# noqa`, a deferral, or a local config. Verification is not authorization: proving something is unreferenced does not license deleting it.
+
+**Search LuxPM for a file before you change it to clear a red.** `luxpm_list_issues(search="<path>")`, every hit read, then `git log -- <file>`. A site that is on hold, in another agent's work, or under an open escalation is skipped and named, never changed. A red moved to another file, or out of a rule's sight, is not fixed: `/wrap-up` compares the whole repo's per-rule counts.
 
 **Escalations go in THIS repo's LuxPM project** — label `fleet-escalation`, title `[<guard> ESCALATION] …`, self-contained enough to forward whole. **Search LuxPM for an existing issue first** (and comment on it if found); filing a new one is pre-authorized. **Never a GitHub issue** — there is no fallback. The maintainer sweeps the label across every project and picks it up where you filed it.
 
@@ -54,7 +62,7 @@ make test-e2e        # hardware-free end-to-end: fake Sense -> collector -> Infl
 make demo-up         # self-contained demo: fake Sense + bundled InfluxDB + Grafana (localhost:3000)
 make dev-up          # dev stack: real Sense account + bundled InfluxDB + Grafana
 
-make check           # THE gate: guard-version-check honest lint mypy test arch audit gitleaks
+make check           # THE gate: guard-version-check + honest (fatal), then every CHECK_LEGS leg: lint mypy test arch audit gitleaks
 make plan            # THE worklist: reds + sweep TRIAGE + inert AUDIT (start here, not `check`)
 make guard-version-check  # FATAL: fails if any guard pin is behind :latest (first step of check)
 make guard-upgrade   # bump every guard pin to latest + print what newly bites
@@ -79,7 +87,7 @@ python -m app.health.check   # container healthcheck
 
 Dependencies are managed with **Poetry** (`pyproject.toml` + committed `poetry.lock`). There is no `requirements.txt`. The **build backend is hatchling** and the version is `dynamic` from the `VERSION` file — Poetry stays the dependency manager in `package-mode = false`, so the lockfile and every `poetry install --no-root` path are unaffected. `make lint`/`make mypy` run **mount-only inside the luxlint image** (the repo installs nothing); `make test` builds the Dockerfile's `test` stage from current source (`make test-build`), starts a throwaway InfluxDB in its own compose project (profile `test`), and mounts the source read-only — never exec into the baked container (stale code).
 
-**Guard pins move often** — read `--changelog --since <pin>` and `--new-rules --since <pin>` before `make guard-upgrade`. A clean `--new-rules` is *not* "no impact": a tightened rule fires without being a new rule. `make check` is a pass/fail gate that stops at the first failure; **`make plan` is the full board** and includes work that does not turn the gate red (sweep findings, inert rules, un-adopted overlays).
+**Guard pins move often** — read `--changelog --since <pin>` and `--new-rules --since <pin>` before `make guard-upgrade`. A clean `--new-rules` is *not* "no impact": a tightened rule fires without being a new rule. `make check` runs every leg (after the fatal `guard-version-check` and `honest`) and fails naming each red one; **`make plan` is the full board** and includes work that does not turn the gate red (sweep findings, inert rules, un-adopted overlays).
 
 ## Architecture Overview
 
@@ -98,7 +106,7 @@ Event-driven asyncio. `app/main.py` orchestrates concurrent tasks: WebSocket rec
 - `app/utils/` — `logging.py` (the three per-area loggers + their levels), `time.py`, `file_validator.py`
 - `app/health/check.py` — Docker HEALTHCHECK
 
-Validate layout conformance with `python /mnt/luxardolabs/check_layout.py .` (must be green).
+Layout conformance is luxarch's (pinned in the Makefile, run by `make arch` inside `make check`).
 
 ### Data flow
 

@@ -67,3 +67,8 @@ def test_dev_grafanas_take_separate_port_variables() -> None:
     compose = (REPO / "compose.yml").read_text()
     assert '"${GRAFANA_PORT_TYLE:-13300}:3000"' in compose
     assert '"${GRAFANA_PORT_BB:-13301}:3000"' in compose
+
+
+def test_releases_build_both_architectures_whatever_the_shell_exports() -> None:
+    # `?=` would yield to an exported PLATFORMS (even an empty one) and publish host-only.
+    assert _make_setting("PLATFORMS") == ["linux/amd64,linux/arm64"]

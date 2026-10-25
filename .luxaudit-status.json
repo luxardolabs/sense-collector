@@ -7,21 +7,22 @@
   "summary": {
     "PASS": 36,
     "FAIL": 0,
-    "XFAIL": 0
+    "XFAIL": 0,
+    "INERT": 1
   },
   "vulnerable": [],
   "deferred": [],
   "banned": [],
   "not_audited": [],
   "image": {
-    "ref": "luxardolabs/sense-collector:2026.10.2",
-    "inert": false,
-    "inert_reason": "",
+    "ref": "",
+    "inert": true,
+    "inert_reason": "cannot derive the shipped image: needs the git remote and a VERSION file, or `[image] refs = [\"<registry>/<name>:{version}\"]` in .luxaudit.toml",
     "error": "",
     "not_released": [],
     "vulnerable": [],
     "deferred": []
   },
-  "commit": "2dbc8c9e11b23b4557fdaeefab7209b76fc8c55d",
-  "generated_at": "2026-10-13T02:12:59Z"
+  "commit": "e11b60c7ca982d382eec4293d7e5ade56b58f690",
+  "generated_at": "2026-10-25T15:52:01Z"
 }
