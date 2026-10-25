@@ -471,3 +471,69 @@ async def test_close_client_survives_a_failing_close(influxdb_params):
     storage.client.close = AsyncMock(side_effect=OSError("already gone"))
     await storage._close_client()
     assert storage.client is None
+
+
+@pytest.mark.asyncio
+async def test_unnamed_devices_never_starve_the_event_loop(influxdb_params):
+    """A full batch of always-on contributors with no cached name must not spin the loop.
+
+    The watchdog runs on another thread: a starved loop never reaches its own timeouts, so
+    only a cross-thread flag can stop the processor and let the assertion report.
+    """
+    import asyncio
+    import threading
+
+    from app.core import config
+
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_api = AsyncMock()
+    for i in range(config.QUEUE_BATCH_SIZE):
+        await storage.device_queue.add_device_data(f"ghost{i}", "monitor1", 1.0, 0)
+
+    ticks = 0
+
+    async def ticker() -> None:
+        nonlocal ticks
+        while True:
+            ticks += 1
+            await asyncio.sleep(0.01)
+
+    watchdog = threading.Timer(3.0, lambda: setattr(storage, "is_shutting_down", True))
+    watchdog.start()
+    tick_task = asyncio.create_task(ticker())
+    processor = asyncio.create_task(storage.process_device_queue())
+    try:
+        await asyncio.sleep(1.0)
+        ticks_in_one_second = ticks
+    finally:
+        storage.is_shutting_down = True
+        watchdog.cancel()
+        await asyncio.wait_for(processor, timeout=5)
+        tick_task.cancel()
+
+    assert ticks_in_one_second >= 20, (
+        f"event loop starved: {ticks_in_one_second} ticks in 1s"
+    )
+    assert storage.device_queue.queue.qsize() == 0, (
+        "unnamed items must not be re-queued"
+    )
+
+
+@pytest.mark.asyncio
+async def test_dropped_unnamed_readings_are_logged_once_per_batch(
+    influxdb_params, caplog
+):
+    """A dropped reading is visible at the default level, once per batch, not per item."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock()
+    batch = [
+        {"device_id": d, "monitor_id": "m", "watts": 1.0, "timestamp": 0}
+        for d in ("ghost-a", "ghost-b", "ghost-a")
+    ]
+    with caplog.at_level("WARNING", logger="storage"):
+        await storage._process_device_batch(batch)
+
+    drops = [r for r in caplog.records if "Dropped readings" in r.getMessage()]
+    assert len(drops) == 1
+    assert "2 always-on device(s)" in drops[0].getMessage()
+    storage.write_points.assert_not_awaited()

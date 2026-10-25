@@ -242,6 +242,7 @@ class InfluxDBStorage:
     async def _process_device_batch(self, batch: list[dict[str, Any]]) -> None:
         """Process a batch of device data."""
         points = []
+        unnamed: set[str] = set()
 
         for item in batch:
             device_id = item["device_id"]
@@ -259,13 +260,21 @@ class InfluxDBStorage:
                 )
                 points.append(point)
             else:
-                # Re-queue if name not available yet
-                await self.device_queue.add_device_data(
-                    device_id, item["monitor_id"], item["watts"], item["timestamp"]
-                )
+                # Dropped, not re-queued: the next always_on persist sends the reading again,
+                # and a re-queued item comes straight back out of a non-empty asyncio.Queue
+                # without yielding, so a full batch of unnamed ids spins the event loop.
+                unnamed.add(device_id)
 
+        if unnamed:
+            storage_logger.warning(
+                "Dropped readings for %s always-on device(s) with no cached name: %s",
+                len(unnamed),
+                ", ".join(sorted(unnamed)[:10]),
+            )
         if points:
             await self.write_points(points)
+        # Yield once per batch so the queue processor can never monopolise the loop.
+        await asyncio.sleep(0)
 
     async def persist_realtime_data(
         self,
