@@ -57,11 +57,12 @@
     },
     {
       "rule": "secret.githooks_wired",
-      "status": "PASS",
+      "status": "INERT",
       "since": "0.10.0",
       "violations": 0,
       "sites": [],
-      "deferred": false
+      "deferred": false,
+      "inert_reason": "this is a linked git worktree whose git dir is outside the mount, so its core.hooksPath cannot be read from here \u2014 judge it from the main checkout"
     },
     {
       "rule": "lint.ruff",
@@ -188,13 +189,13 @@
     }
   ],
   "summary": {
-    "PASS": 19,
+    "PASS": 18,
     "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
-    "INERT": 3
+    "INERT": 4
   },
   "mypy": "separate: `luxlint --mypy` ([mypy].baseline ratchet)",
-  "commit": "d1318ab38cafad168b448303a47b32b05f1bb483",
-  "generated_at": "2026-10-25T16:21:09Z"
+  "commit": "a520f4d96e5e2e608087781813178bb025772a52",
+  "generated_at": "2026-10-25T20:07:08Z"
 }

@@ -88,3 +88,6 @@ Thumbs.db
 
 # Adversarial audit run files (reproductions; one machine's cache, never committed)
 /.adversarial-audit/
+
+# Claude Code hook session state (luxarch --emit hooks)
+.claude/.release-guides-read.json
