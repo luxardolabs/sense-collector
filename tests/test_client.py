@@ -189,6 +189,41 @@ class TestLifecycle:
         await collector.close()
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "response",
+        [
+            {"access_token": "tok-new", "user_id": 1, "monitors": []},
+            {"access_token": "tok-new", "monitors": [{"id": 9}]},
+            {"access_token": "tok-new", "user_id": 1, "monitors": [{}]},
+        ],
+    )
+    async def test_a_malformed_login_changes_nothing(self, collector, response):
+        """A 200 missing a field raised after access_token was replaced: the WebSocket then
+        used the new token while REST kept the old Bearer and the old auth_time."""
+        issued = datetime.now(UTC) - timedelta(hours=1)
+        collector.access_token, collector.user_id, collector.monitor_id = (
+            "tok-old",
+            7,
+            8,
+        )
+        collector.headers = {"Authorization": "Bearer tok-old"}
+        collector.auth_time = issued
+        with (
+            patch(
+                "app.collector.client.authenticate_with_sense",
+                AsyncMock(return_value=response),
+            ),
+            pytest.raises((KeyError, IndexError)),
+        ):
+            await collector.authenticate()
+
+        assert collector.access_token == "tok-old"
+        assert (collector.user_id, collector.monitor_id) == (7, 8)
+        assert collector.headers == {"Authorization": "Bearer tok-old"}
+        assert collector.auth_time is issued
+        await collector.close()
+
+    @pytest.mark.asyncio
     async def test_token_renewal_is_skipped_before_the_interval(self, collector):
         collector.auth_time = None
         with patch.object(collector, "authenticate", AsyncMock()) as auth:

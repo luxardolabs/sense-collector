@@ -220,9 +220,15 @@ class SenseCollector:
                 self.client, self.username, self.password
             )
 
-            self.access_token = response["access_token"]
-            self.user_id = response["user_id"]
-            self.monitor_id = response["monitors"][0]["id"]
+            # Every field is read before any is assigned: a malformed login must leave the
+            # current token, its headers and its auth_time together, not half replaced.
+            access_token = response["access_token"]
+            user_id = response["user_id"]
+            monitor_id = response["monitors"][0]["id"]
+
+            self.access_token = access_token
+            self.user_id = user_id
+            self.monitor_id = monitor_id
             self.auth_time = datetime.now(UTC)
             self._auth_mono = time.monotonic()
             # Any successful login (the WebSocket's refresh included) ends a backoff.
