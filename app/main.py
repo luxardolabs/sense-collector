@@ -39,8 +39,13 @@ def _without_userinfo(url: str) -> str:
     return url
 
 
-def _influxdb_url_problem(url: str) -> str | None:
-    """Why SENSE_COLLECTOR_INFLUXDB_URL cannot be used, or None."""
+def _url_problem(url: str, authenticates_with: str) -> str | None:
+    """Why a configured URL cannot be used, or None.
+
+    No URL here takes credentials (each service authenticates another way), and a
+    user:password URL would be printed by the startup log and by every error line that
+    names the URL.
+    """
     try:
         parts = urlsplit(url)
         _ = parts.port
@@ -49,10 +54,7 @@ def _influxdb_url_problem(url: str) -> str | None:
     # Without a scheme, urlsplit reads `user:pw@host` as a path: any `@` before a path is
     # userinfo either way.
     if "@" in parts.netloc or (not parts.netloc and "@" in parts.path.split("/", 1)[0]):
-        return (
-            "must not contain credentials: InfluxDB 2.x authenticates with "
-            "SENSE_COLLECTOR_INFLUXDB_TOKEN"
-        )
+        return f"must not contain credentials: {authenticates_with}"
     return None
 
 
@@ -110,10 +112,20 @@ def validate_environment() -> None:
         )
         raise ValueError("The export folder is not writable")
 
-    problem = _influxdb_url_problem(config.INFLUXDB_URL)
-    if problem:
-        logger.error("SENSE_COLLECTOR_INFLUXDB_URL %s.", problem)
-        raise ValueError(f"SENSE_COLLECTOR_INFLUXDB_URL {problem}")
+    sense_login = "Sense authenticates with SENSE_COLLECTOR_API_USERNAME/PASSWORD"
+    for var, url, authenticates_with in (
+        (
+            "SENSE_COLLECTOR_INFLUXDB_URL",
+            config.INFLUXDB_URL,
+            "InfluxDB 2.x authenticates with SENSE_COLLECTOR_INFLUXDB_TOKEN",
+        ),
+        ("SENSE_COLLECTOR_API_BASE_URL", config.API_BASE_URL, sense_login),
+        ("SENSE_COLLECTOR_WS_BASE_URL", config.WS_BASE_URL, sense_login),
+    ):
+        problem = _url_problem(url, authenticates_with)
+        if problem:
+            logger.error("%s %s.", var, problem)
+            raise ValueError(f"{var} {problem}")
 
     # A stack that reads the real Sense cloud holds a household's data, so its InfluxDB
     # token must be its own: the demo/e2e tokens are public in this repository.

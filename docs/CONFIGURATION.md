@@ -39,6 +39,8 @@ These environment variables MUST be set for the application to run:
 | `SENSE_COLLECTOR_API_BASE_URL` | `https://api.sense.com/apiservice/api/v1` | Sense API base URL |
 | `SENSE_COLLECTOR_WS_BASE_URL`  | `wss://clientrt.sense.com`                | WebSocket base URL |
 
+No URL setting takes credentials. Startup refuses a `user:password@` in `SENSE_COLLECTOR_API_BASE_URL`, `SENSE_COLLECTOR_WS_BASE_URL` or `SENSE_COLLECTOR_INFLUXDB_URL`, because Sense authenticates with the account login and InfluxDB with its token, and the URL appears in error log lines.
+
 ### Headers and Versions
 
 | Variable                              | Default              | Description                           |

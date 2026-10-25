@@ -190,6 +190,31 @@ class TestValidateEnvironment:
         )
         assert "placeholder-pw" not in caplog.text
 
+    @pytest.mark.parametrize(
+        "var", ["SENSE_COLLECTOR_API_BASE_URL", "SENSE_COLLECTOR_WS_BASE_URL"]
+    )
+    def test_credentials_in_a_sense_base_url_are_refused_and_never_logged(
+        self, caplog, var
+    ):
+        """Sense authenticates with the login form; a user:password base URL would be
+        printed by every failed request's error line (the URL is in it)."""
+        password = "placeholder-" + "pw" * 6
+        url = f"https://alice:{password}@proxy.example:8443/api"
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        attr = var.removeprefix("SENSE_COLLECTOR_")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(config, "describe_settings", return_value={var: url}),
+            patch.object(config, attr, url),
+            pytest.raises(ValueError, match="credentials"),
+        ):
+            validate_environment()
+
+        assert password not in caplog.text
+        assert any(
+            r.levelname == "ERROR" and var in r.getMessage() for r in caplog.records
+        )
+
     def test_an_ipv6_url_keeps_its_brackets_in_the_log(self, caplog):
         url = "http://[::1]:8086/x"
         env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
