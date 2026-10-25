@@ -9,7 +9,8 @@ datasources:
     uid: uDxwFcOGz
     type: influxdb
     access: proxy
-    url: http://sense_influxdb:8086
+    # Each stack's Grafana service sets INFLUX_HOST to its own InfluxDB service name.
+    url: http://${INFLUX_HOST}:8086
     isDefault: true
     jsonData:
       version: InfluxQL

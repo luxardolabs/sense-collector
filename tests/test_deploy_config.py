@@ -96,3 +96,17 @@ def test_the_demo_runs_in_its_own_compose_project() -> None:
     demo = _make_setting("DEMO_DC")
     assert "-p" in demo
     assert demo[demo.index("-p") + 1] != "sense-collector"
+
+
+def test_each_grafana_reaches_its_own_stacks_influxdb() -> None:
+    """The provisioned datasource must name a host that exists on the stack's network."""
+    datasource = (
+        REPO / "grafana" / "provisioning" / "datasources" / "influxdb.yml"
+    ).read_text()
+    assert "url: http://${INFLUX_HOST}:8086" in datasource
+
+    compose = (REPO / "compose.yml").read_text()
+    for stack in ("dev_tyle", "dev_bb", "demo"):
+        service = compose.split(f"  sense_{stack}_grafana:")[1].split("\n  sense_")[0]
+        assert f"INFLUX_HOST: sense_{stack}_influxdb" in service, stack
+        assert f"  sense_{stack}_influxdb:" in compose

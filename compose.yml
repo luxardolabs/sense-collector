@@ -48,7 +48,7 @@ x-influx: &influx
 
 x-grafana: &grafana
   image: grafana/grafana:11.3.0
-  environment:
+  environment: &grafana-env
     GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
     GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
     GF_USERS_ALLOW_SIGN_UP: "false"
@@ -81,6 +81,9 @@ services:
 
   sense_dev_tyle_grafana:
     <<: *grafana
+    environment:
+      <<: *grafana-env
+      INFLUX_HOST: sense_dev_tyle_influxdb
     profiles: [dev-tyle]
     container_name: sense_dev_tyle_grafana
     volumes:
@@ -117,6 +120,9 @@ services:
 
   sense_dev_bb_grafana:
     <<: *grafana
+    environment:
+      <<: *grafana-env
+      INFLUX_HOST: sense_dev_bb_influxdb
     profiles: [dev-bb]
     container_name: sense_dev_bb_grafana
     volumes:
@@ -189,6 +195,9 @@ services:
 
   sense_demo_grafana:
     <<: *grafana
+    environment:
+      <<: *grafana-env
+      INFLUX_HOST: sense_demo_influxdb
     profiles: [demo]
     container_name: sense_demo_grafana
     volumes:
