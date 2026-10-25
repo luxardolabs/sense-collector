@@ -298,6 +298,26 @@ class SenseCollector:
                 )
                 return
 
+    async def refresh_ws_url(self) -> str:
+        """Re-authenticate after a WebSocket auth rejection and rebuild the WS URL (the token
+        lives in it).
+
+        The login goes through the same pacing as every other renewal: a failed login's
+        wait (a 429's Retry-After included) is waited out first, since a reconnect cannot
+        succeed without a new token anyway, and a token another caller just renewed is
+        reused rather than replaced.
+        """
+        wait = self._auth_retry_at - time.monotonic()
+        if wait > 0:
+            api_logger.info(
+                "A failed login is backing off; the WebSocket reconnects in %.0fs", wait
+            )
+            await self._interruptible_sleep(wait)
+        await self._renew("WebSocket auth rejected", config.AUTH_MIN_REAUTH_AGE)
+        return SenseAPIEndpoints.WEBSOCKET.format(
+            monitor_id=self.monitor_id, access_token=self.access_token
+        )
+
     async def check_token_renewal(self) -> None:
         """Renew the access token once it is older than TOKEN_RENEW_INTERVAL."""
         if self.auth_time and self._token_age() > config.TOKEN_RENEW_INTERVAL:
@@ -350,22 +370,15 @@ class SenseCollector:
                 # URL ~85,000 times over two months while REST kept working.
                 #
                 # The invariant is: the WS credential must be RE-DERIVED after re-auth, never
-                # snapshotted. That is what refresh_ws_url below exists for.
+                # snapshotted. That is what self.refresh_ws_url exists for.
                 ws_headers = {
                     k: v
                     for k, v in self.headers.items()
                     if k.lower() != "authorization"
                 }
 
-                async def refresh_ws_url() -> str:
-                    """Re-authenticate and rebuild the WS URL (the token lives in it)."""
-                    await self.authenticate()
-                    return SenseAPIEndpoints.WEBSOCKET.format(
-                        monitor_id=self.monitor_id, access_token=self.access_token
-                    )
-
                 await handle_websocket_connection(
-                    ws_url, ws_headers, self.process_websocket_data, refresh_ws_url
+                    ws_url, ws_headers, self.process_websocket_data, self.refresh_ws_url
                 )
             finally:
                 # Cancel periodic tasks
@@ -488,15 +501,16 @@ class SenseCollector:
     ) -> float:
         """A 429's wait in seconds: its Retry-After when that is a number, else the backoff,
         clamped to 0..`cap` (API_RETRY_AFTER_MAX by default). Sense controls the header."""
-        backoff = float(config.API_RETRY_BACKOFF_BASE**retry_count)
+        if cap is None:
+            cap = config.API_RETRY_AFTER_MAX
+        # Capped while still an int: base**count overflows a float after a long outage.
+        backoff = float(min(config.API_RETRY_BACKOFF_BASE**retry_count, cap))
         try:
             wait = float(response.headers.get("Retry-After", backoff))
         except TypeError, ValueError:
             wait = backoff  # an HTTP-date or garbage
         if wait != wait:  # NaN
             wait = backoff
-        if cap is None:
-            cap = config.API_RETRY_AFTER_MAX
         return min(max(wait, 0.0), float(cap))
 
     async def make_api_request(

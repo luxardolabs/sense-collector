@@ -1045,6 +1045,79 @@ class TestAuthenticationPacing:
         assert at_least <= wait <= config.AUTH_RETRY_MAX_DELAY
 
     @pytest.mark.asyncio
+    async def test_a_login_429_after_a_long_outage_still_sets_its_wait(self, storage):
+        """2**1024 does not fit a float: the backoff overflowed, no wait was recorded, and
+        every following check logged in again."""
+
+        async def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(429, headers={"Retry-After": "600"}, json={})
+
+        c = SenseCollector("u", "p", storage)
+        c.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        c._auth_failures = 2000
+        await c._renew("test", min_age=0)
+        await c.client.aclose()
+        assert c._auth_retry_at - time.monotonic() >= 590
+
+    @staticmethod
+    def _ws_collector(storage, counter, auth_status):
+        async def handler(request: httpx.Request) -> httpx.Response:
+            counter["auth"] += 1
+            if auth_status != 200:
+                return httpx.Response(auth_status, headers={"Retry-After": "600"})
+            return httpx.Response(
+                200,
+                json={"access_token": "tok-new", "user_id": 1, "monitors": [{"id": 9}]},
+            )
+
+        c = SenseCollector("u", "p", storage)
+        c.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        c.access_token, c.monitor_id = "tok-1", "9"
+        c.auth_time = datetime.now(UTC) - timedelta(hours=1)
+        c._auth_mono = time.monotonic() - 3600
+        c.shutdown_event = asyncio.Event()
+        return c
+
+    @pytest.mark.asyncio
+    async def test_a_websocket_refresh_waits_out_a_login_429(self, storage):
+        """The WebSocket's re-login bypassed the pacing: during a 600s Retry-After it
+        logged in on every reconnect (5s..60s)."""
+        counter = {"auth": 0}
+        c = self._ws_collector(storage, counter, 429)
+        await c._renew("due", min_age=0)
+        assert counter["auth"] == 1
+        sleeps: list[float] = []
+
+        async def sleep(timeout: float) -> None:
+            sleeps.append(timeout)
+
+        with patch.object(c, "_interruptible_sleep", sleep):
+            for _ in range(4):
+                await c.refresh_ws_url()
+        await c.client.aclose()
+        assert sleeps and sleeps[0] >= 590
+        assert counter["auth"] == 1, counter
+
+    @pytest.mark.asyncio
+    async def test_a_websocket_refresh_429_paces_the_next_renewal(self, storage):
+        """A 429 on the WebSocket's re-login recorded no wait for the other callers."""
+        counter = {"auth": 0}
+        c = self._ws_collector(storage, counter, 429)
+        await c.refresh_ws_url()
+        await c.check_token_renewal()
+        await c.client.aclose()
+        assert counter["auth"] == 1, counter
+
+    @pytest.mark.asyncio
+    async def test_a_websocket_refresh_returns_a_url_with_the_new_token(self, storage):
+        counter = {"auth": 0}
+        c = self._ws_collector(storage, counter, 200)
+        url = await c.refresh_ws_url()
+        await c.client.aclose()
+        assert counter["auth"] == 1
+        assert "tok-new" in url
+
+    @pytest.mark.asyncio
     async def test_a_due_renewal_logs_in_about_once(self, storage):
         counter = {"auth": 0, "rest": 0}
         await self._periodic_for(self._collector(storage, counter), 3.0)
