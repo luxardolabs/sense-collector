@@ -160,3 +160,13 @@ def test_the_app_code_is_readable_whatever_the_checkouts_umask() -> None:
     production = dockerfile.split(" AS production")[1].split("\nFROM ")[0]
     copy = production.index("COPY app /app/app")
     assert re.search(r"RUN chmod -R a\+rX,go-w /app/app\b", production[copy:])
+
+
+def test_throwaway_stacks_tear_down_in_their_own_compose_project() -> None:
+    """`down -v` removes the project's volumes. In compose.yml's project, the one the dev
+    stacks run in, a stopped dev stack's InfluxDB volume would go with the e2e teardown."""
+    project = re.search(r"^name:\s*(\S+)", (REPO / "compose.yml").read_text(), re.M)[1]
+    e2e = (REPO / "scripts" / "e2e-test.sh").read_text()
+    dc = re.search(r'^DC="([^"]+)"', e2e, re.M)[1]
+    own = re.search(r"(?:-p|--project-name)\s+(\S+)", dc)
+    assert own and own[1] != project, dc

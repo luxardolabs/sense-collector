@@ -6,7 +6,9 @@
 # never builds) and passes SENSE_IMAGE.
 set -euo pipefail
 
-DC="docker compose --profile e2e --env-file .env.e2e"
+# Its own compose project: the teardown runs `down -v`, which in compose.yml's project (the
+# dev stacks run there) could reach a stopped dev stack's InfluxDB volume.
+DC="docker compose -p sense-collector-e2e --profile e2e --env-file .env.e2e"
 TOKEN="sense-e2e-token"
 MONITOR_ID="12345"
 # Device names the fake streams in realtime_update — must reach the sense_devices measurement.
