@@ -38,19 +38,23 @@ def _tag(value: Any) -> Any:
 
 def _whole(value: Any) -> Any:
     """A count as an int, so `3.0` and `3` land in the same integer field. Anything that
-    is not a whole number passes through unchanged."""
-    if isinstance(value, float) and value.is_integer():
+    is not a whole number, or is beyond InfluxDB's int64 range, passes through unchanged."""
+    if isinstance(value, float) and value.is_integer() and -(2**63) <= value < 2**63:
         return int(value)
     return value
 
 
 def _yearly_cost(value: Any) -> float | None:
     """Sense's yearly_cost (cents) in the unit every device's field carries: a float
-    divided by YEARLY_COST_DIVISOR. None when Sense sends no number, so the field is left
-    out instead of losing the point."""
-    if isinstance(value, bool) or not isinstance(value, int | float):
+    divided by YEARLY_COST_DIVISOR. A numeric string is converted too. None when it is no
+    number (or too large for a float), so the field is left out instead of losing the
+    point."""
+    if isinstance(value, bool) or not isinstance(value, int | float | str):
         return None
-    return float(value) / config.YEARLY_COST_DIVISOR
+    try:
+        return float(value) / config.YEARLY_COST_DIVISOR
+    except ValueError, OverflowError:
+        return None
 
 
 def _event_precision(time: Any) -> str:

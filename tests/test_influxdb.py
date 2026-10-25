@@ -899,3 +899,24 @@ async def test_always_on_comparison_fields_have_one_type_each(
         assert not re.search(r"cohort_avg_w=[^,\s]+i\b", line), line
         assert re.search(r"\bcount=3i\b", line), line
         assert re.search(r"display_count=3i\b", line), line
+
+
+def test_a_yearly_cost_sense_spells_oddly_is_converted_or_left_out_never_raised():
+    """A numeric string was converted by the old regular path; an int too large for a
+    float raised OverflowError past every catch and lost the always_on detail."""
+    from app.storage.influxdb import _yearly_cost
+
+    assert _yearly_cost("5000") == 5000 / config.YEARLY_COST_DIVISOR
+    assert _yearly_cost(10**400) is None
+    assert _yearly_cost("not a number") is None
+    assert _yearly_cost(True) is None
+
+
+def test_a_count_beyond_int64_stays_a_float():
+    """1e20 as an int is out of InfluxDB's int64 range: the server refuses the whole
+    comparison point."""
+    from app.storage.influxdb import _whole
+
+    assert _whole(3.0) == 3 and isinstance(_whole(3.0), int)
+    assert _whole(1e20) == 1e20 and isinstance(_whole(1e20), float)
+    assert _whole(-(2.0**63)) == -(2**63)
