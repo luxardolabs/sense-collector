@@ -395,7 +395,7 @@ class SenseCollector:
         api_logger.info("API worker %s stopped", worker_id)
 
     def _touch_heartbeat(self) -> None:
-        """Update the liveness heartbeat file (throttled). Any WebSocket message = alive.
+        """Update the liveness heartbeat file (throttled): a WebSocket frame was handled.
 
         The Docker healthcheck (app.health.check) asserts this file stays fresh, so a
         crashed/deadlocked collector or a dead WebSocket is actually detected.
@@ -409,16 +409,25 @@ class SenseCollector:
         except OSError as e:
             api_logger.debug("Failed to update heartbeat file: %s", e)
 
-    async def process_websocket_data(self, data: dict[str, Any]) -> None:
-        """Process data received from WebSocket."""
-        # Any inbound frame means the collector is alive and the WS is delivering data.
-        self._touch_heartbeat()
+    async def process_websocket_data(self, data: Any) -> None:
+        """Process data received from WebSocket.
+
+        The heartbeat is touched only for a frame the collector could use: if Sense renames
+        a key or a message type, every frame is rejected and the collector has stopped doing
+        its job, which the healthcheck must see. A non-object frame is ignored.
+        """
+        if not isinstance(data, dict):
+            api_logger.error(
+                "Ignoring a non-object WebSocket frame (%s)", type(data).__name__
+            )
+            return
         try:
             message_type = data.get("type")
+            handled = True
 
             if message_type == "realtime_update":
                 payload = data.get("payload", {})
-                await self.handle_realtime_update(payload)
+                handled = await self.handle_realtime_update(payload)
 
             elif message_type == "new_timeline_event":
                 payload = data.get("payload", {})
@@ -441,7 +450,11 @@ class SenseCollector:
                 await self.handle_hello(payload)
 
             else:
+                handled = False
                 api_logger.debug("Unhandled message type: %s", message_type)
+
+            if handled:
+                self._touch_heartbeat()
 
         # swallowed-exceptions: outermost per-message net. Every handler it
         # dispatches to already logs-and-continues, so what reaches here is a
@@ -693,12 +706,14 @@ class SenseCollector:
         except MALFORMED_PAYLOAD as e:
             api_logger.error("Error fetching monitor status: %s", e)
 
-    async def handle_realtime_update(self, payload: dict[str, Any]) -> None:
-        """Handle real-time power usage updates."""
+    async def handle_realtime_update(self, payload: dict[str, Any]) -> bool:
+        """Handle real-time power usage updates; False when the frame could not be used."""
         required_keys = ["hz", "c", "w", "epoch"]
-        if not all(key in payload for key in required_keys):
+        if not isinstance(payload, dict) or not all(
+            key in payload for key in required_keys
+        ):
             api_logger.error("Missing required keys in realtime update")
-            return
+            return False
 
         try:
             # Track activity and log less frequently for realtime updates
@@ -729,6 +744,8 @@ class SenseCollector:
             )
         except MALFORMED_PAYLOAD as e:
             api_logger.error("Error persisting realtime data: %s", e)
+            return False
+        return True
 
     async def handle_timeline_event(self, payload: dict[str, Any]) -> None:
         """Handle new timeline events."""

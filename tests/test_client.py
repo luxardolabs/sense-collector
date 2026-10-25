@@ -263,11 +263,41 @@ class TestProcessWebSocketData:
         storage.persist_realtime_data.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_every_frame_touches_the_heartbeat(self, collector):
+    async def test_a_handled_frame_touches_the_heartbeat(self, collector):
         """The healthcheck reads this file — a delivering WS must keep it fresh."""
         with patch.object(collector, "_touch_heartbeat") as beat:
             await collector.process_websocket_data({"type": "hello", "payload": {}})
         beat.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_a_written_realtime_frame_touches_the_heartbeat(self, collector):
+        frame = {
+            "type": "realtime_update",
+            "payload": {"hz": 60.0, "c": 1.0, "w": 100.0, "epoch": 1_760_000_000},
+        }
+        with patch.object(collector, "_touch_heartbeat") as beat:
+            await collector.process_websocket_data(frame)
+        beat.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "frame",
+        [
+            {"type": "realtime_update", "payload": {"hz": 60.0, "watts": 100.0}},
+            {"type": "realtime_v2", "payload": {}},
+            [],
+            None,
+        ],
+        ids=["drifted-key", "renamed-type", "list", "null"],
+    )
+    @pytest.mark.asyncio
+    async def test_a_frame_the_collector_cannot_use_does_not_keep_it_healthy(
+        self, collector, frame
+    ):
+        """If Sense renames a key or a type, every frame is rejected and nothing is
+        written: the collector itself has stopped doing its job and must go unhealthy."""
+        with patch.object(collector, "_touch_heartbeat") as beat:
+            await collector.process_websocket_data(frame)
+        beat.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_a_failing_handler_does_not_kill_the_reader(self, collector):
