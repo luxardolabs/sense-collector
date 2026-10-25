@@ -19,7 +19,9 @@ from collections.abc import Mapping
 from typing import Any
 
 _TOKEN = re.compile(r"(access_token=)[^&\s\"'<>]+")
-_CONTROL = re.compile(r"[\x00-\x1f\x7f]")
+# C0, DEL and C1, plus the Unicode line and paragraph separators: str.splitlines() and many
+# log viewers break lines on U+2028/U+2029/NEL too, and U+009B is an 8-bit CSI.
+_CONTROL = re.compile("[\x00-\x1f\x7f-\x9f  ]")
 # Formatted tracebacks and stacks are multi-line by construction and come from the code, not a
 # remote payload: their newlines stay, only a token in them is scrubbed.
 _MULTILINE = frozenset({"exception", "stack"})

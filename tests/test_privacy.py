@@ -112,6 +112,25 @@ def test_a_remote_device_name_cannot_forge_a_line_or_emit_escapes(
     )
 
 
+@pytest.mark.parametrize("separator", [" ", " ", "\x85", "\x9b"])
+@pytest.mark.parametrize("fmt", ["json", "text"])
+def test_unicode_line_breaks_and_c1_controls_cannot_forge_a_line(
+    capsys, monkeypatch, fmt, separator
+):
+    """str.splitlines() and many log viewers break lines on U+2028/U+2029/NEL too, and
+    U+009B is an 8-bit CSI that a C1-honouring terminal acts on."""
+    monkeypatch.setenv("LOG_FORMAT", fmt)
+    setup_logging()
+    _feed_timeline_event(f"Fridge{separator}2026-10-10 12:00:00,000 CRITICAL forged")
+
+    out = capsys.readouterr().out
+    assert "Timeline event" in out
+    assert separator not in out
+    assert not any(
+        line.startswith("2026-10-10 12:00:00,000 CRITICAL") for line in out.splitlines()
+    )
+
+
 def test_a_traceback_keeps_its_lines_but_loses_the_token():
     line = redact(
         {
