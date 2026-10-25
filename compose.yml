@@ -19,8 +19,10 @@ name: sense-collector
 #
 # Credentials live in a gitignored `.env.<stack>` per stack (.env.dev for dev-tyle, .env.dev-bb,
 # .env.prod-tyle, .env.prod-bb); .env.demo and .env.e2e are committed and hold no secrets.
-# Only Grafana publishes a host port — InfluxDB is reached by SERVICE NAME on the compose
-# network, so it never contends for a port with a sibling fleet stack.
+# Only Grafana publishes a host port, and on 127.0.0.1 unless the env file sets GRAFANA_BIND
+# (e.g. 0.0.0.0 to reach it from the LAN; then set GRAFANA_PASSWORD too) — InfluxDB is
+# reached by SERVICE NAME on the compose network, so it never contends for a port with a
+# sibling fleet stack.
 
 x-collector: &collector
   image: ${SENSE_IMAGE:-sense-collector:local}
@@ -86,7 +88,7 @@ services:
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_tyle_grafana_data:/var/lib/grafana
     ports:
-      - "${GRAFANA_PORT_TYLE:-13300}:3000"
+      - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT_TYLE:-13300}:3000"
     depends_on:
       sense_dev_tyle_influxdb:
         condition: service_healthy
@@ -122,7 +124,7 @@ services:
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_bb_grafana_data:/var/lib/grafana
     ports:
-      - "${GRAFANA_PORT_BB:-13301}:3000"
+      - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT_BB:-13301}:3000"
     depends_on:
       sense_dev_bb_influxdb:
         condition: service_healthy
@@ -194,7 +196,7 @@ services:
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_demo_grafana_data:/var/lib/grafana
     ports:
-      - "${GRAFANA_PORT:-13302}:3000"
+      - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT:-13302}:3000"
     depends_on:
       sense_demo_influxdb:
         condition: service_healthy

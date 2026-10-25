@@ -80,7 +80,7 @@ Within a minute you should see mains data (`sense_mains`) and your devices (`sen
 To see a correctly wired end-to-end stack — collector, InfluxDB, and Grafana with the data source, DBRP mapping, and dashboards all provisioned — clone the repo and run the self-contained demo (no Sense account needed; it uses a built-in emulator):
 
 ```bash
-make demo-up      # fake Sense + bundled InfluxDB + Grafana on http://localhost:3000
+make demo-up      # fake Sense + bundled InfluxDB + Grafana on http://localhost:13302
 ```
 
 This is a working reference you can compare your own Grafana setup against. `make dev-up` is the same bundled stack but pointed at your real Sense account.

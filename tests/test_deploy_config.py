@@ -65,10 +65,34 @@ def test_dev_deploy_deploys_and_smokes_both_monitors() -> None:
 
 def test_dev_grafanas_take_separate_port_variables() -> None:
     compose = (REPO / "compose.yml").read_text()
-    assert '"${GRAFANA_PORT_TYLE:-13300}:3000"' in compose
-    assert '"${GRAFANA_PORT_BB:-13301}:3000"' in compose
+    assert '"${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT_TYLE:-13300}:3000"' in compose
+    assert '"${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT_BB:-13301}:3000"' in compose
 
 
 def test_releases_build_both_architectures_whatever_the_shell_exports() -> None:
     # `?=` would yield to an exported PLATFORMS (even an empty one) and publish host-only.
     assert _make_setting("PLATFORMS") == ["linux/amd64,linux/arm64"]
+
+
+def test_every_published_grafana_port_binds_to_loopback_by_default() -> None:
+    """A bare `port:3000` listens on every interface, so admin/admin is open to the LAN."""
+    compose = (REPO / "compose.yml").read_text()
+    published = re.findall(r'^\s+- "(.*:3000)"$', compose, re.MULTILINE)
+    assert published, "no Grafana port found"
+    for mapping in published:
+        assert mapping.startswith("${GRAFANA_BIND:-127.0.0.1}:"), mapping
+
+
+def test_the_provisioned_datasource_cannot_be_repointed_from_the_ui() -> None:
+    """It carries the InfluxDB admin token; an editable URL sends that token anywhere."""
+    datasource = (
+        REPO / "grafana" / "provisioning" / "datasources" / "influxdb.yml"
+    ).read_text()
+    assert re.search(r"^\s+editable: false$", datasource, re.MULTILINE)
+
+
+def test_the_demo_runs_in_its_own_compose_project() -> None:
+    """Sharing the dev stacks' project puts the demo on the network of their InfluxDBs."""
+    demo = _make_setting("DEMO_DC")
+    assert "-p" in demo
+    assert demo[demo.index("-p") + 1] != "sense-collector"

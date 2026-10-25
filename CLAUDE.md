@@ -59,7 +59,7 @@ The `Makefile` is the source of truth. `VERSION` (repo root) is the version sour
 make help            # grouped command help
 make build-local     # build the runtime image from current source (no push)
 make test-e2e        # hardware-free end-to-end: fake Sense -> collector -> InfluxDB, asserted
-make demo-up         # self-contained demo: fake Sense + bundled InfluxDB + Grafana (localhost:3000)
+make demo-up         # self-contained demo: fake Sense + bundled InfluxDB + Grafana (localhost:13302)
 make dev-up          # dev stack: real Sense account + bundled InfluxDB + Grafana
 
 make check           # THE gate: guard-version-check + honest (fatal), then every CHECK_LEGS leg: lint mypy test arch audit gitleaks

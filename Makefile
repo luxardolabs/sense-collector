@@ -91,7 +91,9 @@ PROD_TYLE_DC := $(DC) --profile prod-tyle --env-file .env.prod-tyle
 PROD_BB_DC   := $(DC) --profile prod-bb   --env-file .env.prod-bb
 DEV_BB_DC   := $(DC) --profile dev-bb    --env-file .env.dev-bb
 # demo shifts off dev's Grafana port so both bundled stacks can run at once.
-DEMO_DC := GRAFANA_PORT=13302 $(DC) --profile demo --env-file .env.demo
+# Its own compose project, so the demo's fake Sense and Grafana never join the network of the
+# dev stacks' InfluxDBs.
+DEMO_DC := GRAFANA_PORT=13302 $(DC) -p sense-collector-demo --profile demo --env-file .env.demo
 # Second Sense monitor — its own account/names/ports, credentials in gitignored .env.bb.
 
 
@@ -1863,7 +1865,7 @@ shell: ## Shell into the collector container
 
 dev-up: build-local ## Build locally + start the full dev stack (real Sense account; bundled Grafana)
 	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_TYLE_DC) up -d
-	@echo "sense-collector [dev] — Grafana http://localhost:$(or $(GRAFANA_PORT_TYLE),13300) (admin/admin)"
+	@echo "sense-collector [dev] — Grafana http://localhost:$(or $(GRAFANA_PORT_TYLE),13300) (admin / GRAFANA_PASSWORD from .env.dev)"
 
 dev-down: ## Stop the dev stack (keep data volumes)
 	$(DEV_TYLE_DC) down
@@ -1873,7 +1875,7 @@ dev-clean: ## Stop the dev stack AND delete its data volumes
 
 bb-up: build-local ## Build locally + start the SECOND monitor's stack (real Sense account)
 	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_BB_DC) up -d
-	@echo "sense-collector [bb] — Grafana http://localhost:13301 (admin/admin)"
+	@echo "sense-collector [bb] — Grafana http://localhost:13301 (admin / GRAFANA_PASSWORD from .env.dev-bb)"
 
 bb-down: ## Stop the bb stack (keep data volumes)
 	$(DEV_BB_DC) down
@@ -1941,7 +1943,7 @@ prod-rollback: check-prod-node ## List image tags cached on the node for rollbac
 
 demo-up: build-local harness-build ## Bring up the demo stack — FAKE Sense endpoint + auto-provisioned InfluxDB + Grafana
 	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEMO_DC) up -d
-	@echo "Grafana:  http://localhost:3000  (admin/admin)  — dashboards populate from the fake Sense feed"
+	@echo "Grafana:  http://localhost:13302  (admin/admin)  — dashboards populate from the fake Sense feed"
 
 demo-down: ## Stop the demo stack (keep data volumes)
 	$(DEMO_DC) down

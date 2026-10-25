@@ -18,4 +18,6 @@ datasources:
       httpHeaderName1: Authorization
     secureJsonData:
       httpHeaderValue1: Token ${INFLUX_TOKEN}
-    editable: true
+    # Provisioned, not editable: the header carries the InfluxDB admin token, and an
+    # editable URL would let any Grafana admin send it to a host of their choosing.
+    editable: false
