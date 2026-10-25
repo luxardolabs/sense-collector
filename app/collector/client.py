@@ -377,16 +377,11 @@ class SenseCollector:
                     break
 
                 device_id = item.get("device_id")
-                if device_id:
-                    # Check cache first
-                    cached_data = await self.device_cache.get(device_id)
-                    if cached_data:
-                        await self.influxdb_storage.persist_device_data(
-                            self.monitor_id, cached_data
-                        )
-                    else:
-                        # Fetch from API
-                        await self.fetch_device_data(device_id)
+                # A cached detail was written (and its name cached) when it was fetched:
+                # writing it again would stamp stale values as freshly observed. Only a
+                # miss fetches, and the fetch persists.
+                if device_id and not await self.device_cache.get(device_id):
+                    await self.fetch_device_data(device_id)
 
             except Exception as e:
                 api_logger.error("Error in API worker %s: %s", worker_id, e)

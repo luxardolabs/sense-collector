@@ -580,7 +580,11 @@ class TestFetchMonitorStatus:
 
 class TestApiWorker:
     @pytest.mark.asyncio
-    async def test_a_cache_hit_skips_the_api(self, collector, storage):
+    async def test_a_cache_hit_skips_the_api_and_writes_nothing_stale(
+        self, collector, storage
+    ):
+        """The cached detail was written when it was fetched; writing it again stamped
+        values up to 15 minutes old as if they had just been observed."""
         collector.monitor_id = 12345
         await collector.device_cache.put("ac", {"id": "ac"})
         await collector.api_call_queue.put({"device_id": "ac"})
@@ -590,7 +594,7 @@ class TestApiWorker:
             await collector.api_worker(0)
 
         fetch.assert_not_called()
-        storage.persist_device_data.assert_awaited_once_with(12345, {"id": "ac"})
+        storage.persist_device_data.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_a_cache_miss_fetches_from_the_api(self, collector):
