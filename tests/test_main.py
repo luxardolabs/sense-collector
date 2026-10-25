@@ -138,6 +138,66 @@ class TestValidateEnvironment:
         assert password not in caplog.text
         assert "http://influx:8086" in caplog.text
 
+    @pytest.mark.parametrize(
+        ("url", "problem"),
+        [
+            ("http://influx:99999", "not a valid URL"),
+            ("http://[::1", "not a valid URL"),
+            ("alice:placeholder-pw@influx:8086", "credentials"),
+        ],
+    )
+    def test_an_unusable_influxdb_url_is_refused_with_a_reason(
+        self, caplog, url, problem
+    ):
+        """Startup must say why it stops, and never print the password on the way."""
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(
+                config,
+                "describe_settings",
+                return_value={"SENSE_COLLECTOR_INFLUXDB_URL": url},
+            ),
+            patch.object(config, "INFLUXDB_URL", url),
+            pytest.raises(ValueError, match=problem),
+        ):
+            validate_environment()
+
+        assert any(
+            r.levelname == "ERROR" and problem in r.getMessage() for r in caplog.records
+        )
+        assert "placeholder-pw" not in caplog.text
+
+    def test_an_ipv6_url_keeps_its_brackets_in_the_log(self, caplog):
+        url = "http://[::1]:8086/x"
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(
+                config,
+                "describe_settings",
+                return_value={
+                    "SENSE_COLLECTOR_API_BASE_URL": "http://u:p@[::1]:8086/x"
+                },
+            ),
+        ):
+            validate_environment()
+        assert url in caplog.text
+
+    def test_the_token_renewal_interval_is_shown(self, caplog):
+        """An interval, not a secret: masking it would only hide useful config."""
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(
+                config,
+                "describe_settings",
+                return_value={"SENSE_COLLECTOR_API_TOKEN_RENEW": "43200"},
+            ),
+        ):
+            validate_environment()
+        assert "SENSE_COLLECTOR_API_TOKEN_RENEW: 43200" in caplog.text
+
     def test_every_sensitive_marker_is_actually_masked(self, caplog):
         """Guards the _SENSITIVE tuple itself: each marker must drive real masking."""
         settings = {f"SENSE_COLLECTOR_{s}": f"value-for-{s}" for s in _SENSITIVE}

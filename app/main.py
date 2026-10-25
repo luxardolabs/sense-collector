@@ -15,6 +15,8 @@ from app.storage.influxdb import InfluxDBStorage
 from app.utils.logging import AREA_LEVELS, logger
 
 _SENSITIVE = ("PASSWORD", "TOKEN", "USERNAME")
+# Names that match a marker but hold no secret (an interval in seconds).
+_NOT_SECRET = frozenset({"SENSE_COLLECTOR_API_TOKEN_RENEW"})
 
 
 def _obscure(value: str) -> str:
@@ -23,13 +25,35 @@ def _obscure(value: str) -> str:
 
 
 def _without_userinfo(url: str) -> str:
-    """`url` with any user:password@ removed, for logging."""
-    parts = urlsplit(url)
-    if parts.username is None and parts.password is None:
-        return url
-    host = parts.hostname or ""
-    netloc = f"{host}:{parts.port}" if parts.port else host
-    return urlunsplit(parts._replace(netloc=netloc))
+    """`url` with any user:password@ removed, for logging; never raises."""
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return "<unparseable URL>"
+    _, at, hostport = parts.netloc.rpartition("@")
+    if at:
+        return urlunsplit(parts._replace(netloc=hostport))
+    if not parts.netloc and "@" in parts.path.split("/", 1)[0]:
+        # No scheme, so urlsplit read `user:pw@host` as a path.
+        return "<URL with credentials>"
+    return url
+
+
+def _influxdb_url_problem(url: str) -> str | None:
+    """Why SENSE_COLLECTOR_INFLUXDB_URL cannot be used, or None."""
+    try:
+        parts = urlsplit(url)
+        _ = parts.port
+    except ValueError:
+        return "is not a valid URL"
+    # Without a scheme, urlsplit reads `user:pw@host` as a path: any `@` before a path is
+    # userinfo either way.
+    if "@" in parts.netloc or (not parts.netloc and "@" in parts.path.split("/", 1)[0]):
+        return (
+            "must not contain credentials: InfluxDB 2.x authenticates with "
+            "SENSE_COLLECTOR_INFLUXDB_TOKEN"
+        )
+    return None
 
 
 def _not_http2_internals(record: logging.LogRecord) -> bool:
@@ -63,7 +87,7 @@ def validate_environment() -> None:
     """
     logger.info("Environment variable settings:")
     for var, value in config.describe_settings().items():
-        if any(s in var for s in _SENSITIVE):
+        if var not in _NOT_SECRET and any(s in var for s in _SENSITIVE):
             shown = _obscure(value)
         elif var.endswith("_URL"):
             shown = _without_userinfo(value)
@@ -76,12 +100,10 @@ def validate_environment() -> None:
         logger.error("Missing required environment variables: %s", ", ".join(missing))
         raise ValueError("Missing required environment variables")
 
-    if _without_userinfo(config.INFLUXDB_URL) != config.INFLUXDB_URL:
-        logger.error(
-            "SENSE_COLLECTOR_INFLUXDB_URL must not contain credentials: InfluxDB 2.x "
-            "authenticates with SENSE_COLLECTOR_INFLUXDB_TOKEN."
-        )
-        raise ValueError("SENSE_COLLECTOR_INFLUXDB_URL carries credentials")
+    problem = _influxdb_url_problem(config.INFLUXDB_URL)
+    if problem:
+        logger.error("SENSE_COLLECTOR_INFLUXDB_URL %s.", problem)
+        raise ValueError(f"SENSE_COLLECTOR_INFLUXDB_URL {problem}")
 
     # A stack that reads the real Sense cloud holds a household's data, so its InfluxDB
     # token must be its own: the demo/e2e tokens are public in this repository.
