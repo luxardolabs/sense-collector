@@ -6,9 +6,8 @@
   "source": "poetry.lock",
   "summary": {
     "PASS": 36,
-    "FAIL": 0,
-    "XFAIL": 0,
-    "INERT": 1
+    "FAIL": 4,
+    "XFAIL": 0
   },
   "vulnerable": [],
   "deferred": [],
@@ -16,14 +15,51 @@
   "not_audited": [],
   "warnings": [],
   "image": {
-    "ref": "",
-    "inert": true,
-    "inert_reason": "cannot derive the shipped image: needs the git remote and a VERSION file, or `[image] refs = [\"<registry>/<name>:{version}\"]` in .luxaudit.toml",
+    "ref": "luxardolabs/sense-collector:2026.10.2",
+    "inert": false,
+    "inert_reason": "",
     "error": "",
     "not_released": [],
-    "vulnerable": [],
+    "vulnerable": [
+      {
+        "package": "certifi",
+        "installed": "2026.6.17",
+        "vuln_id": "GHSA-6q48-6c7w-9gw2",
+        "severity": "CRITICAL",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.10.2",
+        "fix": "2026.10.19"
+      },
+      {
+        "package": "aiohttp",
+        "installed": "3.14.3",
+        "vuln_id": "CVE-2026-111064",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.10.2",
+        "fix": "3.14.4"
+      },
+      {
+        "package": "aiohttp",
+        "installed": "3.14.3",
+        "vuln_id": "CVE-2026-111066",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.10.2",
+        "fix": "3.14.4"
+      },
+      {
+        "package": "aiohttp",
+        "installed": "3.14.3",
+        "vuln_id": "GHSA-2g87-pp6c-29x5",
+        "severity": "HIGH",
+        "layer": "lang",
+        "image": "luxardolabs/sense-collector:2026.10.2",
+        "fix": "3.14.4"
+      }
+    ],
     "deferred": []
   },
-  "commit": "b1e29a9526bba60667656f2300bb98754d9b99d5",
-  "generated_at": "2026-10-25T22:49:49Z"
+  "commit": "08239e59274962759c790f00649df6c51d517b66",
+  "generated_at": "2026-10-26T00:47:10Z"
 }
