@@ -6,7 +6,7 @@
   "source": "poetry.lock",
   "summary": {
     "PASS": 36,
-    "FAIL": 4,
+    "FAIL": 0,
     "XFAIL": 0
   },
   "vulnerable": [],
@@ -15,51 +15,14 @@
   "not_audited": [],
   "warnings": [],
   "image": {
-    "ref": "luxardolabs/sense-collector:2026.10.2",
+    "ref": "luxardolabs/sense-collector:2026.10.3",
     "inert": false,
     "inert_reason": "",
     "error": "",
     "not_released": [],
-    "vulnerable": [
-      {
-        "package": "certifi",
-        "installed": "2026.6.17",
-        "vuln_id": "GHSA-6q48-6c7w-9gw2",
-        "severity": "CRITICAL",
-        "layer": "lang",
-        "image": "luxardolabs/sense-collector:2026.10.2",
-        "fix": "2026.10.19"
-      },
-      {
-        "package": "aiohttp",
-        "installed": "3.14.3",
-        "vuln_id": "CVE-2026-111064",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/sense-collector:2026.10.2",
-        "fix": "3.14.4"
-      },
-      {
-        "package": "aiohttp",
-        "installed": "3.14.3",
-        "vuln_id": "CVE-2026-111066",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/sense-collector:2026.10.2",
-        "fix": "3.14.4"
-      },
-      {
-        "package": "aiohttp",
-        "installed": "3.14.3",
-        "vuln_id": "GHSA-2g87-pp6c-29x5",
-        "severity": "HIGH",
-        "layer": "lang",
-        "image": "luxardolabs/sense-collector:2026.10.2",
-        "fix": "3.14.4"
-      }
-    ],
+    "vulnerable": [],
     "deferred": []
   },
-  "commit": "08239e59274962759c790f00649df6c51d517b66",
-  "generated_at": "2026-10-26T00:47:10Z"
+  "commit": "65d5ed2671e46199c1f6127836e0c614caa5f9de",
+  "generated_at": "2026-10-26T01:07:26Z"
 }
