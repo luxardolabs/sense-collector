@@ -8,6 +8,7 @@ The format is defined in [`app/release_notes/writing-guide.md`](app/release_note
 
 ## Versions
 
+- [2026.10.3](app/release_notes/2026.10.3.md) — 2026-10-25 — security and reliability update; set TAG= and your own InfluxDB token before upgrading
 - [2026.10.2](app/release_notes/2026.10.2.md) — 2026-10-10 — security update: login token hidden from debug logs; every image architecture scanned
 - [2026.10.1](app/release_notes/2026.10.1.md) — 2026-10-10 — logs are JSON on stdout (file logging removed), multidict security fix
 - [2026.10.0](app/release_notes/2026.10.0.md) — 2026-10-02 — security update; drop-in upgrade
