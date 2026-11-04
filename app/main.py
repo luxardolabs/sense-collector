@@ -44,7 +44,7 @@ def _url_problem(url: str, authenticates_with: str) -> str | None:
 
     No URL here takes credentials (each service authenticates another way), and a
     user:password URL would be printed by the startup log and by every error line that
-    names the URL.
+    names the URL. A URL naming the Sense cloud must use TLS.
     """
     try:
         parts = urlsplit(url)
@@ -56,6 +56,11 @@ def _url_problem(url: str, authenticates_with: str) -> str | None:
     # authority early (`http://admin:2024/pw@host`). None of these URLs needs an `@`.
     if "@" in url:
         return f"must not contain credentials: {authenticates_with}"
+    # The Sense login password and the bearer token travel to the Sense cloud, so it is
+    # reached over TLS only. Any other host (the fake Sense on the compose network) may be
+    # plain http/ws.
+    if config.is_sense_cloud(url) and parts.scheme.lower() not in ("https", "wss"):
+        return "must use TLS (https:// or wss://) to reach the Sense cloud"
     return None
 
 

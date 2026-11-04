@@ -41,6 +41,8 @@ These environment variables MUST be set for the application to run:
 
 No URL setting takes credentials. Startup refuses any `@` (a `user:password@`, encoded or not) in `SENSE_COLLECTOR_API_BASE_URL`, `SENSE_COLLECTOR_WS_BASE_URL` or `SENSE_COLLECTOR_INFLUXDB_URL`, because Sense authenticates with the account login and InfluxDB with its token, and the URL appears in error log lines.
 
+A URL that names the Sense cloud (any `*.sense.com` host) must use `https://` or `wss://`: the account password and the bearer token travel to it, so startup refuses a plain `http://`, `ws://` or scheme-less spelling. Any other host, such as the bundled fake Sense (`http://sense_fake:8080`), may use plain `http://` and `ws://`.
+
 ### Headers and Versions
 
 | Variable                              | Default              | Description                           |

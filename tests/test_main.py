@@ -219,6 +219,53 @@ class TestValidateEnvironment:
             r.levelname == "ERROR" and var in r.getMessage() for r in caplog.records
         )
 
+    @pytest.mark.parametrize(
+        ("var", "url"),
+        [
+            ("SENSE_COLLECTOR_API_BASE_URL", "http://api.sense.com/apiservice/api/v1"),
+            ("SENSE_COLLECTOR_API_BASE_URL", "HTTP://API.Sense.com./apiservice/api/v1"),
+            ("SENSE_COLLECTOR_WS_BASE_URL", "ws://clientrt.sense.com"),
+            ("SENSE_COLLECTOR_WS_BASE_URL", "//clientrt.sense.com"),
+        ],
+    )
+    def test_the_sense_cloud_without_tls_is_refused(self, caplog, var, url):
+        """The login password and the bearer token travel to these hosts: a plain
+        http:// or ws:// spelling would send both unencrypted."""
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        attr = var.removeprefix("SENSE_COLLECTOR_")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(config, "describe_settings", return_value={var: url}),
+            patch.object(config, attr, url),
+            pytest.raises(ValueError, match="TLS"),
+        ):
+            validate_environment()
+        assert any(
+            r.levelname == "ERROR" and var in r.getMessage() for r in caplog.records
+        )
+
+    @pytest.mark.parametrize(
+        ("var", "url"),
+        [
+            ("SENSE_COLLECTOR_API_BASE_URL", "https://api.sense.com/apiservice/api/v1"),
+            ("SENSE_COLLECTOR_WS_BASE_URL", "wss://clientrt.sense.com"),
+            (
+                "SENSE_COLLECTOR_API_BASE_URL",
+                "http://sense_fake:8080/apiservice/api/v1",
+            ),
+            ("SENSE_COLLECTOR_WS_BASE_URL", "ws://sense_fake:8080"),
+        ],
+    )
+    def test_tls_to_sense_and_plain_text_to_a_fake_are_both_accepted(self, var, url):
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        attr = var.removeprefix("SENSE_COLLECTOR_")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(config, "describe_settings", return_value={var: url}),
+            patch.object(config, attr, url),
+        ):
+            validate_environment()
+
     def test_an_ipv6_url_keeps_its_brackets_in_the_log(self, caplog):
         url = "http://[::1]:8086/x"
         env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
