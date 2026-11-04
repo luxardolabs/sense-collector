@@ -28,9 +28,22 @@ class TestConvertToEpoch:
         assert first == int(datetime(2026, 6, 15, 12, 30, 45, tzinfo=UTC).timestamp())
 
     @pytest.mark.parametrize(
+        "value",
+        [
+            "2026-01-01T00:00:00Z",
+            "2026-01-01T00:00:00.5Z",
+            "2026-01-01T00:00:00.123456Z",
+            "2026-01-01T01:00:00+01:00",
+        ],
+        ids=["whole-seconds", "one-fraction-digit", "microseconds", "offset"],
+    )
+    def test_every_iso_utc_spelling_reads_as_the_same_second(self, value):
+        assert convert_to_epoch(value) == 1767225600
+
+    @pytest.mark.parametrize(
         "bad",
-        ["", "not-a-timestamp", "2026-01-01", "2026-01-01T00:00:00Z"],
-        ids=["empty", "garbage", "date-only", "no-microseconds"],
+        ["", "not-a-timestamp", "2026-01-01", "2026-01-01T00:00:00"],
+        ids=["empty", "garbage", "date-only", "no-timezone"],
     )
     def test_an_unparseable_value_is_none_not_an_exception(self, bad):
         assert convert_to_epoch(bad) is None
