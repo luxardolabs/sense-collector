@@ -187,6 +187,57 @@ async def test_persist_realtime_data(influxdb_params, mock_influxdb_client):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "epoch",
+    [1e20, -1e20, float("inf"), float("-inf"), float("nan"), True, "1700000000", None],
+)
+async def test_a_realtime_frame_with_an_unusable_epoch_writes_nothing(
+    influxdb_params, epoch, caplog
+):
+    """The epoch stamps every point of the frame: one that is not a finite number in
+    InfluxDB's timestamp range leaves no time to write them at, so the frame is unusable
+    and nothing is written, without raising out of the storage layer."""
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock()
+
+    usable = await storage.persist_realtime_data(
+        monitor_id="monitor1",
+        hertz=60.0,
+        total_current=10.5,
+        total_watts=1200.0,
+        epoch=epoch,
+        voltage=[120.0, 120.0],
+        devices=[{"id": "device1", "name": "Device 1", "w": 100}],
+        channels=[600.0, 600.0],
+    )
+
+    assert usable is False
+    storage.write_points.assert_not_called()
+    assert "epoch" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_a_float_epoch_is_written_as_whole_seconds(influxdb_params):
+    storage = InfluxDBStorage(influxdb_params)
+    storage.write_points = AsyncMock()
+
+    usable = await storage.persist_realtime_data(
+        monitor_id="monitor1",
+        hertz=None,
+        total_current=10.5,
+        total_watts=1200.0,
+        epoch=1700000000.75,
+        voltage=[],
+        devices=[],
+        channels=[],
+    )
+
+    assert usable is True
+    points = storage.write_points.call_args[0][0]
+    assert all(p._time == 1700000000 for p in points)
+
+
+@pytest.mark.asyncio
 async def test_persist_device_data_regular(influxdb_params, mock_influxdb_client):
     """Test persisting regular device data."""
     storage = InfluxDBStorage(influxdb_params)

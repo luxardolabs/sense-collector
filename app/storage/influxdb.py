@@ -74,6 +74,21 @@ def _event_precision(time: Any) -> str:
     return "ms" if isinstance(time, str) else "s"
 
 
+# InfluxDB stores a timestamp as int64 nanoseconds: seconds outside this range cannot be written.
+_MAX_EPOCH_SECONDS = (2**63 - 1) // 1_000_000_000
+
+
+def _epoch_seconds(value: Any) -> int | None:
+    """A realtime frame's epoch as whole seconds, or None when it is not a finite number
+    InfluxDB can store (a bool, a string, NaN, infinity, or beyond the int64-nanosecond
+    range all have no time to write at)."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    if not math.isfinite(value) or not 0 <= value <= _MAX_EPOCH_SECONDS:
+        return None
+    return int(value)
+
+
 def _num(value: Any) -> Any:
     """A realtime reading as float, so its InfluxDB field type never depends on spelling.
 
@@ -391,7 +406,8 @@ class InfluxDBStorage:
     ) -> bool:
         """Persist real-time sensor data; True when the mains reading itself was usable.
 
-        Usable means current and watts (and hertz, when the monitor measures it) are finite
+        Usable means the epoch is a timestamp InfluxDB can store (otherwise nothing is
+        written) and current and watts (and hertz, when the monitor measures it) are finite
         numbers, judged here before the write: the answer is about what the collector received, never about whether
         InfluxDB took it (the healthcheck reports on the collector, not the sink).
         """
@@ -401,6 +417,15 @@ class InfluxDBStorage:
             len(devices),
             hertz,
         )
+
+        seconds = _epoch_seconds(epoch)
+        if seconds is None:
+            # Every point of the frame is stamped with this time, so none can be written.
+            storage_logger.warning(
+                "Realtime frame skipped: its epoch %r is not a usable timestamp", epoch
+            )
+            return False
+        epoch = seconds
 
         current_time = datetime.now(UTC)
         epoch_time = datetime.fromtimestamp(epoch, UTC)
