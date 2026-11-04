@@ -64,7 +64,7 @@ docker run -d \
 
 The collector reaches out to the Sense cloud and your InfluxDB; it exposes no ports.
 
-The output directory is only written when `SENSE_COLLECTOR_OUTPUT_RECEIVED_DATA=true`. Then create it first and give it to the container's user (uid 1000), or the collector refuses to start: `sudo mkdir -p /mnt/docker/sense-collector/output && sudo chown 1000:1000 /mnt/docker/sense-collector/output`. Docker would otherwise create it owned by root.
+The output directory holds the collector's heartbeat (`.heartbeat`) whenever the container's user can write it (otherwise the heartbeat falls back to `/tmp` inside the container), and its export files when `SENSE_COLLECTOR_OUTPUT_RECEIVED_DATA=true`. Give each collector a directory of its own: the healthcheck reads the heartbeat there. With exports on, create it first and give it to the container's user (uid 1000), or the collector refuses to start: `sudo mkdir -p /mnt/docker/sense-collector/output && sudo chown 1000:1000 /mnt/docker/sense-collector/output`. Docker would otherwise create it owned by root.
 
 ## Verify
 

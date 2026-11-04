@@ -159,7 +159,8 @@ services:
     env_file:
       - .env.prod-tyle
     volumes:
-      - ${OUTPUT_DIR:-/mnt/docker/sense-collector/output}:/app/output
+      # Each stack's own variable: this folder holds its heartbeat, never shared.
+      - ${OUTPUT_DIR_TYLE:-/mnt/docker/sense-collector/output}:/app/output
 
   sense_prod_bb_collector:
     <<: *prod-collector
@@ -168,7 +169,7 @@ services:
     env_file:
       - .env.prod-bb
     volumes:
-      - ${OUTPUT_DIR:-/mnt/docker/sense-collector-bb/output}:/app/output
+      - ${OUTPUT_DIR_BB:-/mnt/docker/sense-collector-bb/output}:/app/output
 
   # ═══════════════════ fake Sense endpoint — demo + e2e profiles ══════════════════════
   # Built OUTSIDE compose by `make harness-build` (compose never builds). The bare `:local`

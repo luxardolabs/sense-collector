@@ -189,3 +189,19 @@ def test_every_setting_in_the_env_template_is_read_by_the_collector() -> None:
     keys = set(re.findall(r"^#?\s*(SENSE_COLLECTOR_[A-Z0-9_]+)=", template, re.M))
     assert keys, "the template sets no SENSE_COLLECTOR_ keys"
     assert not {key for key in keys if key not in source}
+
+
+def test_each_stack_binds_its_output_folder_through_its_own_variable() -> None:
+    """The output folder holds the stack's heartbeat. Two collectors bound through one
+    variable share a folder once it is set, and a live collector then keeps a dead one's
+    healthcheck green."""
+    binds = re.findall(
+        r"^\s*-\s*\$\{([A-Z0-9_]+)(?::-([^}]*))?\}:/app/output\s*$",
+        (REPO / "compose.yml").read_text(),
+        re.MULTILINE,
+    )
+    assert len(binds) >= 2, binds
+    names = [name for name, _ in binds]
+    defaults = [default for _, default in binds]
+    assert len(set(names)) == len(names), names
+    assert len(set(defaults)) == len(defaults), defaults

@@ -142,7 +142,7 @@ A URL that names the Sense cloud (any `*.sense.com` host) must use `https://` or
 
 ## Logging Configuration
 
-The collector logs the fleet way (`app/core/logging_config.py`, emitted by luxarch): one JSON object per line on stdout, with the caller's fields under `attributes`. Collect it with your container log driver (`docker logs`, Loki, …); there is no file output. Every line passes through a redactor: the WebSocket access token is replaced with `[REDACTED]` and control characters are escaped, at any level and in either format.
+The collector logs the fleet way (`app/core/logging_config.py`, emitted by luxarch): one JSON object per line on stdout, with the caller's fields under `attributes`. Collect it with your container log driver (`docker logs`, Loki, …); there is no file output. Every line passes through a redactor: the Sense access token, as the WebSocket URL's `access_token=` or as a `Bearer` value an exception quotes, is replaced with `[REDACTED]`, and control characters are escaped, at any level and in either format.
 
 | Variable                            | Default | Values                                | Description                                              |
 | ----------------------------------- | ------- | ------------------------------------- | -------------------------------------------------------- |
@@ -165,6 +165,8 @@ A number outside a setting's Min/Max is clamped to the nearest bound (and logged
 | `SENSE_COLLECTOR_EXPORT_FILE_DEVICE_PREFIX` | `device_`       | Prefix for device files               |
 | `SENSE_COLLECTOR_EXPORT_FILE_EXTENSION`     | `.json`         | File extension for exports            |
 | `SENSE_COLLECTOR_FILE_MAX_DEVICE_ID_LENGTH` | `100`           | Maximum device ID length in filenames |
+
+In `compose.yml` the prod stacks bind their output folder to `/app/output` from a variable of their own, read from the shell or a project `.env` when compose resolves the file: `OUTPUT_DIR_TYLE` (prod-tyle, default `/mnt/docker/sense-collector/output`) and `OUTPUT_DIR_BB` (prod-bb, default `/mnt/docker/sense-collector-bb/output`). The folder holds the stack's heartbeat, so two stacks never share one.
 
 With exports on, the collector writes `device_<id>.json` per device, `devices.json` (the device list) and `received_data.jsonl` (raw WebSocket frames), each readable by its owner only (0600). In a device ID, characters other than letters, numbers, `_` and `-` are percent-encoded, so two devices never share a file; an ID too long for the limit is cut and given a hash of the whole ID.
 
