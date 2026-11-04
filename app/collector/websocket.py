@@ -77,9 +77,12 @@ class WebSocketHandler:
                     self.auth_failures,
                 )
             else:
+                # Not a rejection: the run of consecutive rejections the limit counts ends.
+                self.auth_failures = 0
                 api_logger.error("Failed to connect WebSocket: %s", e)
             return False
         except (OSError, WebSocketException, TimeoutError) as e:
+            self.auth_failures = 0
             api_logger.error("Failed to connect WebSocket: %s", e)
             return False
 
@@ -313,8 +316,10 @@ class WebSocketHandler:
         """
         if self.auth_failures > config.WS_AUTH_FAILURE_LIMIT:
             api_logger.error(
-                "WebSocket auth rejected %s times in a row — the credentials look wrong, "
-                "not merely expired. Exiting so the restart policy surfaces it.",
+                "WebSocket auth rejected %s times in a row, re-authenticating before each "
+                "retry: the account's credentials are refused, Sense's login is failing, or "
+                "Sense's realtime service is rejecting valid tokens. Exiting so the restart "
+                "policy surfaces it.",
                 self.auth_failures,
             )
             raise WebSocketAuthLimitExceeded(

@@ -392,6 +392,27 @@ class TestAuthRejectionRecovery:
         assert handler.auth_failures == 1
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "between",
+        [_invalid_status(502), OSError("connection refused"), TimeoutError()],
+        ids=["502", "network", "timeout"],
+    )
+    async def test_any_other_failure_breaks_the_run_of_rejections(
+        self, handler, between
+    ):
+        """The limit counts consecutive rejections: a 401 now and then across an hour of a
+        flaky Sense is not a rejected credential, so a non-auth failure starts the count over."""
+        sequence = [_invalid_status(401), _invalid_status(401), between]
+        sequence += [_invalid_status(401)]
+        with patch(
+            "app.collector.websocket.websockets.connect",
+            AsyncMock(side_effect=sequence),
+        ):
+            for _ in sequence:
+                assert await handler.connect() is False
+        assert handler.auth_failures == 1
+
+    @pytest.mark.asyncio
     async def test_a_non_auth_rejection_is_not_counted_as_auth(self, handler):
         """A 502 is the proxy having a bad day — re-authenticating would not help."""
         with patch(

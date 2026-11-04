@@ -89,15 +89,18 @@ A URL that names the Sense cloud (any `*.sense.com` host) must use `https://` or
 
 ## WebSocket Configuration
 
-| Variable                                     | Default | Min | Max  | Description                                                           |
-| -------------------------------------------- | ------- | --- | ---- | --------------------------------------------------------------------- |
-| `SENSE_COLLECTOR_WS_HEARTBEAT_INTERVAL`      | `10`    | 1   | 300  | WebSocket heartbeat interval (seconds)                                |
-| `SENSE_COLLECTOR_WS_HEARTBEAT_TIMEOUT`       | `30`    | 5   | 600  | WebSocket heartbeat timeout (seconds)                                 |
-| `SENSE_COLLECTOR_WS_CLOSE_TIMEOUT`           | `2.0`   | 0.5 | 10   | Seconds to wait for the server's close frame on shutdown or reconnect |
-| `SENSE_COLLECTOR_WS_RECONNECT_DELAY_INITIAL` | `5`     | 1   | 60   | Initial reconnection delay (seconds)                                  |
-| `SENSE_COLLECTOR_WS_RECONNECT_DELAY_CAP`     | `60`    | 10  | 3600 | Maximum reconnection delay (seconds)                                  |
-| `SENSE_COLLECTOR_WS_HEALTH_LOG_INTERVAL`     | `300`   | 60  | 3600 | Health status log interval (seconds)                                  |
-| `SENSE_COLLECTOR_WS_HEALTH_CHECK_INTERVAL`   | `1`     | 1   | 10   | Health check interval (seconds)                                       |
+| Variable                                     | Default | Min | Max  | Description                                                                |
+| -------------------------------------------- | ------- | --- | ---- | -------------------------------------------------------------------------- |
+| `SENSE_COLLECTOR_WS_HEARTBEAT_INTERVAL`      | `10`    | 1   | 300  | WebSocket heartbeat interval (seconds)                                     |
+| `SENSE_COLLECTOR_WS_HEARTBEAT_TIMEOUT`       | `30`    | 5   | 600  | WebSocket heartbeat timeout (seconds)                                      |
+| `SENSE_COLLECTOR_WS_CLOSE_TIMEOUT`           | `2.0`   | 0.5 | 10   | Seconds to wait for the server's close frame on shutdown or reconnect      |
+| `SENSE_COLLECTOR_WS_RECONNECT_DELAY_INITIAL` | `5`     | 1   | 60   | Initial reconnection delay (seconds)                                       |
+| `SENSE_COLLECTOR_WS_RECONNECT_DELAY_CAP`     | `60`    | 10  | 3600 | Maximum reconnection delay (seconds)                                       |
+| `SENSE_COLLECTOR_WS_HEALTH_LOG_INTERVAL`     | `300`   | 60  | 3600 | Health status log interval (seconds)                                       |
+| `SENSE_COLLECTOR_WS_HEALTH_CHECK_INTERVAL`   | `1`     | 1   | 10   | Health check interval (seconds)                                            |
+| `SENSE_COLLECTOR_WS_AUTH_FAILURE_LIMIT`      | `5`     | 1   | 100  | Consecutive WebSocket auth rejections tolerated before the collector exits |
+
+A WebSocket handshake rejected with 401 or 403 is followed by a re-authentication and a retry. Once more than `SENSE_COLLECTOR_WS_AUTH_FAILURE_LIMIT` rejections arrive in a row (about 2½ minutes at the default reconnect delays), the collector exits with status 1, so the container's restart policy shows the failure instead of a collector that runs with no data. Any other connect failure (a 5xx, a network error, a timeout) ends the run of rejections. The cause can be a refused credential, a failing Sense login, or Sense's realtime service rejecting valid tokens; the restarted collector logs in again and recovers once Sense does.
 
 ## Container Health Check
 

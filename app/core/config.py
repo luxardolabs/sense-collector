@@ -266,10 +266,12 @@ WS_RECONNECT_DELAY_CAP = get_env_int(
 WS_HEALTH_LOG_INTERVAL = get_env_int(
     "SENSE_COLLECTOR_WS_HEALTH_LOG_INTERVAL", 300, min_val=60, max_val=3600
 )
-# Consecutive WebSocket auth rejections (401/403) tolerated before the collector stops
-# retrying and exits, so the container restart policy surfaces a genuinely-bad credential
-# instead of it idling with no data. Each rejection triggers a re-auth first, so this only
-# trips when re-authentication itself keeps producing a token the server rejects.
+# Consecutive WebSocket auth rejections (401/403) tolerated before the collector exits, so
+# the container restart policy surfaces it instead of the collector idling with no data.
+# Any other connect failure (a 5xx, a network error, a timeout) ends the run of rejections.
+# Each rejection triggers a re-auth first, so this trips when the re-authenticated token
+# keeps being refused, or the re-authentication keeps failing: a refused credential, a
+# failing Sense login, or Sense's realtime service rejecting valid tokens.
 WS_AUTH_FAILURE_LIMIT = get_env_int(
     "SENSE_COLLECTOR_WS_AUTH_FAILURE_LIMIT", 5, min_val=1, max_val=100
 )
