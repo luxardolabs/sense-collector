@@ -174,10 +174,15 @@ API_PASSWORD = os.getenv("SENSE_COLLECTOR_API_PASSWORD", "")
 # password-only.
 
 
+# Invisible characters str.split() does not treat as whitespace, which a copied secret can
+# still carry: zero-width space, non-joiner and joiner, word joiner, and the byte-order mark.
+_INVISIBLE = dict.fromkeys(map(ord, "\u200b\u200c\u200d\u2060\ufeff"))
+
+
 def normalize_mfa_secret(raw: str) -> str:
     """The secret as base32 reads it: authenticator apps and web pages show it in lowercase
-    or in groups, and a copy can carry any kind of space (a no-break or thin one too)."""
-    return "".join(raw.split()).upper()
+    or in groups, and a copy can carry any kind of space, visible or not."""
+    return "".join(raw.translate(_INVISIBLE).split()).upper()
 
 
 MFA_SECRET = normalize_mfa_secret(os.getenv("SENSE_COLLECTOR_MFA_SECRET", ""))

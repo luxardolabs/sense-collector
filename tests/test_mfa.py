@@ -134,6 +134,17 @@ async def test_mfa_required_without_a_secret_backs_off_a_renewal(
     await collector.close()
 
 
+def test_the_fake_with_a_bad_secret_answers_401_instead_of_dropping(
+    fake_base, monkeypatch
+):
+    monkeypatch.setattr(fake_sense, "MFA_SECRET", "NOT-BASE32!")
+    response = httpx.post(
+        fake_base + "/authenticate/mfa",
+        data={"totp": "123456", "mfa_token": fake_sense.MFA_TOKEN, "client_time": "x"},
+    )
+    assert response.status_code == 401
+
+
 @pytest.mark.parametrize(
     "client_time", ["not-a-timestamp", "2026-11-04 12:00:00", "2000-01-01T00:00:00Z"]
 )

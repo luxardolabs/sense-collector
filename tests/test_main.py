@@ -302,10 +302,17 @@ class TestValidateEnvironment:
         ("raw", "secret"),
         [
             ("jbsw y3dp ehpk 3pxp", "JBSWY3DPEHPK3PXP"),
-            ("JBSW Y3DP\tEHPK  3PXP\n", "JBSWY3DPEHPK3PXP"),
+            (
+                "JBSW\N{NO-BREAK SPACE}Y3DP\tEHPK\N{THIN SPACE} 3PXP\n",
+                "JBSWY3DPEHPK3PXP",
+            ),
+            (
+                "JBSW\N{IDEOGRAPHIC SPACE}Y3DP\N{ZERO WIDTH SPACE}EHPK\N{ZERO WIDTH NO-BREAK SPACE}3PXP\N{WORD JOINER}",
+                "JBSWY3DPEHPK3PXP",
+            ),
             ("", ""),
         ],
-        ids=["spaces-and-lowercase", "any-whitespace", "unset"],
+        ids=["spaces-and-lowercase", "any-whitespace", "invisible-characters", "unset"],
     )
     def test_the_mfa_secret_ignores_case_and_every_kind_of_space(self, raw, secret):
         """Authenticator apps and web pages show the secret in groups, and a copy can carry
@@ -313,7 +320,31 @@ class TestValidateEnvironment:
         assert config.normalize_mfa_secret(raw) == secret
 
     @pytest.mark.parametrize(
-        "secret", ["NOT-BASE32!", "JBSWY3DP1", "0000", "JBSWY3DPEHPK3PXÉ"]
+        "secret",
+        [
+            "JBSWY3DPEHPK3PXPJBSWY3DPEH",
+            "JBSWY3DPEHPK3PX",
+            "JBSWY3DPEHPK3PXPJBSWY3DPEH======",
+        ],
+    )
+    def test_an_unpadded_or_padded_base32_secret_is_accepted(self, secret):
+        """A 16-byte key is 26 base32 characters: the check must pad it, as pyotp does."""
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(config, "MFA_SECRET", secret),
+            patch.object(config, "describe_settings", return_value={}),
+        ):
+            validate_environment()
+
+    @pytest.mark.parametrize(
+        "secret",
+        [
+            "NOT-BASE32!",
+            "JBSWY3DP1",
+            "0000",
+            "JBSWY3DPEHPK3PX\N{LATIN CAPITAL LETTER E WITH ACUTE}",
+        ],
     )
     def test_an_mfa_secret_that_is_not_base32_is_refused(self, caplog, secret):
         """Every login would fail on it, so startup says so instead."""

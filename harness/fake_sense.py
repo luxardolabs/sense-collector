@@ -28,6 +28,7 @@ neighbour).
 """
 
 import base64
+import binascii
 import calendar
 import contextlib
 import hashlib
@@ -46,6 +47,9 @@ from urllib.parse import parse_qs, urlparse
 PORT = int(os.getenv("SENSE_FAKE_PORT", "8080"))
 MONITOR_ID = int(os.getenv("SENSE_FAKE_MONITOR_ID", "12345"))
 MFA_SECRET = "".join(os.getenv("SENSE_FAKE_MFA_SECRET", "").split()).upper()
+if MFA_SECRET:
+    # Refuse at start what totp() could not decode, rather than drop every MFA request.
+    base64.b32decode(MFA_SECRET + "=" * (-len(MFA_SECRET) % 8))
 MFA_TOKEN = "fake-mfa-token"
 USER_ID = int(os.getenv("SENSE_FAKE_USER_ID", "67890"))
 ACCOUNT_ID = int(os.getenv("SENSE_FAKE_ACCOUNT_ID", "11111"))
@@ -284,7 +288,10 @@ class Handler(BaseHTTPRequestHandler):
         form = parse_qs(self.rfile.read(length).decode()) if length else {}
         if path.endswith("/authenticate/mfa"):
             now = time.time()
-            valid = {totp(MFA_SECRET, now + skew) for skew in (-30, 0, 30)}
+            try:
+                valid = {totp(MFA_SECRET, now + skew) for skew in (-30, 0, 30)}
+            except binascii.Error:
+                valid = set()
             if (
                 MFA_SECRET
                 and form.get("mfa_token") == [MFA_TOKEN]
