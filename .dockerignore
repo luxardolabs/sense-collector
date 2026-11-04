@@ -3,7 +3,7 @@
 # must never enter an image or would bust the build cache.
 
 # Git
-.git
+**/.git
 .gitignore
 
 # Python / caches. `**/` because a bare pattern matches only at the context root, and
@@ -23,10 +23,17 @@ ENV/
 .coverage
 htmlcov/
 
-# Secrets / env — must NEVER enter the image (only .env.example is harmless)
-.env
-.env.*
+# Secrets / env / keys — must NEVER enter the image at any depth (only .env.example is harmless).
+# `**/` for the same reason as the caches: a bare `.env` excludes ./.env and not app/.env.
+**/.env
+**/.env.*
+**/*.env
 !.env.example
+**/*credentials.json
+**/*.pem
+**/id_rsa*
+**/id_ecdsa*
+**/id_ed25519*
 
 # Runtime output + quarantined captures (bind-mounted / local-only, never baked)
 output/

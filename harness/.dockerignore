@@ -1,0 +1,19 @@
+# Build context for the fake-Sense harness image (`make harness-build`). The Dockerfile COPYs
+# fake_sense.py alone; nothing below may reach the builder at any depth.
+
+# Python bytecode
+**/__pycache__/
+**/*.py[cod]
+
+# Secrets / env / keys
+**/.env
+**/.env.*
+**/*.env
+**/*credentials.json
+**/*.pem
+**/id_rsa*
+**/id_ecdsa*
+**/id_ed25519*
+
+# Git
+**/.git

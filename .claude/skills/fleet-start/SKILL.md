@@ -3,7 +3,7 @@ name: fleet-start
 description: Start (or resume after a compact) a working session the fleet way — read this repo's CLAUDE.md and the conduct standard, rehydrate from LuxPM leanly (focus + this repo's open issues, keys and titles only), and restate the six session rules. Run at the start of every session and after every compact.
 ---
 
-<!-- luxarch:fleet-start-skill asset v10 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit fleet-start-skill`. -->
+<!-- luxarch:fleet-start-skill asset v12 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit fleet-start-skill`. -->
 
 # Fleet start
 
@@ -26,9 +26,10 @@ LuxPM is the state. The conversation is not a second copy of it: rehydrate from 
 
 - `luxpm_get_focus`.
 - This repo's open issues: `luxpm_list_issues` with `project` set to this repo's project code and `state` (`in_progress` first, then `todo`), a small `limit`. Keep **keys and titles** in mind; do not quote the payload back.
+- This repo's open guard escalations: `luxpm_list_issues` with `project` set to this repo's project code and `labels` `fleet-escalation`, with no state and no date filter (skip `done` and `cancelled`). Read each one's `waiting_on`. One that names no guard maintainer (`luxarch maintainer`, `luxlint maintainer`, `luxaudit maintainer`, `luxios maintainer`) is waiting on you: the maintainer answered and named your step. Work those first, as `/pin-bump` step 5 says, and set `waiting_on` when you reply (`luxarch --doc FLEET-AGENT-CONDUCT-STANDARD`, "LuxPM: required practices").
 - `luxpm_get_context` **only** for the issue you are about to work. Nothing else until it is needed.
 
-**Evidence:** one line: what is in progress, and what you are picking up.
+**Evidence:** one line: what is in progress, the escalations waiting on you (keys, or "none"), and what you are picking up.
 
 ## 3. Worktrees: inventory, prune, enter yours
 
@@ -38,6 +39,7 @@ Every agent works in its issue's worktree; the main checkout is the owner's (`lu
 - **An `ADOPT` line is yours, before any new work.** A session that died (a reboot, a lost connection) left that worktree's work mid-issue, and you are its successor: the owner starts every session in the main checkout and never goes looking for the old one. Run the line's steps in order: `python3 .claude/hooks/worktree.py adopt <ISSUE-KEY>` (it claims the worktree's lock for you; two sessions never adopt the same one), `EnterWorktree` with `path=.claude/worktrees/<ISSUE-KEY>`, then rehydrate from the issue's last LuxPM note, the end of the dead session's transcript, and its scratchpad, all named on the line. Then carry on where it stopped. Never start that issue afresh beside it, and never hand the owner the `claude --resume` fallback instead of adopting. With several ADOPT lines, adopt the first; the owner's other sessions take the rest.
 - A worktree with a live session is that agent's: name it to the owner in one line (issue, branch, state). Removing any worktree holding work is a delete, the owner's call.
 - Before your first write: `EnterWorktree` with `name` = the issue key (`.claude/worktrees/<ISSUE-KEY>`), or `path=.claude/worktrees/<ISSUE-KEY>` for one you adopted.
+- The machine is shared with every other agent: per-unit scratch, docker names carrying the issue key, no fixed host ports, no writes outside your worktree and scratch, at most three heavy jobs at once, deploys from the main checkout (`luxarch --doc FLEET-AGENT-CONDUCT-STANDARD`, "Shared machine").
 - Know who pushes: `[agents] push` in `.luxarch.toml` (`"agent"`: you push when the issue lands; `"owner"`: you stop at the landed commit).
 
 **Evidence:** the `list --prune` summary line (`N pruned, M kept, K holding unmerged or uncommitted work, A with no live session to adopt`), the `adopt` result when there was one, and the worktree you entered.
