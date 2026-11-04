@@ -16,6 +16,11 @@ from app.utils.file_validator import FilePathValidator, private_file
 from app.utils.logging import api_logger
 
 
+class WebSocketAuthLimitExceeded(RuntimeError):
+    """The server rejected the handshake past WS_AUTH_FAILURE_LIMIT times in a row: the
+    credentials are wrong, not stale, and the collector stops so the restart policy shows it."""
+
+
 class WebSocketHandler:
     """Handles WebSocket connection with automatic reconnection and health monitoring."""
 
@@ -233,6 +238,12 @@ class WebSocketHandler:
                 self.is_shutting_down = True
                 raise
 
+            except WebSocketAuthLimitExceeded:
+                # The one failure the loop must not absorb: the limit exists to end the
+                # process so the restart policy surfaces wrong credentials.
+                self.is_shutting_down = True
+                raise
+
             # swallowed-exceptions: reconnect supervisor's last-resort net.
             # This loop IS the collector's availability; escaping here ends the
             # process. CancelledError is re-raised above, so shutdown still works.
@@ -306,7 +317,7 @@ class WebSocketHandler:
                 "not merely expired. Exiting so the restart policy surfaces it.",
                 self.auth_failures,
             )
-            raise RuntimeError(
+            raise WebSocketAuthLimitExceeded(
                 f"WebSocket authentication failed {self.auth_failures} times consecutively"
             )
         if self.refresh_url is None:

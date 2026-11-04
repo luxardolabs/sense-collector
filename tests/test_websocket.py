@@ -7,7 +7,11 @@ import httpx
 import pytest
 from websockets.exceptions import InvalidHandshake, WebSocketException
 
-from app.collector.websocket import WebSocketHandler, handle_websocket_connection
+from app.collector.websocket import (
+    WebSocketAuthLimitExceeded,
+    WebSocketHandler,
+    handle_websocket_connection,
+)
 from app.core import config
 
 
@@ -454,6 +458,29 @@ class TestAuthRejectionRecovery:
         handler.auth_failures = config.WS_AUTH_FAILURE_LIMIT + 1
         with pytest.raises(RuntimeError, match="consecutively"):
             await handler._refresh_credentials()
+
+    @pytest.mark.asyncio
+    async def test_run_ends_once_rejections_pass_the_limit(self, handler):
+        """Through run(), not the helper alone: the limit's error must leave the reconnect
+        loop, whose last-resort net would otherwise log it and keep looping."""
+        handler.refresh_url = AsyncMock(return_value=handler.ws_url)
+        attempts = 0
+
+        async def always_rejected():
+            nonlocal attempts
+            attempts += 1
+            handler.auth_failures += 1
+            if attempts > config.WS_AUTH_FAILURE_LIMIT + 5:
+                handler.is_shutting_down = True  # a guard so a regression ends the test
+            return False
+
+        with (
+            patch.object(handler, "connect", AsyncMock(side_effect=always_rejected)),
+            patch.object(handler, "_handle_reconnection_delay", AsyncMock()),
+            pytest.raises(WebSocketAuthLimitExceeded, match="consecutively"),
+        ):
+            await asyncio.wait_for(handler.run(), timeout=5)
+        assert attempts == config.WS_AUTH_FAILURE_LIMIT + 1
 
     @pytest.mark.asyncio
     async def test_no_refresh_callback_is_survivable(self, handler):
