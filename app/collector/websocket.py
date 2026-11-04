@@ -9,7 +9,7 @@ from typing import Any
 import aiofiles
 import websockets
 from websockets.asyncio.client import ClientConnection
-from websockets.exceptions import InvalidMessage, InvalidStatus, WebSocketException
+from websockets.exceptions import InvalidStatus, WebSocketException
 
 from app.core import config
 from app.utils.file_validator import FilePathValidator, private_file
@@ -81,13 +81,9 @@ class WebSocketHandler:
                 self.auth_failures = 0
                 api_logger.error("Failed to connect WebSocket: %s", e)
             return False
-        except InvalidMessage as e:
-            # The server answered, in a form websockets could not parse (a 401 with a body
-            # cut short reads this way): neither a rejection to count nor a reason to end
-            # the run of them.
-            api_logger.error("Failed to connect WebSocket: %s", e)
-            return False
         except (OSError, WebSocketException, TimeoutError) as e:
+            # Includes InvalidMessage: a connection dropped before any answer and a response
+            # websockets cannot parse look alike, so neither counts as a rejection.
             self.auth_failures = 0
             api_logger.error("Failed to connect WebSocket: %s", e)
             return False

@@ -413,12 +413,12 @@ class TestAuthRejectionRecovery:
         assert handler.auth_failures == 1
 
     @pytest.mark.asyncio
-    async def test_an_unparseable_answer_does_not_break_the_run_of_rejections(
+    async def test_an_answer_websockets_cannot_read_ends_the_run_of_rejections(
         self, handler
     ):
-        """websockets reports a 401 whose response it cannot parse (a cut-short body, an
-        HTTP/1.0 status line) as InvalidMessage. The server did answer, so a credential
-        refused in alternating shapes must still reach the limit."""
+        """websockets raises InvalidMessage both for a connection dropped before any status
+        line and for a response it cannot parse. The two cannot be told apart without
+        matching its message text, so InvalidMessage is handled like any other failure."""
         from websockets.exceptions import InvalidMessage
 
         sequence = [
@@ -432,7 +432,7 @@ class TestAuthRejectionRecovery:
         ):
             for _ in sequence:
                 assert await handler.connect() is False
-        assert handler.auth_failures == 2
+        assert handler.auth_failures == 1
 
     @pytest.mark.asyncio
     async def test_a_non_auth_rejection_is_not_counted_as_auth(self, handler):
