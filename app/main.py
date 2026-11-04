@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import binascii
 import contextlib
 import logging
 import os
@@ -14,7 +16,7 @@ from app.core.privacy import redact
 from app.storage.influxdb import InfluxDBStorage
 from app.utils.logging import AREA_LEVELS, logger
 
-_SENSITIVE = ("PASSWORD", "TOKEN", "USERNAME")
+_SENSITIVE = ("PASSWORD", "TOKEN", "USERNAME", "SECRET")
 # Names that match a marker but hold no secret (an interval in seconds).
 _NOT_SECRET = frozenset({"SENSE_COLLECTOR_API_TOKEN_RENEW"})
 
@@ -64,6 +66,15 @@ def _url_problem(url: str, authenticates_with: str) -> str | None:
     return None
 
 
+def _is_base32(secret: str) -> bool:
+    """Whether `secret` decodes as base32 (padding optional), the TOTP secret format."""
+    try:
+        base64.b32decode(secret + "=" * (-len(secret) % 8))
+    except binascii.Error:
+        return False
+    return True
+
+
 def _not_http2_internals(record: logging.LogRecord) -> bool:
     """False for hpack/h2 records: hpack logs each encoded header block, which carries the
     REST `Authorization: Bearer` token Huffman-coded, out of the token regex's sight."""
@@ -107,6 +118,14 @@ def validate_environment() -> None:
     if missing:
         logger.error("Missing required environment variables: %s", ", ".join(missing))
         raise ValueError("Missing required environment variables")
+
+    if config.MFA_SECRET and not _is_base32(config.MFA_SECRET):
+        # The message names no part of the value: it is a credential.
+        logger.error(
+            "SENSE_COLLECTOR_MFA_SECRET is not a base32 TOTP secret (letters A-Z and "
+            "digits 2-7, as the authenticator setup shows it): every login would fail."
+        )
+        raise ValueError("SENSE_COLLECTOR_MFA_SECRET is not a base32 TOTP secret")
 
     if config.OUTPUT_RECEIVED_DATA and config.EXPORT_FOLDER_UNWRITABLE:
         logger.error(

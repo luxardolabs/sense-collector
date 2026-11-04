@@ -9,6 +9,7 @@ One HTTP port (default `8080`) serves both the REST API and the realtime WebSock
 | Method | Path                                                 | Response                                                                            |
 | ------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | POST   | `/authenticate`                                      | auth JSON — `access_token`, `user_id`, `monitors[0].id`                             |
+| POST   | `/authenticate/mfa`                                  | with `SENSE_FAKE_MFA_SECRET` set: auth JSON for a valid `totp` + `mfa_token`        |
 | GET    | `/app/monitors/{id}/devices`                         | device list (bare array)                                                            |
 | GET    | `/app/monitors/{id}/devices/{device_id}`             | device detail                                                                       |
 | GET    | `/app/monitors/{id}/status`                          | monitor status                                                                      |
@@ -27,13 +28,14 @@ Any username/password is accepted.
 
 ## Env knobs
 
-| Var                     | Default | Meaning                               |
-| ----------------------- | ------- | ------------------------------------- |
-| `SENSE_FAKE_PORT`       | `8080`  | listen port                           |
-| `SENSE_FAKE_MONITOR_ID` | `12345` | monitor id returned by auth           |
-| `SENSE_FAKE_BASE_W`     | `1200`  | approximate whole-home baseline watts |
-| `SENSE_FAKE_INTERVAL`   | `1.0`   | seconds between realtime frames       |
-| `SENSE_FAKE_HZ`         | `60.0`  | mains frequency reported              |
+| Var                     | Default | Meaning                                                                                                                              |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `SENSE_FAKE_PORT`       | `8080`  | listen port                                                                                                                          |
+| `SENSE_FAKE_MONITOR_ID` | `12345` | monitor id returned by auth                                                                                                          |
+| `SENSE_FAKE_BASE_W`     | `1200`  | approximate whole-home baseline watts                                                                                                |
+| `SENSE_FAKE_INTERVAL`   | `1.0`   | seconds between realtime frames                                                                                                      |
+| `SENSE_FAKE_HZ`         | `60.0`  | mains frequency reported                                                                                                             |
+| `SENSE_FAKE_MFA_SECRET` | (unset) | base32 TOTP secret: the account has MFA on (`/authenticate` answers 401 + `mfa_token`; `/authenticate/mfa` takes that secret's code) |
 
 ## Protocol-fidelity note
 

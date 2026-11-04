@@ -169,6 +169,10 @@ BUILD_TIMESTAMP = os.getenv("SENSE_COLLECTOR_BUILD_TIMESTAMP", "unknown")
 # app.main.validate_environment; describe_settings() masks them in the startup log).
 API_USERNAME = os.getenv("SENSE_COLLECTOR_API_USERNAME", "")
 API_PASSWORD = os.getenv("SENSE_COLLECTOR_API_PASSWORD", "")
+# Optional: the base32 TOTP secret of an MFA-enabled Sense account (the seed shown when 2FA is
+# turned on). With it, each login completes the MFA step on its own; unset, login is
+# password-only. Spaces are ignored, as authenticator apps print it in groups of four.
+MFA_SECRET = os.getenv("SENSE_COLLECTOR_MFA_SECRET", "").replace(" ", "").upper()
 INFLUXDB_URL = os.getenv("SENSE_COLLECTOR_INFLUXDB_URL", "")
 INFLUXDB_TOKEN = os.getenv("SENSE_COLLECTOR_INFLUXDB_TOKEN", "")
 INFLUXDB_ORG = os.getenv("SENSE_COLLECTOR_INFLUXDB_ORG", "")
@@ -480,11 +484,12 @@ REQUIRED_ENV_VARS = [
 
 def describe_settings() -> dict[str, str]:
     """Effective config keyed by env-var name — the single source of truth for the startup
-    log (app.main logs this, masking PASSWORD/TOKEN/USERNAME). No hand-kept list that drifts.
+    log (app.main logs this, masking PASSWORD/TOKEN/USERNAME/SECRET). No hand-kept list that drifts.
     """
     return {
         "SENSE_COLLECTOR_API_USERNAME": API_USERNAME,
         "SENSE_COLLECTOR_API_PASSWORD": API_PASSWORD,
+        "SENSE_COLLECTOR_MFA_SECRET": MFA_SECRET,
         "SENSE_COLLECTOR_INFLUXDB_URL": INFLUXDB_URL,
         "SENSE_COLLECTOR_INFLUXDB_TOKEN": INFLUXDB_TOKEN,
         "SENSE_COLLECTOR_INFLUXDB_ORG": INFLUXDB_ORG,

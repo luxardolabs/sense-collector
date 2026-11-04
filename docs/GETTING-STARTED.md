@@ -41,6 +41,8 @@ The six required variables:
 | `SENSE_COLLECTOR_INFLUXDB_ORG`    | InfluxDB organization             |
 | `SENSE_COLLECTOR_INFLUXDB_BUCKET` | InfluxDB bucket (e.g. `sense`)    |
 
+If your Sense account has multi-factor authentication (2FA) on, also set `SENSE_COLLECTOR_MFA_SECRET` to its TOTP secret: see [Multi-factor authentication](CONFIGURATION.md#multi-factor-authentication).
+
 Everything else is optional and has sensible defaults — see [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Run

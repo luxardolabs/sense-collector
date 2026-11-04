@@ -30,6 +30,16 @@ These environment variables MUST be set for the application to run:
 | `SENSE_COLLECTOR_INFLUXDB_ORG`    | InfluxDB organization                                                                                                      | `your-org`              |
 | `SENSE_COLLECTOR_INFLUXDB_BUCKET` | InfluxDB bucket name                                                                                                       | `sense-data`            |
 
+## Multi-factor authentication
+
+An account with multi-factor authentication (2FA) on cannot log in with its password alone: Sense answers with a request for the 6-digit code. A headless collector cannot be prompted, so give it the account's **TOTP secret**, and it computes the current code on every login and token renewal.
+
+| Variable                     | Default | Description                                                                                                                                                                             |
+| ---------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SENSE_COLLECTOR_MFA_SECRET` | (unset) | The base32 TOTP secret of an MFA-enabled Sense account. Spaces and case are ignored. Unset: password-only login. Masked in the startup log; startup refuses a value that is not base32. |
+
+The secret is the seed the Sense app shows when 2FA is turned on (often only as a QR code, whose `otpauth://` link carries it as `secret=`). It is a credential: anyone holding it with the password can log in, so keep it in the stack's gitignored `.env.<stack>` file only. If the account has MFA on and the secret is unset, the login stops with an error naming `SENSE_COLLECTOR_MFA_SECRET`. The container's clock must be correct to within about 30 seconds, since the code changes every 30 seconds.
+
 ## API Configuration
 
 ### URLs and Endpoints

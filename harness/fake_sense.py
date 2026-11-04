@@ -4,7 +4,9 @@
 Lets sense-collector be tested end-to-end with NO Sense account and NO hardware.
 One HTTP port (default 8080) serves both the REST API and the realtime WebSocket:
 
-  POST /authenticate                            -> auth JSON (access_token + monitor id)
+  POST /authenticate                            -> auth JSON (access_token + monitor id), or
+                                                   401 + mfa_token when MFA is on
+  POST /authenticate/mfa                        -> auth JSON for a valid totp + mfa_token
   GET  /app/monitors/{id}/devices               -> device list
   GET  /app/monitors/{id}/devices/{device_id}   -> device detail
   GET  /app/monitors/{id}/status                -> monitor status
@@ -19,12 +21,16 @@ parses (auth: access_token/user_id/monitors[0].id; realtime payload: hz/c/w/epoc
 optional voltage/channels/devices[].sd). No third-party deps — stdlib only.
 
 Env knobs: SENSE_FAKE_PORT (8080), SENSE_FAKE_MONITOR_ID (12345),
-SENSE_FAKE_BASE_W (1200), SENSE_FAKE_INTERVAL (1.0), SENSE_FAKE_HZ (60.0).
+SENSE_FAKE_BASE_W (1200), SENSE_FAKE_INTERVAL (1.0), SENSE_FAKE_HZ (60.0),
+SENSE_FAKE_MFA_SECRET (unset: password-only; a base32 TOTP secret: the account has MFA on,
+and /authenticate/mfa accepts that secret's code for the current 30s step or either
+neighbour).
 """
 
 import base64
 import contextlib
 import hashlib
+import hmac
 import json
 import math
 import os
@@ -34,10 +40,12 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import BufferedIOBase
 from typing import Any, TypedDict
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 PORT = int(os.getenv("SENSE_FAKE_PORT", "8080"))
 MONITOR_ID = int(os.getenv("SENSE_FAKE_MONITOR_ID", "12345"))
+MFA_SECRET = os.getenv("SENSE_FAKE_MFA_SECRET", "")
+MFA_TOKEN = "fake-mfa-token"
 USER_ID = int(os.getenv("SENSE_FAKE_USER_ID", "67890"))
 ACCOUNT_ID = int(os.getenv("SENSE_FAKE_ACCOUNT_ID", "11111"))
 BASE_W = float(os.getenv("SENSE_FAKE_BASE_W", "1200"))
@@ -87,6 +95,23 @@ def _now() -> int:
 # ----- JSON payload builders (shapes mirror the real Sense API) --------------
 
 
+def totp(secret: str, at: float, step: int = 30, digits: int = 6) -> str:
+    """RFC 6238 TOTP (HMAC-SHA1) for a base32 `secret` at unix time `at`."""
+    key = base64.b32decode(secret.upper() + "=" * (-len(secret) % 8))
+    mac = hmac.new(key, struct.pack(">Q", int(at // step)), hashlib.sha1).digest()
+    offset = mac[-1] & 0x0F
+    code = struct.unpack(">I", mac[offset : offset + 4])[0] & 0x7FFFFFFF
+    return str(code % 10**digits).zfill(digits)
+
+
+def mfa_required() -> dict[str, Any]:
+    return {
+        "status": "error",
+        "error_reason": "Multi-factor authentication required",
+        "mfa_token": MFA_TOKEN,
+    }
+
+
 def auth_response() -> dict[str, Any]:
     return {
         "authorized": True,
@@ -105,7 +130,7 @@ def auth_response() -> dict[str, Any]:
             }
         ],
         "bridge_server": f"ws://localhost:{PORT}",
-        "totp_enabled": False,
+        "totp_enabled": bool(MFA_SECRET),
     }
 
 
@@ -244,10 +269,25 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         path = urlparse(self.path).path
         length = int(self.headers.get("Content-Length", 0) or 0)
-        if length:
-            self.rfile.read(length)  # drain the credentials body (any creds accepted)
-        if path.endswith("/authenticate"):
-            self._json(auth_response())
+        # Any email and password are accepted; the body is read for the MFA fields.
+        form = parse_qs(self.rfile.read(length).decode()) if length else {}
+        if path.endswith("/authenticate/mfa"):
+            now = time.time()
+            valid = {totp(MFA_SECRET, now + skew) for skew in (-30, 0, 30)}
+            if (
+                MFA_SECRET
+                and form.get("mfa_token") == [MFA_TOKEN]
+                and form.get("totp", [""])[0] in valid
+                and form.get("client_time")
+            ):
+                self._json(auth_response())
+            else:
+                self._json({"status": "error", "error_reason": "Invalid code"}, 401)
+        elif path.endswith("/authenticate"):
+            if MFA_SECRET:
+                self._json(mfa_required(), 401)
+            else:
+                self._json(auth_response())
         else:
             self._json({"error": "not found"}, 404)
 

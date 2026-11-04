@@ -12,6 +12,7 @@ class SenseAPIEndpoints:
 
     BASE_URL = config.API_BASE_URL
     AUTHENTICATE = f"{BASE_URL}/authenticate"
+    AUTHENTICATE_MFA = f"{BASE_URL}/authenticate/mfa"
     DEVICES = BASE_URL + "/app/monitors/{monitor_id}/devices"
     DEVICE_DETAILS = BASE_URL + "/app/monitors/{monitor_id}/devices/{device_id}"
     MONITOR_STATUS = BASE_URL + "/app/monitors/{monitor_id}/status"

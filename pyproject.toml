@@ -35,6 +35,8 @@ aiofiles = "^25.1.0"
 influxdb-client = {extras = ["async"], version = "^1.50.0"}
 python-dateutil = "^2.9.0"
 pytz = "^2026.2"
+# The current TOTP code for an MFA-enabled Sense account (SENSE_COLLECTOR_MFA_SECRET).
+pyotp = "^2.9"
 
 # --- Transitive security floors (luxaudit) ---
 # These are pulled in by influxdb-client[async] (aiohttp) and httpx[http2] (h2), whose

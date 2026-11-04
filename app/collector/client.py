@@ -9,6 +9,7 @@ from typing import Any
 
 import aiofiles
 import httpx
+import pyotp
 
 from app.collector.endpoints import SenseAPIEndpoints
 from app.collector.websocket import handle_websocket_connection
@@ -29,21 +30,62 @@ MALFORMED_PAYLOAD = (KeyError, IndexError, TypeError, ValueError)
 EXPORT_WRITE_ERRORS = (OSError, TypeError, ValueError)
 
 
+class SenseMFAError(ValueError):
+    """The Sense account requires a multi-factor code and no TOTP secret is configured."""
+
+
+def _mfa_token(response: httpx.Response) -> str | None:
+    """The `mfa_token` Sense sends with a 401 when the account has MFA on, else None."""
+    if response.status_code != 401:
+        return None
+    try:
+        body = response.json()
+    except ValueError:
+        return None
+    token = body.get("mfa_token") if isinstance(body, dict) else None
+    return token if isinstance(token, str) and token else None
+
+
 async def authenticate_with_sense(
-    client: httpx.AsyncClient, username: str, password: str
+    client: httpx.AsyncClient,
+    username: str,
+    password: str,
+    mfa_secret: str = "",
 ) -> dict[str, Any]:
     """Authenticate with Sense API and return authentication response.
 
-    Uses the collector's long-lived httpx client with a per-request auth timeout.
+    Uses the collector's long-lived httpx client with a per-request auth timeout. An account
+    with MFA on answers the password with 401 + `mfa_token`; the login is then completed at
+    `/authenticate/mfa` with the current TOTP code of `mfa_secret`, which returns the same
+    payload as a password-only login.
     """
-    url = SenseAPIEndpoints.AUTHENTICATE
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {"email": username, "password": password}
 
     try:
         response = await client.post(
-            url, headers=headers, data=data, timeout=config.HTTP_AUTH_TIMEOUT
+            SenseAPIEndpoints.AUTHENTICATE,
+            headers=headers,
+            data=data,
+            timeout=config.HTTP_AUTH_TIMEOUT,
         )
+        mfa_token = _mfa_token(response)
+        if mfa_token is not None:
+            if not mfa_secret:
+                raise SenseMFAError(
+                    "The Sense account requires multi-factor authentication: set "
+                    "SENSE_COLLECTOR_MFA_SECRET to its TOTP secret"
+                )
+            response = await client.post(
+                SenseAPIEndpoints.AUTHENTICATE_MFA,
+                headers=headers,
+                data={
+                    "totp": pyotp.TOTP(mfa_secret).now(),
+                    "mfa_token": mfa_token,
+                    "client_time": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                },
+                timeout=config.HTTP_AUTH_TIMEOUT,
+            )
         response.raise_for_status()
         payload: dict[str, Any] = response.json()
         return payload
@@ -217,7 +259,7 @@ class SenseCollector:
                 await self.connect()
             assert self.client is not None
             response = await authenticate_with_sense(
-                self.client, self.username, self.password
+                self.client, self.username, self.password, config.MFA_SECRET
             )
 
             # Every field is read before any is assigned: a malformed login must leave the

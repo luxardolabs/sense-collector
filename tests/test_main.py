@@ -282,6 +282,35 @@ class TestValidateEnvironment:
             validate_environment()
         assert url in caplog.text
 
+    def test_the_mfa_secret_is_masked_in_the_startup_log(self, caplog):
+        secret = "JBSWY3DPEHPK3PXP"
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(config, "MFA_SECRET", secret),
+            patch.object(
+                config,
+                "describe_settings",
+                return_value={"SENSE_COLLECTOR_MFA_SECRET": secret},
+            ),
+        ):
+            validate_environment()
+        assert "SENSE_COLLECTOR_MFA_SECRET: <set>" in caplog.text
+        assert secret not in caplog.text
+
+    @pytest.mark.parametrize("secret", ["NOT-BASE32!", "JBSWY3DP1", "0000"])
+    def test_an_mfa_secret_that_is_not_base32_is_refused(self, caplog, secret):
+        """Every login would fail on it, so startup says so instead."""
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(config, "MFA_SECRET", secret),
+            patch.object(config, "describe_settings", return_value={}),
+            pytest.raises(ValueError, match="SENSE_COLLECTOR_MFA_SECRET"),
+        ):
+            validate_environment()
+        assert secret not in caplog.text
+
     def test_the_token_renewal_interval_is_shown(self, caplog):
         """An interval, not a secret: masking it would only hide useful config."""
         env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
