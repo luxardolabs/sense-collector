@@ -15,7 +15,7 @@ Sense Collector combines two Sense data sources — the realtime WebSocket feed 
 
 ## The three collection paths
 
-**Mains and devices (realtime).** The WebSocket `realtime_update` stream drives `sense_mains` (voltage, watts, Hz) and `sense_devices` (per-device wattage). This is the high-frequency data behind the Device Overview and Mains Overview dashboards.
+**Mains and devices (realtime).** The WebSocket `realtime_update` stream drives `sense_mains` (voltage, watts, Hz) and `sense_devices` (per-device wattage). This is the high-frequency data behind the Device Overview and Mains Overview dashboards. The stored resolution is one point per second: Sense sends about two frames a second, each stamped with a whole-second epoch, and the points are written at that second, so InfluxDB keeps the last frame of each second. A frame whose epoch is not a usable timestamp is skipped whole.
 
 **Device detail (REST).** Devices discovered on the stream are queued for name resolution against the Sense API; the results are cached (~15 minutes by default) so the collector stays within Sense's rate limits. Smart-plug devices additionally report voltage and amperage.
 
