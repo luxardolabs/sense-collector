@@ -1,4 +1,10 @@
+from urllib.parse import quote
+
 from app.core import config
+
+# RFC 3986 query characters a value can carry unencoded, minus `&` (the pair separator):
+# sub-delims, ":", "@", "/" and "?". quote() always keeps letters, digits and "_.-~".
+_QUERY_VALUE_SAFE = "!$'()*+,;=:@/?"
 
 
 class SenseAPIEndpoints:
@@ -16,3 +22,17 @@ class SenseAPIEndpoints:
         config.WS_BASE_URL
         + "/monitors/{monitor_id}/realtimefeed?access_token={access_token}"
     )
+
+    @staticmethod
+    def realtime_feed_url(monitor_id: object, access_token: str) -> str:
+        """The realtime feed URL, with the token as ONE query value.
+
+        Every character a query value may carry raw is sent as-is, so a token that works
+        unencoded is sent byte for byte. Only the characters that would end or corrupt the
+        value (`&`, `#`, `%`, whitespace, non-ASCII) are percent-encoded, which also keeps
+        the whole token inside what the log redactor scrubs (it stops at a raw `&`).
+        """
+        return SenseAPIEndpoints.WEBSOCKET.format(
+            monitor_id=monitor_id,
+            access_token=quote(access_token, safe=_QUERY_VALUE_SAFE),
+        )

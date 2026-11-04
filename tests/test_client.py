@@ -11,6 +11,7 @@ import json
 import time
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import pytest
@@ -23,6 +24,7 @@ from app.collector.client import (
 )
 from app.collector.endpoints import SenseAPIEndpoints
 from app.core import config
+from app.core.privacy import redact
 
 AUTH_RESPONSE = {
     "access_token": "tok-abc",
@@ -774,9 +776,25 @@ class TestEndpoints:
         assert url.endswith("/app/monitors/1/devices/ac")
 
     def test_websocket_url_carries_monitor_and_token(self):
-        url = SenseAPIEndpoints.WEBSOCKET.format(monitor_id=1, access_token="t")
+        url = SenseAPIEndpoints.realtime_feed_url(monitor_id=1, access_token="t")
         assert "/monitors/1/realtimefeed" in url
         assert "access_token=t" in url
+
+    def test_a_token_that_works_today_is_sent_byte_for_byte(self):
+        token = "t1.v2.AbC_-~=/+:@!$'()*,;"
+        url = SenseAPIEndpoints.realtime_feed_url(monitor_id=1, access_token=token)
+        assert url.endswith("access_token=" + token)
+
+    def test_a_token_with_query_delimiters_stays_one_value_and_is_redacted_whole(self):
+        url = SenseAPIEndpoints.realtime_feed_url(
+            monitor_id=1, access_token="head&tail#frag %"
+        )
+        query = urlsplit(url).query
+        assert parse_qs(query) == {"access_token": ["head&tail#frag %"]}
+        scrubbed = redact({"message": "connecting to " + url})["message"]
+        assert "tail" not in scrubbed
+        assert "frag" not in scrubbed
+        assert scrubbed.endswith("access_token=[REDACTED]")
 
     def test_every_rest_endpoint_shares_the_base_url(self):
         for url in (
@@ -1223,6 +1241,19 @@ class TestAuthenticationPacing:
         await c.client.aclose()
         assert counter["auth"] == 1
         assert "tok-new" in url
+
+    @pytest.mark.asyncio
+    async def test_a_websocket_refresh_with_no_token_ever_builds_no_url(self, storage):
+        """With no successful login and a failed renewal there is no token: the refresh
+        raises for the handler to count, and never connects with `access_token=None`."""
+        counter = {"auth": 0}
+        c = self._ws_collector(storage, counter, 429)
+        c.access_token = None
+        c.auth_time, c._auth_mono = None, None
+        with pytest.raises(RuntimeError, match="No Sense access token"):
+            await c.refresh_ws_url()
+        await c.client.aclose()
+        assert counter["auth"] == 1
 
     @pytest.mark.asyncio
     async def test_a_due_renewal_logs_in_about_once(self, storage):

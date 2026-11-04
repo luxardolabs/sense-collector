@@ -314,9 +314,17 @@ class SenseCollector:
             )
             await self._interruptible_sleep(wait)
         await self._renew("WebSocket auth rejected", config.AUTH_MIN_REAUTH_AGE)
-        return SenseAPIEndpoints.WEBSOCKET.format(
-            monitor_id=self.monitor_id, access_token=self.access_token
-        )
+        return self._ws_url()
+
+    def _ws_url(self) -> str:
+        """The realtime feed URL for the current token. With no token (no login has ever
+        succeeded) there is no URL to build: the WebSocket handler counts the refusal and
+        backs off, the same as a failed re-authentication."""
+        if self.access_token is None:
+            raise RuntimeError(
+                "No Sense access token yet; cannot build the WebSocket URL"
+            )
+        return SenseAPIEndpoints.realtime_feed_url(self.monitor_id, self.access_token)
 
     async def check_token_renewal(self) -> None:
         """Renew the access token once it is older than TOKEN_RENEW_INTERVAL."""
@@ -347,9 +355,7 @@ class SenseCollector:
             await self.fetch_devices()
 
             # Connect to WebSocket for real-time data
-            ws_url = SenseAPIEndpoints.WEBSOCKET.format(
-                monitor_id=self.monitor_id, access_token=self.access_token
-            )
+            ws_url = self._ws_url()
 
             # Start periodic tasks
             monitor_task = asyncio.create_task(self.periodic_monitor_status())
