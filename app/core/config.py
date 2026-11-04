@@ -181,8 +181,11 @@ _INVISIBLE = dict.fromkeys(map(ord, "\u200b\u200c\u200d\u2060\ufeff"))
 
 def normalize_mfa_secret(raw: str) -> str:
     """The secret as base32 reads it: authenticator apps and web pages show it in lowercase
-    or in groups, and a copy can carry any kind of space, visible or not."""
-    return "".join(raw.translate(_INVISIBLE).split()).upper()
+    or in groups, and a copy can carry any kind of space, visible or not. Only an ASCII value
+    is upper-cased: upper() turns some other letters into ASCII ones (dotless i to I), which
+    would accept a different secret instead of refusing the one pasted."""
+    secret = "".join(raw.translate(_INVISIBLE).split())
+    return secret.upper() if secret.isascii() else secret
 
 
 MFA_SECRET = normalize_mfa_secret(os.getenv("SENSE_COLLECTOR_MFA_SECRET", ""))

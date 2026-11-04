@@ -134,6 +134,24 @@ async def test_mfa_required_without_a_secret_backs_off_a_renewal(
     await collector.close()
 
 
+@pytest.mark.usefixtures("mfa_account")
+def test_the_fake_refuses_a_valid_code_with_the_wrong_mfa_token(fake_base):
+    response = httpx.post(
+        fake_base + "/authenticate/mfa",
+        data={
+            "totp": fake_sense.totp(SECRET, time.time()),
+            "mfa_token": "not-the-token-it-issued",
+            "client_time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        },
+    )
+    assert response.status_code == 401
+
+
+def test_the_fake_reads_its_secret_as_the_collector_does():
+    raw = "jbsw\N{ZERO WIDTH SPACE}y3dp ehpk\N{NO-BREAK SPACE}3pxp\N{WORD JOINER}"
+    assert fake_sense.normalize_secret(raw) == config.normalize_mfa_secret(raw)
+
+
 def test_the_fake_with_a_bad_secret_answers_401_instead_of_dropping(
     fake_base, monkeypatch
 ):

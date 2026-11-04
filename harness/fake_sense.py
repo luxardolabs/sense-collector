@@ -46,7 +46,16 @@ from urllib.parse import parse_qs, urlparse
 
 PORT = int(os.getenv("SENSE_FAKE_PORT", "8080"))
 MONITOR_ID = int(os.getenv("SENSE_FAKE_MONITOR_ID", "12345"))
-MFA_SECRET = "".join(os.getenv("SENSE_FAKE_MFA_SECRET", "").split()).upper()
+# Read the way the collector reads SENSE_COLLECTOR_MFA_SECRET (app.core.config).
+_INVISIBLE = dict.fromkeys(map(ord, "\u200b\u200c\u200d\u2060\ufeff"))
+
+
+def normalize_secret(raw: str) -> str:
+    secret = "".join(raw.translate(_INVISIBLE).split())
+    return secret.upper() if secret.isascii() else secret
+
+
+MFA_SECRET = normalize_secret(os.getenv("SENSE_FAKE_MFA_SECRET", ""))
 if MFA_SECRET:
     # Refuse at start what totp() could not decode, rather than drop every MFA request.
     base64.b32decode(MFA_SECRET + "=" * (-len(MFA_SECRET) % 8))

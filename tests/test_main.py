@@ -307,7 +307,8 @@ class TestValidateEnvironment:
                 "JBSWY3DPEHPK3PXP",
             ),
             (
-                "JBSW\N{IDEOGRAPHIC SPACE}Y3DP\N{ZERO WIDTH SPACE}EHPK\N{ZERO WIDTH NO-BREAK SPACE}3PXP\N{WORD JOINER}",
+                "JBSW\N{IDEOGRAPHIC SPACE}Y3DP\N{ZERO WIDTH SPACE}EH\N{ZERO WIDTH NON-JOINER}PK"
+                "\N{ZERO WIDTH NO-BREAK SPACE}3P\N{ZERO WIDTH JOINER}XP\N{WORD JOINER}",
                 "JBSWY3DPEHPK3PXP",
             ),
             ("", ""),
@@ -357,6 +358,27 @@ class TestValidateEnvironment:
         ):
             validate_environment()
         assert secret not in caplog.text
+        assert "SENSE_COLLECTOR_MFA_SECRET is not a base32" in caplog.text
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            "JBSWY3DPEHPK3PXP\N{LATIN SMALL LETTER DOTLESS I}",
+            "JBSWY3DPEHPK3PX\N{LATIN SMALL LETTER LONG S}",
+            "JBSWY3DPEHPK3P\N{LATIN SMALL LIGATURE FI}",
+        ],
+    )
+    def test_a_non_ascii_letter_is_refused_not_rewritten_into_ascii(self, raw):
+        """Upper-casing turns some non-ASCII letters into ASCII ones (dotless i to I): the
+        value must be refused as pasted, not accepted as a different secret."""
+        env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")
+        with (
+            patch.dict(os.environ, env, clear=False),
+            patch.object(config, "MFA_SECRET", config.normalize_mfa_secret(raw)),
+            patch.object(config, "describe_settings", return_value={}),
+            pytest.raises(ValueError, match="SENSE_COLLECTOR_MFA_SECRET"),
+        ):
+            validate_environment()
 
     def test_the_token_renewal_interval_is_shown(self, caplog):
         """An interval, not a secret: masking it would only hide useful config."""
