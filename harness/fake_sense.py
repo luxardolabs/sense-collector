@@ -28,6 +28,7 @@ neighbour).
 """
 
 import base64
+import calendar
 import contextlib
 import hashlib
 import hmac
@@ -44,7 +45,7 @@ from urllib.parse import parse_qs, urlparse
 
 PORT = int(os.getenv("SENSE_FAKE_PORT", "8080"))
 MONITOR_ID = int(os.getenv("SENSE_FAKE_MONITOR_ID", "12345"))
-MFA_SECRET = os.getenv("SENSE_FAKE_MFA_SECRET", "")
+MFA_SECRET = "".join(os.getenv("SENSE_FAKE_MFA_SECRET", "").split()).upper()
 MFA_TOKEN = "fake-mfa-token"
 USER_ID = int(os.getenv("SENSE_FAKE_USER_ID", "67890"))
 ACCOUNT_ID = int(os.getenv("SENSE_FAKE_ACCOUNT_ID", "11111"))
@@ -102,6 +103,16 @@ def totp(secret: str, at: float, step: int = 30, digits: int = 6) -> str:
     offset = mac[-1] & 0x0F
     code = struct.unpack(">I", mac[offset : offset + 4])[0] & 0x7FFFFFFF
     return str(code % 10**digits).zfill(digits)
+
+
+def _recent_client_time(value: str, now: float) -> bool:
+    """`client_time` in the form the Sense app sends it (UTC, `%Y-%m-%dT%H:%M:%SZ`), within a
+    minute of this server's clock."""
+    try:
+        sent = calendar.timegm(time.strptime(value, "%Y-%m-%dT%H:%M:%SZ"))
+    except ValueError:
+        return False
+    return abs(sent - now) <= 60
 
 
 def mfa_required() -> dict[str, Any]:
@@ -278,7 +289,7 @@ class Handler(BaseHTTPRequestHandler):
                 MFA_SECRET
                 and form.get("mfa_token") == [MFA_TOKEN]
                 and form.get("totp", [""])[0] in valid
-                and form.get("client_time")
+                and _recent_client_time(form.get("client_time", [""])[0], now)
             ):
                 self._json(auth_response())
             else:

@@ -298,7 +298,23 @@ class TestValidateEnvironment:
         assert "SENSE_COLLECTOR_MFA_SECRET: <set>" in caplog.text
         assert secret not in caplog.text
 
-    @pytest.mark.parametrize("secret", ["NOT-BASE32!", "JBSWY3DP1", "0000"])
+    @pytest.mark.parametrize(
+        ("raw", "secret"),
+        [
+            ("jbsw y3dp ehpk 3pxp", "JBSWY3DPEHPK3PXP"),
+            ("JBSW Y3DP\tEHPK  3PXP\n", "JBSWY3DPEHPK3PXP"),
+            ("", ""),
+        ],
+        ids=["spaces-and-lowercase", "any-whitespace", "unset"],
+    )
+    def test_the_mfa_secret_ignores_case_and_every_kind_of_space(self, raw, secret):
+        """Authenticator apps and web pages show the secret in groups, and a copy can carry
+        a no-break or thin space between them."""
+        assert config.normalize_mfa_secret(raw) == secret
+
+    @pytest.mark.parametrize(
+        "secret", ["NOT-BASE32!", "JBSWY3DP1", "0000", "JBSWY3DPEHPK3PXÉ"]
+    )
     def test_an_mfa_secret_that_is_not_base32_is_refused(self, caplog, secret):
         """Every login would fail on it, so startup says so instead."""
         env = dict.fromkeys(config.REQUIRED_ENV_VARS, "set")

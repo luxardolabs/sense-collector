@@ -6,6 +6,7 @@ independent one.
 """
 
 import threading
+import time
 from collections.abc import Iterator
 from http.server import ThreadingHTTPServer
 from unittest.mock import MagicMock, patch
@@ -113,3 +114,38 @@ async def test_the_collector_logs_in_and_renews_through_mfa(fake_base, monkeypat
         await collector._renew("due", min_age=-1)
     assert collector.access_token == "fake-access-token"
     await collector.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("mfa_account")
+async def test_mfa_required_without_a_secret_backs_off_a_renewal(
+    fake_base, monkeypatch
+):
+    """A renewal that meets MFA with no secret is a failed login like any other: the old
+    token stays and the next attempt waits, so the callers cannot re-POST at will."""
+    monkeypatch.setattr(config, "MFA_SECRET", "")
+    collector = SenseCollector("u@example.com", "pw", MagicMock())
+    await collector.connect()
+    collector.access_token, collector.monitor_id = "old-token", "9"
+    await collector._renew("due", min_age=-1)
+    assert collector.access_token == "old-token"
+    assert collector._auth_failures == 1
+    assert collector._auth_retry_at > time.monotonic()
+    await collector.close()
+
+
+@pytest.mark.parametrize(
+    "client_time", ["not-a-timestamp", "2026-11-04 12:00:00", "2000-01-01T00:00:00Z"]
+)
+@pytest.mark.usefixtures("mfa_account")
+def test_the_fake_refuses_a_malformed_or_stale_client_time(fake_base, client_time):
+    """The fake checks client_time the way the login sends it, so a format change fails."""
+    response = httpx.post(
+        fake_base + "/authenticate/mfa",
+        data={
+            "totp": fake_sense.totp(SECRET, time.time()),
+            "mfa_token": fake_sense.MFA_TOKEN,
+            "client_time": client_time,
+        },
+    )
+    assert response.status_code == 401

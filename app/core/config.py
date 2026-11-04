@@ -171,8 +171,16 @@ API_USERNAME = os.getenv("SENSE_COLLECTOR_API_USERNAME", "")
 API_PASSWORD = os.getenv("SENSE_COLLECTOR_API_PASSWORD", "")
 # Optional: the base32 TOTP secret of an MFA-enabled Sense account (the seed shown when 2FA is
 # turned on). With it, each login completes the MFA step on its own; unset, login is
-# password-only. Spaces are ignored, as authenticator apps print it in groups of four.
-MFA_SECRET = os.getenv("SENSE_COLLECTOR_MFA_SECRET", "").replace(" ", "").upper()
+# password-only.
+
+
+def normalize_mfa_secret(raw: str) -> str:
+    """The secret as base32 reads it: authenticator apps and web pages show it in lowercase
+    or in groups, and a copy can carry any kind of space (a no-break or thin one too)."""
+    return "".join(raw.split()).upper()
+
+
+MFA_SECRET = normalize_mfa_secret(os.getenv("SENSE_COLLECTOR_MFA_SECRET", ""))
 INFLUXDB_URL = os.getenv("SENSE_COLLECTOR_INFLUXDB_URL", "")
 INFLUXDB_TOKEN = os.getenv("SENSE_COLLECTOR_INFLUXDB_TOKEN", "")
 INFLUXDB_ORG = os.getenv("SENSE_COLLECTOR_INFLUXDB_ORG", "")

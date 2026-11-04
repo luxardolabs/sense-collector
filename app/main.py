@@ -68,6 +68,9 @@ def _url_problem(url: str, authenticates_with: str) -> str | None:
 
 def _is_base32(secret: str) -> bool:
     """Whether `secret` decodes as base32 (padding optional), the TOTP secret format."""
+    if not secret.isascii():
+        # b32decode refuses non-ASCII with a plain ValueError, not binascii.Error.
+        return False
     try:
         base64.b32decode(secret + "=" * (-len(secret) % 8))
     except binascii.Error:
