@@ -68,7 +68,7 @@ A URL that names the Sense cloud (any `*.sense.com` host) must use `https://` or
 | -------------------------------------- | ------------------ | ---- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SENSE_COLLECTOR_API_TOKEN_RENEW`      | `43200` (12 hours) | 3600 | 86400 | Token renewal interval in seconds                                                                                                                   |
 | `SENSE_COLLECTOR_AUTH_RETRY_MAX_DELAY` | `900`              | 60   | 86400 | Longest wait after a failed login before the next attempt (the current token is kept meanwhile); a login 429's `Retry-After` is honoured up to this |
-| `SENSE_COLLECTOR_AUTH_MIN_REAUTH_AGE`  | `60`               | 0    | 3600  | A REST 401 logs in again only if the token is older than this; a fresh token that gets 401 is not expired                                           |
+| `SENSE_COLLECTOR_AUTH_MIN_REAUTH_AGE`  | `60`               | 0    | 3600  | A REST 401 or a WebSocket auth rejection logs in again only if the token is older than this; a fresh token that gets 401 is not expired             |
 
 ### Rate Limiting
 
@@ -100,7 +100,7 @@ A URL that names the Sense cloud (any `*.sense.com` host) must use `https://` or
 | `SENSE_COLLECTOR_WS_HEALTH_CHECK_INTERVAL`   | `1`     | 1   | 10   | Health check interval (seconds)                                            |
 | `SENSE_COLLECTOR_WS_AUTH_FAILURE_LIMIT`      | `5`     | 1   | 100  | Consecutive WebSocket auth rejections tolerated before the collector exits |
 
-A WebSocket handshake rejected with 401 or 403 is followed by a re-authentication and a retry. Once more than `SENSE_COLLECTOR_WS_AUTH_FAILURE_LIMIT` rejections arrive in a row (about 2½ minutes at the default reconnect delays), the collector exits with status 1, so the container's restart policy shows the failure instead of a collector that runs with no data. Any other connect failure (a 5xx, a network error, a timeout) ends the run of rejections. The cause can be a refused credential, a failing Sense login, or Sense's realtime service rejecting valid tokens; the restarted collector logs in again and recovers once Sense does.
+A WebSocket handshake rejected with 401 or 403 is followed by a retry, with a re-authentication first unless the token is younger than `SENSE_COLLECTOR_AUTH_MIN_REAUTH_AGE` seconds. Once more than `SENSE_COLLECTOR_WS_AUTH_FAILURE_LIMIT` rejections arrive in a row (about 2½ minutes at the default reconnect delays), the collector exits with status 1, so the container's restart policy shows the failure instead of a collector that runs with no data. Any other connect failure (a 5xx, a network error, a timeout) ends the run of rejections. The cause can be a refused credential, a failing Sense login, or Sense's realtime service rejecting valid tokens; the restarted collector logs in again and recovers once Sense does.
 
 ## Container Health Check
 
