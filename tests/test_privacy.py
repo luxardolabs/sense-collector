@@ -143,6 +143,63 @@ def test_a_traceback_keeps_its_lines_but_loses_the_token():
     assert "abc123" not in line["exception"]
 
 
+@pytest.mark.parametrize("fmt", ["json", "text"])
+def test_remote_text_in_a_logged_exception_cannot_forge_a_record_or_leak_a_token(
+    capsys, monkeypatch, fmt
+):
+    monkeypatch.setenv("LOG_FORMAT", fmt)
+    setup_logging()
+    try:
+        raise ValueError(
+            "bad frame\n2026-10-10 12:00:00,000 CRITICAL general forged\x1b[2J "
+            "Authorization: Bearer abc123SECRET access_token=tok456SECRET"
+        )
+    except ValueError:
+        logging.getLogger("general").exception("Error handling frame")
+
+    out = capsys.readouterr().out
+    assert "Error handling frame" in out
+    assert "abc123SECRET" not in out
+    assert "tok456SECRET" not in out
+    assert "\x1b" not in out
+    assert not any(
+        line.startswith("2026-10-10 12:00:00,000 CRITICAL") for line in out.splitlines()
+    )
+    if fmt == "json":
+        assert len(out.splitlines()) == 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Authorization: Bearer abc123SECRET",
+        "authorization: bearer abc123SECRET",
+        "{'Authorization': 'Bearer abc123SECRET'}",
+        '"Authorization": "Bearer abc123SECRET"',
+    ],
+)
+def test_a_bearer_token_quoted_in_an_exception_is_redacted(text):
+    """An exception message can quote request headers; the REST token travels as one."""
+    line = redact(
+        {
+            "message": "request failed: " + text,
+            "exception": "Traceback (most recent call last):\nValueError: "
+            + text
+            + "\n",
+        }
+    )
+    assert "abc123SECRET" not in line["message"]
+    assert "abc123SECRET" not in line["exception"]
+    assert "[REDACTED]" in line["exception"]
+    assert line["exception"].count("\n") == 2
+
+
+def test_the_word_bearer_alone_is_left_as_it_is():
+    assert redact({"message": "token_type is bearer"})["message"] == (
+        "token_type is bearer"
+    )
+
+
 def test_non_string_values_pass_through():
     assert redact({"line": 42, "attributes_ok": None}) == {
         "line": 42,
