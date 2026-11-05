@@ -432,11 +432,9 @@ class SenseCollector:
                 # Cancel periodic tasks
                 monitor_task.cancel()
                 device_task.cancel()
-                try:
-                    await monitor_task
-                    await device_task
-                except asyncio.CancelledError:
-                    pass
+                # gather awaits BOTH to completion and absorbs their own CancelledError,
+                # while a cancel aimed at this coroutine still propagates out of it.
+                await asyncio.gather(monitor_task, device_task, return_exceptions=True)
 
         except Exception as e:
             api_logger.error("Error in collect_sense_data: %s", e)

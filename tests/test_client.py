@@ -1462,3 +1462,64 @@ class TestDeviceDetailCaching:
     async def test_a_detail_whose_write_failed_is_fetched_and_written_again(self):
         """Cached before a failed write, the device had no point for the whole cache TTL."""
         assert (await self._two_events_for_one_device(True)).await_count == 2
+
+
+# ------------------------------------------------------------- collect_sense_data teardown
+
+
+class TestCollectTeardown:
+    """collect_sense_data runs two periodic tasks beside the WebSocket; when the WebSocket
+    ends, both are cancelled and must be awaited to completion before shutdown runs."""
+
+    def _collector(self, storage, finished, cleanup_seconds, device_cleanup=None):
+        c = SenseCollector("u", "p", storage)
+        c.client = MagicMock()
+        c.client.aclose = AsyncMock()
+        c.access_token, c.monitor_id = "tok", "9"
+
+        def periodic(name, seconds):
+            async def run():
+                try:
+                    await asyncio.Event().wait()
+                finally:
+                    # A task's cleanup takes loop turns: it is finished only if awaited.
+                    await asyncio.sleep(seconds)
+                    finished.append(name)
+
+            return run
+
+        c.periodic_monitor_status = periodic("monitor", cleanup_seconds)
+        c.periodic_device_fetch = periodic(
+            "device", cleanup_seconds if device_cleanup is None else device_cleanup
+        )
+        c.fetch_devices = AsyncMock()
+        c.api_worker = AsyncMock()
+        return c
+
+    @staticmethod
+    async def _brief_websocket(*_args):
+        await asyncio.sleep(0.05)  # long enough for both periodic tasks to start
+
+    @pytest.mark.asyncio
+    async def test_both_periodic_tasks_finish_before_it_returns(self, storage):
+        finished: list[str] = []
+        # The device task's cleanup outlasts the monitor's, so only awaiting it finishes it.
+        c = self._collector(storage, finished, cleanup_seconds=0.01, device_cleanup=0.3)
+        with patch.object(
+            client_mod, "handle_websocket_connection", self._brief_websocket
+        ):
+            await c.collect_sense_data()
+        assert sorted(finished) == ["device", "monitor"]
+
+    @pytest.mark.asyncio
+    async def test_a_cancel_during_teardown_is_not_swallowed(self, storage):
+        finished: list[str] = []
+        c = self._collector(storage, finished, cleanup_seconds=0.5)
+        with patch.object(
+            client_mod, "handle_websocket_connection", self._brief_websocket
+        ):
+            task = asyncio.create_task(c.collect_sense_data())
+            await asyncio.sleep(0.2)  # the WebSocket has ended; teardown is awaiting
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
