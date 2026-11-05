@@ -24,9 +24,13 @@ name: sense-collector
 # reached by SERVICE NAME on the compose network, so it never contends for a port with a
 # sibling fleet stack.
 
+# oom_score_adj: when the shared Docker VM runs out of memory, the kernel kills the highest
+# score first. The stacks rank last (-500, never -1000: a service that may never be killed
+# leaves nothing to free when it is the one that grew); e2e and test services rank first (500).
 x-collector: &collector
   image: ${SENSE_IMAGE:-sense-collector:local}
   restart: unless-stopped
+  oom_score_adj: -500
 
 x-influx-init: &influx-init
   DOCKER_INFLUXDB_INIT_MODE: setup
@@ -47,6 +51,7 @@ x-influx: &influx
     timeout: 3s
     retries: 30
   restart: unless-stopped
+  oom_score_adj: -500
 
 x-grafana: &grafana
   image: grafana/grafana:11.3.0
@@ -59,6 +64,7 @@ x-grafana: &grafana
     INFLUX_BUCKET: ${INFLUX_BUCKET}
     GRAFANA_INFLUX_PASSWORD: ${GRAFANA_INFLUX_PASSWORD:-}
   restart: unless-stopped
+  oom_score_adj: -500
 
 x-prod-collector: &prod-collector
   <<: *collector
@@ -183,6 +189,7 @@ services:
       SENSE_FAKE_BASE_W: "${SENSE_FAKE_BASE_W:-1450}"
       SENSE_FAKE_INTERVAL: "${SENSE_FAKE_INTERVAL:-2.0}"
     restart: unless-stopped
+    oom_score_adj: -500
 
   # ═════════════════════════════════ demo profile ═════════════════════════════════════
   # "Click go" — no Sense account, no hardware. Config in the committed .env.demo.
@@ -236,6 +243,7 @@ services:
     <<: *influx
     profiles: [e2e]
     container_name: sense_e2e_influxdb
+    oom_score_adj: 500
     volumes:
       - ./ops/influxdb/init-dbrp.sh:/docker-entrypoint-initdb.d/init-dbrp.sh:ro
     tmpfs:
@@ -246,6 +254,7 @@ services:
     <<: *collector
     profiles: [e2e]
     container_name: sense_e2e_collector
+    oom_score_adj: 500
     env_file:
       - .env.e2e
     environment:
@@ -266,6 +275,7 @@ services:
     <<: *influx
     profiles: [test]
     restart: "no"
+    oom_score_adj: 500
     tmpfs:
       - /var/lib/influxdb2
       - /etc/influxdb2
