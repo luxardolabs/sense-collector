@@ -34,7 +34,7 @@ evidence = "RFC 6455 §4.2.2 defines the WebSocket opening handshake as base64(S
 # below this is RED — add tests, never lower the floor. Raise it to just under the measured
 # total whenever the ratchet reports an improvement.
 [test]
-coverage_min = 86
+coverage_min = 88
 
 [python]
 # sense-collector runs Python 3.14 — ruff/mypy check against it (the rule set stays
