@@ -7,7 +7,8 @@
   "summary": {
     "PASS": 37,
     "FAIL": 0,
-    "XFAIL": 0
+    "XFAIL": 0,
+    "INERT": 1
   },
   "vulnerable": [],
   "deferred": [],
@@ -16,11 +17,13 @@
   "by_public_version": [],
   "warnings": [],
   "image": {
-    "ref": "luxardolabs/sense-collector:2026.11.0",
-    "inert": false,
-    "inert_reason": "",
-    "error": "the registry has luxardolabs/sense-collector:2026.11.0, but the scanner could not read it as an image: : no podman socket found: stat podman/podman.sock: no such file or directory\n\t* remote error: GET https://<registry>/v2/luxardolabs/sense-collector/manifests/sha256:bec7f86d56e684066c7c518d1ebc0cee91cfb1341c6d07a96d0ac08dca68aa8f: MANIFEST_UNKNOWN: manifest unknown; map[Name:luxardolabs/sense-collector Revision:sha256:bec7f86d56e684066c7c518d1ebc0cee91cfb1341c6d07a96d0ac08dca68aa8f]",
-    "not_released": [],
+    "ref": "luxardolabs/sense-collector:2026.11.1",
+    "inert": true,
+    "inert_reason": "luxardolabs/sense-collector:2026.11.1: not in the registry, so nothing was released at this VERSION. A deploy that pins `:sha-\u2026` is not visible from the mount; name it in `[image] refs`",
+    "error": "",
+    "not_released": [
+      "luxardolabs/sense-collector:2026.11.1"
+    ],
     "vulnerable": [],
     "deferred": []
   },
@@ -29,6 +32,6 @@
     "expired": [],
     "unjudged": []
   },
-  "commit": "addb059b41e06692631165cd2d1d4d54df76b851",
-  "generated_at": "2026-11-15T21:47:58Z"
+  "commit": "8259caf82fd5a3fa97607f6d7d9e6d85fc115712",
+  "generated_at": "2026-11-15T21:57:10Z"
 }
