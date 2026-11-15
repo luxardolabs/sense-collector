@@ -19,10 +19,12 @@ name: sense-collector
 #
 # Credentials live in a gitignored `.env.<stack>` per stack (.env.dev for dev-tyle, .env.dev-bb,
 # .env.prod-tyle, .env.prod-bb); .env.demo and .env.e2e are committed and hold no secrets.
-# Only Grafana publishes a host port, and on 127.0.0.1 unless the env file sets GRAFANA_BIND
-# (e.g. 0.0.0.0 to reach it from the LAN; then set GRAFANA_PASSWORD too) — InfluxDB is
-# reached by SERVICE NAME on the compose network, so it never contends for a port with a
-# sibling fleet stack.
+# The dev stacks run on the dev host (DEV_HOST in the Makefile) and publish no host port: each
+# dev Grafana joins the dev host's `dev-edge` network under its container name, and the edge
+# serves it by its dev name on the fleet domain (dev-sense-collector, dev-sense-collector-bb).
+# Only the demo Grafana publishes a host port, on 127.0.0.1 unless the env file sets GRAFANA_BIND.
+# InfluxDB is reached by SERVICE NAME on the compose network, so it never contends for a port
+# with a sibling fleet stack.
 
 # oom_score_adj: when the shared Docker VM runs out of memory, the kernel kills the highest
 # score first. The stacks rank last (-500, never -1000: a service that may never be killed
@@ -66,6 +68,19 @@ x-grafana: &grafana
   restart: unless-stopped
   oom_score_adj: -500
 
+# A dev Grafana is served by name on the dev host's edge, so it refuses to start without a real
+# admin password rather than sign anyone in as admin/admin. The check runs in the container, not
+# as a required compose variable: compose interpolates every service, and the e2e and test stacks
+# set no Grafana password. Then the image's own entrypoint runs.
+x-dev-grafana-entrypoint: &dev-grafana-entrypoint
+  - /bin/sh
+  - -c
+  - >-
+    case "$$GF_SECURITY_ADMIN_PASSWORD" in
+    ""|admin) echo "REFUSING: set GRAFANA_PASSWORD in the env file; this Grafana is served by name" >&2; exit 1;;
+    esac;
+    exec /run.sh
+
 x-prod-collector: &prod-collector
   <<: *collector
   restart: always
@@ -92,14 +107,15 @@ services:
     environment:
       <<: *grafana-env
       INFLUX_HOST: sense_dev_tyle_influxdb
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-}
+    entrypoint: *dev-grafana-entrypoint
     profiles: [dev-tyle]
     container_name: sense_dev_tyle_grafana
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_tyle_grafana_data:/var/lib/grafana
-    ports:
-      - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT_TYLE:-13300}:3000"
+    networks: [default, dev-edge]
     depends_on:
       sense_dev_tyle_influxdb:
         condition: service_healthy
@@ -131,14 +147,15 @@ services:
     environment:
       <<: *grafana-env
       INFLUX_HOST: sense_dev_bb_influxdb
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-}
+    entrypoint: *dev-grafana-entrypoint
     profiles: [dev-bb]
     container_name: sense_dev_bb_grafana
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_bb_grafana_data:/var/lib/grafana
-    ports:
-      - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT_BB:-13301}:3000"
+    networks: [default, dev-edge]
     depends_on:
       sense_dev_bb_influxdb:
         condition: service_healthy
@@ -279,6 +296,12 @@ services:
     tmpfs:
       - /var/lib/influxdb2
       - /etc/influxdb2
+
+# The dev host's edge network (FLEET-BUILD-DEPLOY-STANDARD, "The dev host"): only the dev
+# Grafanas join it, so only the dev profiles need it to exist.
+networks:
+  dev-edge:
+    external: true
 
 volumes:
   sense_dev_tyle_influxdb_data:

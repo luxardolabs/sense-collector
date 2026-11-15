@@ -802,13 +802,13 @@
       },
       {
         "rule": "repo.dev_host_declared",
-        "status": "FAIL",
+        "status": "PASS",
         "since": "0.365.0",
-        "violations": 1,
+        "violations": 0,
         "deferred": false,
         "inert": false,
         "inert_reason": "",
-        "fix": "Move the dev stack to the dev host: `DEV_HOST := devhost` committed in the Makefile, no host `ports:`, and the service the edge reaches on the `dev-edge` network: the app's own front nginx as `<app>-nginx`, or, for an app with none, the app itself. The whole recipe, both shapes: --doc FLEET-BUILD-DEPLOY-STANDARD, \"The dev host\", \"Moving a stack to the dev host\".",
+        "fix": "",
         "example": ""
       },
       {
@@ -967,20 +967,20 @@
       }
     ],
     "summary": {
-      "PASS": 67,
-      "FAIL": 1,
+      "PASS": 68,
+      "FAIL": 0,
       "XFAIL": 0,
       "XPASS": 0,
       "INERT": 7
     }
   },
   "summary": {
-    "PASS": 76,
-    "FAIL": 1,
+    "PASS": 77,
+    "FAIL": 0,
     "XFAIL": 0,
     "XPASS": 0,
     "INERT": 9
   },
-  "commit": "ca7f8ffd7d5f9155b243f399c2dfa2f41c2bdefe",
-  "generated_at": "2026-11-15T19:37:27Z"
+  "commit": "651e64a8ea39e5947ed8f3aec83f3ca8efff0b1b",
+  "generated_at": "2026-11-15T19:57:30Z"
 }

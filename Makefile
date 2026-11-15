@@ -256,11 +256,14 @@ POETRY_PIP := python -m venv /tmp/v && /tmp/v/bin/pip install -q --root-user-act
 #   --profile demo       DEMO: fake Sense endpoint + bundled InfluxDB+Grafana (no account)
 #   --profile e2e        hardware-free e2e test (fake Sense + throwaway InfluxDB) -> `make test-e2e`
 DC      := docker compose
-DEV_TYLE_DC := $(DC) --profile dev-tyle  --env-file .env.dev
+# The dev stacks run on the dev host (DEV_HOST, below), so every target that drives them reaches
+# its docker over ssh; compose sends this checkout's path, which the dev host mounts at the same place.
+DEV_HOST_DC = DOCKER_HOST=ssh://$(DEV_HOST) $(DC)
+DEV_TYLE_DC = $(DEV_HOST_DC) --profile dev-tyle  --env-file .env.dev
 PROD_TYLE_DC := $(DC) --profile prod-tyle --env-file .env.prod-tyle
 PROD_BB_DC   := $(DC) --profile prod-bb   --env-file .env.prod-bb
-DEV_BB_DC   := $(DC) --profile dev-bb    --env-file .env.dev-bb
-# demo shifts off dev's Grafana port so both bundled stacks can run at once.
+DEV_BB_DC   = $(DEV_HOST_DC) --profile dev-bb    --env-file .env.dev-bb
+# The demo publishes Grafana on 13302 on this machine.
 # Its own compose project, so the demo's fake Sense and Grafana never join the network of the
 # dev stacks' InfluxDBs.
 DEMO_DC := GRAFANA_PORT=13302 $(DC) -p sense-collector-demo --profile demo --env-file .env.demo
@@ -366,10 +369,14 @@ build-local: ## Build the runtime image from CURRENT source as a local tag (no p
 # public image is pulled on arm64 too) and PUBLIC_REGISTRY (release-public copies each release to
 # GHCR). The dev environment it deploys is BOTH monitors' stacks, dev-tyle and dev-bb: one build,
 # pinned once in `.env.dev` (`dev-pin` writes its TAG=), whose SENSE_IMAGE both collectors run.
-# Each collector keeps its own credentials (env_file .env.dev / .env.dev-bb), and each Grafana its
-# own port (GRAFANA_PORT_TYLE / GRAFANA_PORT_BB). Re-emit with
+# Each collector keeps its own credentials (env_file .env.dev / .env.dev-bb). Both stacks run on
+# the dev host and publish no host port: each Grafana is on the dev host's `dev-edge` network under
+# its container name, reached by its dev name on the fleet domain, dev-sense-collector (tyle) and
+# dev-sense-collector-bb (bb). DEV_HOST is an ssh alias every coding machine
+# resolves (FLEET-BUILD-DEPLOY-STANDARD, "The dev host"). Re-emit with
 # `luxarch --emit image-block --update Makefile`; never hand-edit.
 DEV_PROFILES := dev-tyle dev-bb
+DEV_HOST := devhost
 
 # luxarch:build-core asset v1 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit build-core`.
 # ── Build core: the image names, where each is built from, and the quoting every block splices with ──
@@ -2312,11 +2319,11 @@ docker-inspect: ## Inspect release image metadata
 docker-clean: ## Remove local image tags (:dev alias, :sha-<commit>, :$(VERSION))
 	docker rmi $(DEV_ALIAS) $(SHA_IMAGE) $(VERSION_IMAGE) 2>/dev/null || true
 
-##@ Collector-only — plug into your existing InfluxDB/Grafana (profile collector, .env.dev)
+##@ Dev-tyle stack on the dev host (DEV_HOST); `make dev-deploy` ships current source to it
 
-up: build-local ## Build locally + start the collector against YOUR external InfluxDB (edit .env.dev)
-	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_TYLE_DC) up -d
-	@echo "sense-collector $(VERSION) running (collector only)"
+up: ## Start the dev-tyle stack on the dev host at the image .env.dev pins
+	$(DEV_TYLE_DC) up -d
+	@echo "sense-collector [dev] on $(DEV_HOST) — Grafana at its dev name, dev-sense-collector"
 
 down: ## Stop the collector
 	$(DEV_TYLE_DC) down
@@ -2333,11 +2340,11 @@ ps: ## Collector status
 shell: ## Shell into the collector container
 	$(DEV_TYLE_DC) exec sense_dev_tyle_collector /bin/bash
 
-##@ Dev — full LOCAL stack (your real Sense account + bundled InfluxDB + Grafana)
+##@ Dev — the stacks on the dev host (your real Sense account + bundled InfluxDB + Grafana)
 
-dev-up: build-local ## Build locally + start the full dev stack (real Sense account; bundled Grafana)
-	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_TYLE_DC) up -d
-	@echo "sense-collector [dev] — Grafana http://localhost:$(or $(GRAFANA_PORT_TYLE),13300) (admin / GRAFANA_PASSWORD from .env.dev)"
+dev-up: ## Start the dev-tyle stack on the dev host at the image .env.dev pins (dev-deploy ships source)
+	$(DEV_TYLE_DC) up -d
+	@echo "sense-collector [dev] on $(DEV_HOST) — Grafana at its dev name, dev-sense-collector (admin / GRAFANA_PASSWORD from .env.dev)"
 
 dev-down: ## Stop the dev stack (keep data volumes)
 	$(DEV_TYLE_DC) down
@@ -2345,9 +2352,9 @@ dev-down: ## Stop the dev stack (keep data volumes)
 dev-clean: ## Stop the dev stack AND delete its data volumes
 	$(DEV_TYLE_DC) down -v
 
-bb-up: build-local ## Build locally + start the SECOND monitor's stack (real Sense account)
-	SENSE_IMAGE=$(LOCAL_IMAGE) $(DEV_BB_DC) up -d
-	@echo "sense-collector [bb] — Grafana http://localhost:13301 (admin / GRAFANA_PASSWORD from .env.dev-bb)"
+bb-up: ## Start the SECOND monitor's stack on the dev host at the pinned image
+	$(DEV_BB_DC) up -d
+	@echo "sense-collector [bb] on $(DEV_HOST) — Grafana at its dev name, dev-sense-collector-bb (admin / GRAFANA_PASSWORD from .env.dev-bb)"
 
 bb-down: ## Stop the bb stack (keep data volumes)
 	$(DEV_BB_DC) down

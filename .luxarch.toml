@@ -33,3 +33,11 @@ exempt_reason = "deliberate non-adoption, not non-applicability: no opentelemetr
 # "agent": an agent pushes main as it lands each issue, through the gitleaks pre-push hook.
 [agents]
 push = "agent"
+
+# How the dev stacks are reached on the dev host (FLEET-BUILD-DEPLOY-STANDARD, "The dev host").
+# There is no nginx: the edge hands each dev name straight to that stack's Grafana on `dev-edge`
+# (http://<container_name>:3000). The tyle Grafana is the declared service; the bb Grafana joins
+# the same network the same way, under its own dev name.
+[dev_host]
+front = "app"
+service = "sense_dev_tyle_grafana"

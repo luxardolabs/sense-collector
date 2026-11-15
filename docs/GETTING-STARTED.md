@@ -87,7 +87,7 @@ To see a correctly wired end-to-end stack — collector, InfluxDB, and Grafana w
 make demo-up      # fake Sense + bundled InfluxDB + Grafana on http://localhost:13302
 ```
 
-This is a working reference you can compare your own Grafana setup against. `make dev-up` is the same bundled stack but pointed at your real Sense account.
+This is a working reference you can compare your own Grafana setup against. `make dev-up` is the same bundled stack, pointed at your real Sense account and run on the fleet's dev host (`DEV_HOST`), where its Grafana is served by name instead of a port.
 
 ## Next steps
 

@@ -63,10 +63,45 @@ def test_dev_deploy_deploys_and_smokes_both_monitors() -> None:
     ]
 
 
-def test_dev_grafanas_take_separate_port_variables() -> None:
+def _service(compose: str, name: str) -> str:
+    return compose.split(f"  {name}:\n")[1].split("\n  sense_")[0]
+
+
+def test_the_dev_stacks_run_on_the_declared_dev_host() -> None:
+    """Every target that drives a dev stack must reach the dev host's docker, or it starts,
+    stops or reads a stack on whichever machine runs make."""
+    assert _make_setting("DEV_HOST") == ["devhost"]
+    makefile = (REPO / "Makefile").read_text()
+    assert re.search(
+        r"^DEV_HOST_DC = DOCKER_HOST=ssh://\$\(DEV_HOST\) ", makefile, re.M
+    )
+    for wrapper in ("DEV_TYLE_DC", "DEV_BB_DC"):
+        assert re.search(rf"^{wrapper}\s+= \$\(DEV_HOST_DC\) ", makefile, re.M), wrapper
+
+
+def test_each_dev_grafana_is_served_by_name_on_the_edge_not_a_port() -> None:
+    """The edge hands each dev name to http://<container_name>:3000 on `dev-edge`; a
+    published port would bypass it, and a Grafana off `dev-edge` cannot be reached."""
     compose = (REPO / "compose.yml").read_text()
-    assert '"${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT_TYLE:-13300}:3000"' in compose
-    assert '"${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT_BB:-13301}:3000"' in compose
+    for stack in ("sense_dev_tyle_grafana", "sense_dev_bb_grafana"):
+        service = _service(compose, stack)
+        assert "ports:" not in service, stack
+        assert "networks: [default, dev-edge]" in service, stack
+        assert f"container_name: {stack}" in service, stack
+    assert re.search(r"^networks:\n  dev-edge:\n    external: true$", compose, re.M)
+
+
+def test_a_dev_grafana_never_falls_back_to_admin_admin() -> None:
+    """Served by name, a dev Grafana with no GRAFANA_PASSWORD would sign anyone in as
+    admin/admin: it must refuse to start instead, empty or `admin` alike."""
+    compose = (REPO / "compose.yml").read_text()
+    guard = compose.split("x-dev-grafana-entrypoint: &dev-grafana-entrypoint")[1]
+    guard = guard.split("\nx-")[0]
+    assert '""|admin)' in guard and "exit 1" in guard and "exec /run.sh" in guard
+    for stack in ("sense_dev_tyle_grafana", "sense_dev_bb_grafana"):
+        service = _service(compose, stack)
+        assert "entrypoint: *dev-grafana-entrypoint" in service, stack
+        assert "GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-}" in service, stack
 
 
 def test_releases_build_both_architectures_whatever_the_shell_exports() -> None:
