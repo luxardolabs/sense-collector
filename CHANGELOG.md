@@ -8,7 +8,6 @@ The format is defined in [`app/change_logs/writing-guide.md`](app/change_logs/wr
 
 ## Versions
 
-- [2026.11.1](app/change_logs/2026.11.1.md) — 2026-11-15 — zlib CVEs cleared, guards to luxarch 0.365.4, dev stacks on the dev host with a hardened dev Grafana guard; ships the logging v11 regression (SENSECOLLE-132)
 - [2026.11.0](app/change_logs/2026.11.0.md) — 2026-11-05 — MFA login, WS auth limit really exits, nine recovered audit leads, apt CVE cleared, guards to luxarch 0.344.0
 - [2026.10.3](app/change_logs/2026.10.3.md) — 2026-10-25 — adversarial audit burn-down (every finding fixed), image CVEs cleared, guards to luxarch 0.325.0 / luxaudit 0.15.0
 - [2026.10.2](app/change_logs/2026.10.2.md) — 2026-10-10 — /adversarial fixes: WS token redacted at DEBUG, text-mode log forging, every platform scanned by digest, recursive .dockerignore
