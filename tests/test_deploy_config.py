@@ -153,7 +153,21 @@ def _guard(tmp_path: Path, password: str, cli_exit: int = 0):
 
 @pytest.mark.parametrize(
     "password",
-    ["", "admin", "Admin", "ADMIN", "choose-a-password", "Choose-A-Password"],
+    [
+        "",
+        "admin",
+        "Admin",
+        "ADMIN",
+        "choose-a-password",
+        "Choose-A-Password",
+        # whitespace alone is no password
+        "    ",
+        "\t \t",
+        # the CLI reads stdin's first line only: `admin\n…` would set `admin`
+        "admin\nZq7-unrelated-suffix",
+        "Kp9x\nW7-rest-of-it",
+        "S3cret-pw\r",
+    ],
 )
 def test_a_dev_grafana_refuses_a_default_or_published_password(tmp_path, password):
     """Served by name, a dev Grafana must never take a password anyone can guess: none,

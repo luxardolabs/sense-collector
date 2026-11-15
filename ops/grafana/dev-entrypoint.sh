@@ -9,9 +9,21 @@
 set -eu
 
 password="${GF_SECURITY_ADMIN_PASSWORD:-}"
-case "$(printf '%s' "$password" | tr '[:upper:]' '[:lower:]')" in
+case "$(printf '%s' "$password" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')" in
 "" | admin | choose-a-password)
 	echo "REFUSING: set GRAFANA_PASSWORD in the env file to a password of your own; this Grafana is served by name" >&2
+	exit 1
+	;;
+esac
+
+# The CLI reads only the first line of stdin, so a line break would set part of the password:
+# `admin` from `admin\n…`. A password is one line.
+newline='
+'
+carriage_return=$(printf '\r')
+case "$password" in
+*"$newline"* | *"$carriage_return"*)
+	echo "REFUSING: GRAFANA_PASSWORD holds a line break; set it on one line" >&2
 	exit 1
 	;;
 esac
