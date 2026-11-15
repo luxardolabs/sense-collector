@@ -114,7 +114,12 @@ def test_each_dev_grafana_starts_through_the_password_guard() -> None:
     compose = (REPO / "compose.yml").read_text()
     for stack in ("sense_dev_tyle_grafana", "sense_dev_bb_grafana"):
         service = _service(compose, stack)
-        assert 'entrypoint: ["/bin/sh", "/ops/dev-entrypoint.sh"]' in service, stack
+        # sh exits 0, silently, when its script is a directory: the shape docker gives a
+        # missing bind source. Grafana must then fail loudly instead of restarting in silence.
+        assert (
+            'entrypoint: ["/bin/sh", "-c", "test -f /ops/dev-entrypoint.sh' in service
+        ), stack
+        assert "exit 1; }; exec /bin/sh /ops/dev-entrypoint.sh" in service, stack
         assert (
             "- ./ops/grafana/dev-entrypoint.sh:/ops/dev-entrypoint.sh:ro" in service
         ), stack
@@ -122,12 +127,16 @@ def test_each_dev_grafana_starts_through_the_password_guard() -> None:
 
 
 def _guard(tmp_path: Path, password: str, cli_exit: int = 0):
-    """Run the dev Grafana entrypoint with a stand-in `grafana` that records its arguments."""
+    """Run the dev Grafana entrypoint with a stand-in `grafana` that records its arguments
+    (one call per line) and what it read on stdin (in `<tmp>/stdin`)."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     calls = tmp_path / "calls"
     cli = bin_dir / "grafana"
-    cli.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> {calls}\nexit {cli_exit}\n')
+    cli.write_text(
+        f'#!/bin/sh\nprintf "%s\\n" "$*" >> {calls}\ncat > {tmp_path / "stdin"}\n'
+        f"exit {cli_exit}\n"
+    )
     cli.chmod(0o755)
     run = subprocess.run(
         ["/bin/sh", str(DEV_GRAFANA_ENTRYPOINT)],
@@ -155,15 +164,20 @@ def test_a_dev_grafana_refuses_a_default_or_published_password(tmp_path, passwor
     assert calls == []
 
 
-def test_a_dev_grafana_sets_its_admin_password_on_every_start(tmp_path):
+@pytest.mark.parametrize(
+    "password", ["S3cret pw with spaces*", "-Rk9vT2qLm8w", "--debug", "q\"$x`y'z"]
+)
+def test_a_dev_grafana_sets_its_admin_password_on_every_start(tmp_path, password):
     """Grafana applies GF_SECURITY_ADMIN_PASSWORD only when it creates its database: a
     volume first started with admin/admin, or before a rotation, keeps the old password
-    unless the entrypoint sets it each start."""
-    password = "S3cret pw with spaces*"
+    unless the entrypoint sets it each start. It goes on stdin, never as an argument, so
+    a password a generator starts with `-` is not read as a flag and no `ps` shows it."""
     run, calls = _guard(tmp_path, password)
     assert calls == [
-        f"cli --homepath /usr/share/grafana admin reset-admin-password {password}"
+        "cli --homepath /usr/share/grafana admin reset-admin-password"
+        " --password-from-stdin"
     ]
+    assert (tmp_path / "stdin").read_text() == password
     assert "REFUSING" not in run.stderr
     assert password not in run.stdout + run.stderr
 

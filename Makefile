@@ -2357,7 +2357,7 @@ dev-clean: ## Stop the dev stack AND delete its data volumes
 
 bb-up: ## Start the SECOND monitor's stack on the dev host at the pinned image
 	$(DEV_BB_DC) up -d
-	@echo "sense-collector [bb] on $(DEV_HOST) — Grafana at its dev name, dev-sense-collector-bb (admin / GRAFANA_PASSWORD from .env.dev-bb)"
+	@echo "sense-collector [bb] on $(DEV_HOST) — Grafana at its dev name, dev-sense-collector-bb (admin / GRAFANA_PASSWORD from .env.dev)"
 
 bb-down: ## Stop the bb stack (keep data volumes)
 	$(DEV_BB_DC) down

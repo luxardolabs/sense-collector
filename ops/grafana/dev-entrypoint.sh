@@ -16,8 +16,11 @@ case "$(printf '%s' "$password" | tr '[:upper:]' '[:lower:]')" in
 	;;
 esac
 
-if ! grafana cli --homepath /usr/share/grafana admin reset-admin-password "$password" >/dev/null; then
-	echo "REFUSING: could not set the admin password from GRAFANA_PASSWORD" >&2
+# On stdin, not as an argument: a password starting with `-` would be read as a flag, and an
+# argument shows in `ps`. The CLI's own reason goes to stderr; its stdout is discarded.
+if ! printf '%s' "$password" |
+	grafana cli --homepath /usr/share/grafana admin reset-admin-password --password-from-stdin >/dev/null; then
+	echo "REFUSING: could not set the admin password from GRAFANA_PASSWORD (grafana cli's reason above)" >&2
 	exit 1
 fi
 
