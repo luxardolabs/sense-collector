@@ -1,47 +1,27 @@
 {
   "guard": "luxaudit",
-  "guard_version": "0.16.0",
+  "guard_version": "0.18.0",
   "repo": "/repo",
   "packages": 37,
   "source": "poetry.lock",
   "summary": {
     "PASS": 37,
-    "FAIL": 2,
+    "FAIL": 0,
     "XFAIL": 0
   },
   "vulnerable": [],
   "deferred": [],
   "banned": [],
   "not_audited": [],
+  "by_public_version": [],
   "warnings": [],
   "image": {
-    "ref": "luxardolabs/sense-collector:2026.10.3",
+    "ref": "luxardolabs/sense-collector:2026.11.0",
     "inert": false,
     "inert_reason": "",
-    "error": "",
+    "error": "the registry has luxardolabs/sense-collector:2026.11.0, but the scanner could not read it as an image: : no podman socket found: stat podman/podman.sock: no such file or directory\n\t* remote error: GET https://<registry>/v2/luxardolabs/sense-collector/manifests/sha256:bec7f86d56e684066c7c518d1ebc0cee91cfb1341c6d07a96d0ac08dca68aa8f: MANIFEST_UNKNOWN: manifest unknown; map[Name:luxardolabs/sense-collector Revision:sha256:bec7f86d56e684066c7c518d1ebc0cee91cfb1341c6d07a96d0ac08dca68aa8f]",
     "not_released": [],
-    "vulnerable": [
-      {
-        "package": "apt",
-        "installed": "3.0.3",
-        "vuln_id": "CVE-2026-109518",
-        "severity": "HIGH",
-        "layer": "os",
-        "path": "",
-        "image": "luxardolabs/sense-collector:2026.10.3",
-        "fix": "3.0.4"
-      },
-      {
-        "package": "libapt-pkg7.0",
-        "installed": "3.0.3",
-        "vuln_id": "CVE-2026-109518",
-        "severity": "HIGH",
-        "layer": "os",
-        "path": "",
-        "image": "luxardolabs/sense-collector:2026.10.3",
-        "fix": "3.0.4"
-      }
-    ],
+    "vulnerable": [],
     "deferred": []
   },
   "ignore_rows": {
@@ -49,6 +29,6 @@
     "expired": [],
     "unjudged": []
   },
-  "commit": "a150502bbc0e91e41b86b9b60c28a022b7b3bb07",
-  "generated_at": "2026-11-05T19:13:16Z"
+  "commit": "ca7f8ffd7d5f9155b243f399c2dfa2f41c2bdefe",
+  "generated_at": "2026-11-15T19:37:27Z"
 }

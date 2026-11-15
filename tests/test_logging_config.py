@@ -150,3 +150,178 @@ def test_reconfiguring_replaces_the_handler(capsys):
     logger.warning("once")
 
     assert len(_lines(capsys)) == 1
+
+
+TRACE, SPAN = "0af7651916cd43dd8448eb211c80319c", "b7ad6b7169203331"
+
+
+def test_a_trace_id_source_puts_the_span_ids_on_the_line(capsys):
+    configure_logging(service="s", version="v", trace_ids=lambda: (TRACE, SPAN))
+    logger.warning("in a span")
+
+    (line,) = _lines(capsys)
+    assert (line["trace_id"], line["span_id"]) == (TRACE, SPAN)
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [RuntimeError("tracer bug"), None, (TRACE,), (TRACE, 7), "not-a-pair"],
+    ids=["raises", "none", "one-id", "not-str", "not-tuple"],
+)
+def test_a_bad_trace_id_source_costs_the_ids_never_the_line(capsys, answer):
+    def source():
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    configure_logging(service="s", version="v", trace_ids=source)
+    logger.warning("still written")
+
+    (line,) = _lines(capsys)
+    assert line["message"] == "still written"
+    assert "trace_id" not in line and "span_id" not in line
+
+
+# A stand-in for pydantic's ValidationError: the logging module recognises one by its package and
+# class name, so the collector's suite exercises the withholding path without depending on pydantic.
+SECRET = "swordfish-input"
+
+
+class ValidationError(ValueError):
+    def errors(self):
+        return [
+            {
+                "type": "missing",
+                "loc": ("password",),
+                "msg": "Field required",
+                "input": SECRET,
+            }
+        ]
+
+    def __str__(self):
+        return f"1 validation error input_value={SECRET!r}"
+
+    __repr__ = __str__  # pydantic's repr quotes the failing input too
+
+
+ValidationError.__module__ = "pydantic_core._pydantic_core"
+
+
+def _chain(kind):
+    inner = ValidationError()
+    if kind == "direct":
+        return inner
+    if kind == "cause":
+        try:
+            raise RuntimeError("wrapped") from inner
+        except RuntimeError as err:
+            return err
+    return ExceptionGroup("group", [inner])
+
+
+@pytest.mark.parametrize("text", [False, True], ids=["json", "text"])
+@pytest.mark.parametrize("kind", ["direct", "cause", "group"])
+def test_a_validation_errors_input_never_reaches_a_traceback(
+    capsys, monkeypatch, kind, text
+):
+    if text:
+        monkeypatch.setenv("LOG_FORMAT", "text")
+    configure_logging(service="s", version="v")
+    exc = _chain(kind)
+    try:
+        raise exc
+    except Exception:
+        logger.exception("failed")
+
+    out = capsys.readouterr().out
+    assert SECRET not in out
+    assert "message withheld" in out
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        (ValidationError(),),
+        ([1, {"k": ValidationError()}],),
+        (RuntimeError("bad", ValidationError()),),
+    ],
+    ids=["direct", "nested", "in-exception-args"],
+)
+def test_a_validation_error_passed_as_an_argument_is_withheld(capsys, args):
+    configure_logging(service="s", version="v")
+    logger.warning("refused: %s", *args)
+
+    (line,) = _lines(capsys)
+    assert SECRET not in json.dumps(line)
+
+
+def test_a_validation_error_in_a_mapping_argument_is_withheld(capsys):
+    configure_logging(service="s", version="v")
+    logger.warning("refused: %(e)s", {"e": ValidationError()})
+
+    (line,) = _lines(capsys)
+    assert SECRET not in json.dumps(line)
+
+
+def test_an_errors_entry_is_written_without_its_input(capsys):
+    configure_logging(service="s", version="v")
+    logger.warning("refused: %s", ValidationError().errors())
+
+    (line,) = _lines(capsys)
+    assert SECRET not in json.dumps(line)
+    assert "password" in line["message"]
+
+
+def test_a_validation_error_in_an_extra_field_or_context_is_withheld(capsys):
+    configure_logging(service="s", version="v")
+    with log_context(detail=[ValidationError()]):
+        logger.warning("refused", extra={"errors": {"first": ValidationError()}})
+
+    (line,) = _lines(capsys)
+    assert SECRET not in json.dumps(line)
+
+
+class _Slotted:
+    __slots__ = ("__error", "row")
+
+    def __init__(self, row, error):
+        self.row = row
+        self.__error = error
+
+    def __repr__(self):
+        return f"_Slotted({self.row}, {self.__error!r})"
+
+
+class _Refusal(Exception):
+    def __init__(self, detail):
+        super().__init__()
+        self.detail = detail
+
+    def __str__(self):
+        return f"refused: {self.detail}"
+
+
+@pytest.mark.parametrize(
+    "holder",
+    [_Slotted(3, ValidationError()), _Refusal(ValidationError().errors())],
+    ids=["slotted-object", "exception-attribute"],
+)
+def test_an_object_holding_a_validation_error_is_withheld(capsys, holder):
+    configure_logging(service="s", version="v")
+    logger.warning("result %s", holder)
+
+    (line,) = _lines(capsys)
+    assert SECRET not in json.dumps(line)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [[1, 2], ("a", {"k": "v"}), _Slotted(1, "plain"), RuntimeError("plain")],
+    ids=["list", "nested", "object", "exception"],
+)
+def test_a_value_holding_no_validation_error_is_written_as_passed(capsys, value):
+    configure_logging(service="s", version="v")
+    logger.warning("value %s", value)
+
+    (line,) = _lines(capsys)
+    assert line["message"] == f"value {value}"

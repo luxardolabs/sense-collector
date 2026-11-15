@@ -91,3 +91,7 @@ Thumbs.db
 
 # Claude Code hook session state (luxarch --emit hooks)
 .claude/.release-guides-read.json
+
+# Claude Code hook session state (luxarch --emit hooks)
+.claude/.luxpm-path-searches.json
+.claude/.luxpm-hold-notices.json

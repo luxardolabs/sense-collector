@@ -1,4 +1,4 @@
-# luxarch:logging asset v9 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging`.
+# luxarch:logging asset v11 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging`.
 """The fleet's ONE logging setup: standard-library `logging`, one JSON line per record on stdout.
 
 Why the standard library (sources in `luxarch --playbook logging`): every log platform the fleet might
@@ -72,6 +72,23 @@ types the six characters `\\ud800` is logged the same way as one who sent the su
 `LOG_MODULE_LEVELS='{"app.services.ingest": "DEBUG"}'` to override one at runtime. `LOG_FORMAT=text` gives a plain human-readable line for
 local development; anything that ships emits JSON.
 
+A pydantic or FastAPI validation error's text quotes the value that failed, a submitted password
+included, so no line carries it: a traceback whose exception chain (cause, context, exception group,
+or an exception's own arguments) holds one keeps its frames under a message naming the exception type,
+and one in a `%` argument, an `extra=` field or a `log_context` field, at any depth of a list, tuple,
+set or dict (16 levels; a container nested deeper is written as its type), is written as its type. An
+entry of its `errors()` (a dict carrying `type`, `loc`, `msg` and `input`) is written without its
+`input`, wherever it is passed, and as its `type` and `loc` alone when its message is the validator's
+own text (`value_error`, `assertion_error`, a custom error type), which may quote the value. An
+exception whose arguments or attributes (`HTTPException(detail=err.errors())`) hold either is withheld
+as one, and an object whose instance dict or slots hold one (a dataclass of results) is written as
+its type. Text the application builds itself (`f"failed: {err}"`, `str(err)`,
+`err.json()`) is already a string when the log call is made and is written as it is: log
+`err.errors(include_input=False)` instead. A custom error type named like one of pydantic's own keeps
+its message; an object whose text comes from state outside its instance dict and slots is written
+as it renders; and an argument whose object graph runs past 10,000 containers and objects is written
+as its type.
+
 Emitted, not shared: `luxarch --emit logging`. Drop it in at app/core/logging_config.py. Nothing
 imports luxarch at runtime. Do not hand-edit: re-emit to update; repo.emitted_assets_current reds a
 stale copy and repo.logging_canonical reds a second setup.
@@ -80,16 +97,27 @@ stale copy and repo.logging_canonical reds a second setup.
 from __future__ import annotations
 
 import contextvars
+import copy
 import json
 import logging
 import os
 import re
 import sys
-from collections.abc import Callable, Iterator, Mapping
+from collections import deque
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
-from datetime import UTC, datetime
-from types import TracebackType
+from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
+from types import (
+    BuiltinFunctionType,
+    BuiltinMethodType,
+    FunctionType,
+    MethodType,
+    ModuleType,
+    TracebackType,
+)
 from typing import Any, TextIO, cast
+from uuid import UUID
 
 # Every attribute a bare LogRecord carries on this interpreter (taskName on 3.12+, ...), plus the two
 # makeRecord also refuses. Computed, not listed, so a new CPython attribute is covered automatically.
@@ -106,6 +134,9 @@ _FIELD_KEYS = "_log_field_keys"
 # caller bound itself (`log_context(trace_id=...)`) is lifted there too when the instrumentation did not
 # set one.
 _TRACE_FIELDS = {"otelTraceID": "trace_id", "otelSpanID": "span_id"}
+# A caller who passes either of these as `extra=` names its own trace: the span's pair is then not
+# written, so a line never carries one id from the caller and the other from the span.
+_OWN_IDS = frozenset(_TRACE_FIELDS)
 # What a hostile or broken value can raise while being serialised or repr()'d (RecursionError is a
 # RuntimeError). A log line is never dropped for any of them.
 _VALUE_ERRORS = (
@@ -210,7 +241,7 @@ def _make_record(
     names: dict[str, str] = {}
     record.__dict__[_FIELD_KEYS] = names
     source = _trace_ids[0]
-    if source is not None:
+    if source is not None and _OWN_IDS.isdisjoint(extra or ()):
         # Any exception, not a list: a tracing defect must never cost the application its log line.
         try:
             ids = cast(object, source())
@@ -229,7 +260,347 @@ def _make_record(
     return record
 
 
-class JsonFormatter(logging.Formatter):
+# A validation error's text quotes the value that failed (`input_value=...`), a password included.
+_QUOTING_CLASSES = frozenset({"ValidationError", "ValidationException"})
+_QUOTING_PACKAGES = frozenset({"pydantic", "pydantic_core", "fastapi"})
+# The keys of one entry of a validation error's `errors()`; its `input` is the value that failed.
+_ERROR_ENTRY = frozenset({"type", "loc", "msg", "input"})
+# The pydantic error types whose `msg` is a fixed template, or one filled only from the schema
+# (a bound, a pattern, the expected values, a class name): an entry of one of these is written without
+# its `input`. Any other entry (`value_error` and `assertion_error`, whose `msg` and `ctx` carry the
+# validator's own text, and every custom type) is written as its `type` and `loc` only.
+_TEMPLATED_ERRORS = frozenset(
+    {
+        "json_type",
+        "recursion_loop",
+        "recursion_depth_exceeded",
+        "missing",
+        "frozen_field",
+        "frozen_instance",
+        "extra_forbidden",
+        "invalid_key",
+        "model_attributes_type",
+        "default_factory_not_called",
+        "none_required",
+        "finite_number",
+        "iterable_type",
+        "string_type",
+        "string_unicode",
+        "string_not_ascii",
+        "dict_type",
+        "frozen_dict_type",
+        "ordered_dict_type",
+        "counter_type",
+        "list_type",
+        "deque_type",
+        "tuple_type",
+        "set_type",
+        "set_item_not_hashable",
+        "bool_type",
+        "bool_parsing",
+        "int_type",
+        "int_parsing",
+        "int_parsing_size",
+        "int_from_float",
+        "float_type",
+        "float_parsing",
+        "bytes_type",
+        "missing_sentinel_error",
+        "ellipsis_error",
+        "date_type",
+        "date_from_datetime_inexact",
+        "date_past",
+        "date_future",
+        "time_type",
+        "datetime_type",
+        "datetime_past",
+        "datetime_future",
+        "timezone_naive",
+        "timezone_aware",
+        "time_delta_type",
+        "frozen_set_type",
+        "callable_type",
+        "arguments_type",
+        "missing_argument",
+        "unexpected_keyword_argument",
+        "missing_keyword_only_argument",
+        "unexpected_positional_argument",
+        "missing_positional_only_argument",
+        "multiple_argument_values",
+        "url_type",
+        "uuid_type",
+        "decimal_type",
+        "decimal_parsing",
+        "fraction_type",
+        "fraction_parsing",
+        "complex_type",
+        "complex_str_parsing",
+        "greater_than",
+        "greater_than_equal",
+        "less_than",
+        "less_than_equal",
+        "multiple_of",
+        "string_too_short",
+        "string_too_long",
+        "bytes_too_short",
+        "bytes_too_long",
+        "url_too_long",
+        "uuid_version",
+        "decimal_max_digits",
+        "decimal_max_places",
+        "decimal_whole_digits",
+        "literal_error",
+        "enum",
+        "string_pattern_mismatch",
+        "model_type",
+        "dataclass_type",
+        "is_instance_of",
+        "too_short",
+        "too_long",
+    }
+)
+_UNTEMPLATED_KEPT = ("type", "loc")
+# The containers looked into, and how deep: one nested deeper is written as its type, never printed.
+_CONTAINERS = (list, tuple, set, frozenset, deque)
+_MAX_DEPTH = 16
+# The types a container made only of is written as it is, unwalked: none of them can hold a validation
+# error. Exact types: a subclass (a `str` subclass with its own `__str__`) is walked.
+_SCALARS = frozenset(
+    {
+        str,
+        bytes,
+        int,
+        float,
+        bool,
+        type(None),
+        datetime,
+        date,
+        time,
+        timedelta,
+        UUID,
+        Decimal,
+    }
+)
+
+
+# Values written as they are (subclasses included): they hold nothing a walk could reach.
+_SCALAR_BASES = (
+    str | bytes | int | float | complex | date | time | timedelta | UUID | Decimal
+)
+
+
+def _all_scalar(values: Iterable[object]) -> bool:
+    return set(map(type, values)) <= _SCALARS
+
+
+# Objects whose attributes are not a value's data: walked, they would reach a whole module or class.
+_OPAQUE = (
+    type
+    | ModuleType
+    | FunctionType
+    | BuiltinFunctionType
+    | MethodType
+    | BuiltinMethodType
+)
+# How many containers and objects one look walks: past it, each is written as its type.
+_MAX_NODES = 10_000
+
+
+class _Walk:
+    """One look through a value: the objects on the current path (a cycle), the ones answered, and
+    how many more it may walk."""
+
+    def __init__(self) -> None:
+        self.path: set[int] = set()
+        self.done: dict[int, object] = {}
+        self.left = _MAX_NODES
+
+
+def _attributes(value: object) -> list[object]:
+    """What an object's `repr` / `str` is usually built from: its instance dict and its slots (a
+    dataclass's fields are one or the other), read without running the class's own `__getattr__`."""
+    found: list[object] = []
+    try:
+        own = object.__getattribute__(value, "__dict__")
+    except AttributeError:
+        own = None
+    if isinstance(own, dict):
+        found.extend(own.values())
+    for cls in type(value).__mro__:
+        slots = cls.__dict__.get("__slots__", ())
+        for name in (slots,) if isinstance(slots, str) else slots:
+            if not isinstance(name, str) or name in ("__dict__", "__weakref__"):
+                continue
+            if name.startswith("__") and not name.endswith("__"):
+                name = f"_{cls.__name__.lstrip('_')}{name}"
+            try:
+                found.append(object.__getattribute__(value, name))
+            except AttributeError:
+                continue
+    return found
+
+
+def _holds_input(values: list[object], walk: _Walk, depth: int) -> bool:
+    return not _all_scalar(values) and any(
+        _withheld(v, walk, depth) is not v for v in values
+    )
+
+
+def _quotes_input(exc: BaseException, walk: _Walk, depth: int) -> bool:
+    """Whether `exc` is a pydantic or FastAPI validation error (classes named by package, so this
+    module imports neither), or anything in its cause / context chain, its exception group or its
+    arguments is one or holds one, or an entry of one's `errors()`."""
+    for cls in type(exc).__mro__:
+        if (
+            cls.__module__.partition(".")[0] in _QUOTING_PACKAGES
+            and cls.__name__ in _QUOTING_CLASSES
+        ):
+            return True
+    members = getattr(exc, "exceptions", None)
+    inner = (
+        [m for m in members if isinstance(m, BaseException)]
+        if isinstance(members, tuple)
+        else []
+    )
+    for linked in [exc.__cause__, exc.__context__, *inner]:
+        if linked is not None and _withheld(linked, walk, depth) is not linked:
+            return True
+    args = exc.args
+    if not isinstance(args, tuple) or _withheld(args, walk, depth + 1) is not args:
+        return True
+    # what `str()` of an exception often reads instead of its args (`HTTPException.detail`)
+    return _holds_input(_attributes(exc), walk, depth + 1)
+
+
+def _withheld(value: object, walk: _Walk, depth: int) -> object:
+    """`value` itself when it holds no validation error, else a copy without one: such an error is
+    written as its type, an `errors()` entry without its `input`."""
+    if value is None or isinstance(value, str | bytes | int | float):
+        return value
+    key = id(value)
+    if key in walk.done:
+        return walk.done[key]
+    if key in walk.path:
+        # a cycle: the value is being answered further up
+        return value if isinstance(value, BaseException) else "[...]"
+    if walk.left <= 0:
+        return f"<{type(value).__qualname__}: too much to look through, withheld>"
+    walk.left -= 1
+    walk.path.add(key)
+    try:
+        out = _withheld_new(value, walk, depth)
+    except _VALUE_ERRORS:
+        out = f"<{type(value).__qualname__}: unreadable, withheld>"
+    finally:
+        walk.path.discard(key)
+    walk.done[key] = out
+    return out
+
+
+def _withheld_new(value: object, walk: _Walk, depth: int) -> object:
+    if isinstance(value, BaseException):
+        if _quotes_input(value, walk, depth):
+            return f"<{type(value).__qualname__}: input withheld>"
+        return value
+    container = isinstance(value, Mapping | list | tuple | set | frozenset | deque)
+    if not container and isinstance(value, _SCALAR_BASES | _OPAQUE):
+        return value
+    if depth >= _MAX_DEPTH:
+        return f"<{type(value).__qualname__} nested past {_MAX_DEPTH} levels: withheld>"
+    if not container:
+        # an object (a dataclass, a result record) whose repr would print what it holds
+        if _holds_input(_attributes(value), walk, depth + 1):
+            return f"<{type(value).__qualname__}: input withheld>"
+        return value
+    if isinstance(value, Mapping):
+        entry = _ERROR_ENTRY.issubset(value.keys())
+        if not entry and _all_scalar(value.keys()) and _all_scalar(value.values()):
+            return value
+        templated = entry and value["type"] in _TEMPLATED_ERRORS
+        pairs = [
+            (_withheld(k, walk, depth + 1), _withheld(v, walk, depth + 1))
+            for k, v in value.items()
+            if not entry or (k != "input" if templated else k in _UNTEMPLATED_KEPT)
+        ]
+        if entry or any(
+            k is not old_k or v is not old_v
+            for (k, v), (old_k, old_v) in zip(pairs, value.items(), strict=True)
+        ):
+            return dict(pairs)
+        return value
+    if not isinstance(value, _CONTAINERS) or _all_scalar(value):
+        return value
+    items = [_withheld(v, walk, depth + 1) for v in value]
+    if all(new is old for new, old in zip(items, value, strict=True)):
+        return value
+    kind = next(t for t in _CONTAINERS if isinstance(value, t))
+    return kind(items)
+
+
+def _hide_input(value: object) -> object:
+    return _withheld(value, _Walk(), 0)
+
+
+def _hidden_fields(fields: dict[str, Any]) -> dict[str, Any]:
+    """The caller's fields, each through `_withheld`: a field the JSON line writes with `str()`."""
+    if _all_scalar(fields.values()):
+        return fields
+    walk = _Walk()
+    return {k: _withheld(v, walk, 1) for k, v in fields.items()}
+
+
+def _withhold_input(exc_info: _SysExcInfo) -> _SysExcInfo:
+    """`exc_info`, or, when its chain holds a validation error, the same frames under a message that
+    names the exception type and withholds the text."""
+    exc = exc_info[1]
+    if exc is None or _hide_input(exc) is exc:
+        return exc_info
+    kept = RuntimeError(
+        f"{type(exc).__qualname__} (message withheld: its chain holds a validation error's input)"
+    )
+    return (RuntimeError, kept, exc_info[2])
+
+
+class _Withholding(logging.Formatter):
+    """A formatter whose line never quotes a validation error's input, for every logger (a server's
+    own `Exception in ASGI application` line included): not in a traceback, a `%` argument, an
+    `extra=` field or a `log_context` field."""
+
+    def formatException(self, ei: _SysExcInfo) -> str:
+        return super().formatException(_withhold_input(ei))
+
+    def message(self, record: logging.LogRecord) -> str:
+        """`record.getMessage()`, with each validation error in a `%` argument (or the message), at
+        any depth of a list, tuple, set or dict, replaced by its type name, and each `errors()` entry
+        written without its `input`: `logger.exception("failed: %s", err)` would print its text."""
+        args, msg = record.args, record.msg
+        if type(msg) is str and (
+            not args or (type(args) is tuple and _all_scalar(args))
+        ):
+            return record.getMessage()
+        walk = _Walk()
+        safe_msg = _withheld(msg, walk, 0)
+        safe_args = args
+        if isinstance(args, tuple):
+            hidden = tuple(_withheld(a, walk, 1) for a in args)
+            if any(new is not old for new, old in zip(hidden, args, strict=True)):
+                safe_args = hidden
+        elif isinstance(args, Mapping):
+            # the one mapping argument of `log("%(e)s", {...})` is itself what `%s` would print
+            hidden_map = _withheld(args, walk, 0)
+            if isinstance(hidden_map, Mapping):
+                safe_args = hidden_map
+            else:
+                safe_msg = hidden_map
+        if safe_msg is msg and safe_args is args:
+            return record.getMessage()
+        clone = copy.copy(record)
+        clone.msg = safe_msg
+        clone.args = () if safe_msg is not msg else safe_args
+        return clone.getMessage()
+
+
+class JsonFormatter(_Withholding):
     """One JSON object per record: the fixed fields, then `attributes`: the bound context and every
     `extra=` field, each under the name the caller gave it.
 
@@ -258,7 +629,7 @@ class JsonFormatter(logging.Formatter):
             .replace("+00:00", "Z"),
             "level": record.levelname,
             "logger": record.name,
-            "message": record.getMessage(),
+            "message": self.message(record),
             "service": self.service,
             "version": self.version,
             "module": record.module,
@@ -268,7 +639,7 @@ class JsonFormatter(logging.Formatter):
         }
         if self.environment:
             line["environment"] = self.environment
-        attributes = {**_bound(), **_extras(record)}
+        attributes = _hidden_fields({**_bound(), **_extras(record)})
         for otel, ours in _TRACE_FIELDS.items():
             if otel in attributes:
                 line[ours] = attributes.pop(otel)
@@ -322,7 +693,7 @@ class _Handler(logging.StreamHandler[TextIO]):
             )
 
 
-class TextFormatter(logging.Formatter):
+class TextFormatter(_Withholding):
     """`LOG_FORMAT=text`: one readable line for a terminal; context and extras appended as k=v.
 
     Built from the same fields as the JSON line, and through the same redactor: a developer's
@@ -335,7 +706,7 @@ class TextFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         # `logger` is there for the redactor (one that scrubs by logger), as in the JSON line; the
         # head below names the logger, so it is not repeated in the tail
-        line: dict[str, Any] = {"message": record.getMessage(), "logger": record.name}
+        line: dict[str, Any] = {"message": self.message(record), "logger": record.name}
         if record.exc_info:
             line["exception"] = self.formatException(record.exc_info)
         if record.stack_info:
@@ -344,7 +715,9 @@ class TextFormatter(logging.Formatter):
         for otel, ours in _TRACE_FIELDS.items():
             if otel in extras:
                 line[ours] = extras.pop(otel)
-        line, attributes = _redacted(line, {**_bound(), **extras}, self.redact)
+        line, attributes = _redacted(
+            line, _hidden_fields({**_bound(), **extras}), self.redact
+        )
         line.pop("logger", None)
         message = _one_line(str(line.pop("message", "")))
         # A traceback keeps its own lines, each indented under the record's head and with its
@@ -494,7 +867,9 @@ def configure_logging(
     keeps its fixed fields and says the redaction failed; the unscrubbed content is dropped.
 
     `trace_ids` is the tracing module's `current_trace_ids`: every record made inside a span gets
-    `trace_id` and `span_id`.
+    `trace_id` and `span_id`. A record whose `extra=` names `otelTraceID` or `otelSpanID` itself keeps
+    the caller's and gets none from the span: the two ids of a line always come from one place.
+    `luxarch --emit logging-contract` is the contract test for this source.
 
     Idempotent: calling it again replaces the handler instead of adding a second one.
     """
