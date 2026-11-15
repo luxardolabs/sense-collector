@@ -251,18 +251,21 @@ POETRY_PIP := python -m venv /tmp/v && /tmp/v/bin/pip install -q --root-user-act
 # Compose stacks (all .yml, short-form volumes). Four flavors:
 # ONE compose.yml; the four stacks are compose PROFILES, and environments differ by
 # .env.<env> (never by a second compose file — repo.compose_conventions).
-#   --profile dev-tyle / dev-bb    per-monitor LOCAL stack: real Sense account + bundled infra
+#   --profile dev-tyle / dev-bb    per-monitor stack on the dev host: real Sense account + bundled infra
 #   --profile prod-tyle / prod-bb  per-monitor collector only -> your external InfluxDB
 #   --profile demo       DEMO: fake Sense endpoint + bundled InfluxDB+Grafana (no account)
 #   --profile e2e        hardware-free e2e test (fake Sense + throwaway InfluxDB) -> `make test-e2e`
 DC      := docker compose
 # The dev stacks run on the dev host (DEV_HOST, below), so every target that drives them reaches
 # its docker over ssh; compose sends this checkout's path, which the dev host mounts at the same place.
+# Both resolve from .env.dev, as `make dev-deploy` does: its TAG= is the image both collectors run
+# and its GRAFANA_PASSWORD both Grafanas' (the bb collector still reads its own credentials from
+# .env.dev-bb, through compose's env_file).
 DEV_HOST_DC = DOCKER_HOST=ssh://$(DEV_HOST) $(DC)
 DEV_TYLE_DC = $(DEV_HOST_DC) --profile dev-tyle  --env-file .env.dev
 PROD_TYLE_DC := $(DC) --profile prod-tyle --env-file .env.prod-tyle
 PROD_BB_DC   := $(DC) --profile prod-bb   --env-file .env.prod-bb
-DEV_BB_DC   = $(DEV_HOST_DC) --profile dev-bb    --env-file .env.dev-bb
+DEV_BB_DC   = $(DEV_HOST_DC) --profile dev-bb    --env-file .env.dev
 # The demo publishes Grafana on 13302 on this machine.
 # Its own compose project, so the demo's fake Sense and Grafana never join the network of the
 # dev stacks' InfluxDBs.

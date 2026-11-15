@@ -68,19 +68,6 @@ x-grafana: &grafana
   restart: unless-stopped
   oom_score_adj: -500
 
-# A dev Grafana is served by name on the dev host's edge, so it refuses to start without a real
-# admin password rather than sign anyone in as admin/admin. The check runs in the container, not
-# as a required compose variable: compose interpolates every service, and the e2e and test stacks
-# set no Grafana password. Then the image's own entrypoint runs.
-x-dev-grafana-entrypoint: &dev-grafana-entrypoint
-  - /bin/sh
-  - -c
-  - >-
-    case "$$GF_SECURITY_ADMIN_PASSWORD" in
-    ""|admin) echo "REFUSING: set GRAFANA_PASSWORD in the env file; this Grafana is served by name" >&2; exit 1;;
-    esac;
-    exec /run.sh
-
 x-prod-collector: &prod-collector
   <<: *collector
   restart: always
@@ -108,10 +95,14 @@ services:
       <<: *grafana-env
       INFLUX_HOST: sense_dev_tyle_influxdb
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-}
-    entrypoint: *dev-grafana-entrypoint
+    # Served by name on the dev host's edge: refuses a guessable admin password and sets it on
+    # every start (ops/grafana/dev-entrypoint.sh). In the container, not as a required compose
+    # variable: compose interpolates every service, and the e2e and test stacks set none.
+    entrypoint: ["/bin/sh", "/ops/dev-entrypoint.sh"]
     profiles: [dev-tyle]
     container_name: sense_dev_tyle_grafana
     volumes:
+      - ./ops/grafana/dev-entrypoint.sh:/ops/dev-entrypoint.sh:ro
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_tyle_grafana_data:/var/lib/grafana
@@ -148,10 +139,12 @@ services:
       <<: *grafana-env
       INFLUX_HOST: sense_dev_bb_influxdb
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-}
-    entrypoint: *dev-grafana-entrypoint
+    # The same guard as the tyle Grafana (ops/grafana/dev-entrypoint.sh).
+    entrypoint: ["/bin/sh", "/ops/dev-entrypoint.sh"]
     profiles: [dev-bb]
     container_name: sense_dev_bb_grafana
     volumes:
+      - ./ops/grafana/dev-entrypoint.sh:/ops/dev-entrypoint.sh:ro
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_bb_grafana_data:/var/lib/grafana

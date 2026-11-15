@@ -8,7 +8,10 @@ one of the two dev stacks was deployed and smoked. These read the committed file
 """
 
 import re
+import subprocess
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -79,6 +82,19 @@ def test_the_dev_stacks_run_on_the_declared_dev_host() -> None:
         assert re.search(rf"^{wrapper}\s+= \$\(DEV_HOST_DC\) ", makefile, re.M), wrapper
 
 
+def test_every_dev_target_resolves_the_stacks_as_dev_deploy_does() -> None:
+    """dev-deploy resolves both stacks from DEV_ENV_FILE, whose TAG= it pins: a wrapper that
+    resolves from another file starts another image and another Grafana password."""
+    makefile = (REPO / "Makefile").read_text()
+    # the image block's own default; the repo sets no DEV_ENV_FILE of its own
+    deploy_env = re.findall(r"^DEV_ENV_FILE \?= (\S+)$", makefile, re.M)
+    assert deploy_env == [".env.dev"], deploy_env
+    for wrapper in ("DEV_TYLE_DC", "DEV_BB_DC"):
+        line = re.search(rf"^{wrapper}\s+= (.+)$", makefile, re.M)
+        assert line, wrapper
+        assert re.findall(r"--env-file (\S+)", line[1]) == deploy_env, line[1]
+
+
 def test_each_dev_grafana_is_served_by_name_on_the_edge_not_a_port() -> None:
     """The edge hands each dev name to http://<container_name>:3000 on `dev-edge`; a
     published port would bypass it, and a Grafana off `dev-edge` cannot be reached."""
@@ -91,17 +107,72 @@ def test_each_dev_grafana_is_served_by_name_on_the_edge_not_a_port() -> None:
     assert re.search(r"^networks:\n  dev-edge:\n    external: true$", compose, re.M)
 
 
-def test_a_dev_grafana_never_falls_back_to_admin_admin() -> None:
-    """Served by name, a dev Grafana with no GRAFANA_PASSWORD would sign anyone in as
-    admin/admin: it must refuse to start instead, empty or `admin` alike."""
+DEV_GRAFANA_ENTRYPOINT = REPO / "ops" / "grafana" / "dev-entrypoint.sh"
+
+
+def test_each_dev_grafana_starts_through_the_password_guard() -> None:
     compose = (REPO / "compose.yml").read_text()
-    guard = compose.split("x-dev-grafana-entrypoint: &dev-grafana-entrypoint")[1]
-    guard = guard.split("\nx-")[0]
-    assert '""|admin)' in guard and "exit 1" in guard and "exec /run.sh" in guard
     for stack in ("sense_dev_tyle_grafana", "sense_dev_bb_grafana"):
         service = _service(compose, stack)
-        assert "entrypoint: *dev-grafana-entrypoint" in service, stack
+        assert 'entrypoint: ["/bin/sh", "/ops/dev-entrypoint.sh"]' in service, stack
+        assert (
+            "- ./ops/grafana/dev-entrypoint.sh:/ops/dev-entrypoint.sh:ro" in service
+        ), stack
         assert "GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-}" in service, stack
+
+
+def _guard(tmp_path: Path, password: str, cli_exit: int = 0):
+    """Run the dev Grafana entrypoint with a stand-in `grafana` that records its arguments."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    calls = tmp_path / "calls"
+    cli = bin_dir / "grafana"
+    cli.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> {calls}\nexit {cli_exit}\n')
+    cli.chmod(0o755)
+    run = subprocess.run(
+        ["/bin/sh", str(DEV_GRAFANA_ENTRYPOINT)],
+        env={
+            "PATH": f"{bin_dir}:/usr/bin:/bin",
+            "GF_SECURITY_ADMIN_PASSWORD": password,
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return run, (calls.read_text().splitlines() if calls.exists() else [])
+
+
+@pytest.mark.parametrize(
+    "password",
+    ["", "admin", "Admin", "ADMIN", "choose-a-password", "Choose-A-Password"],
+)
+def test_a_dev_grafana_refuses_a_default_or_published_password(tmp_path, password):
+    """Served by name, a dev Grafana must never take a password anyone can guess: none,
+    Grafana's default, or the placeholder this public repo's env template shows."""
+    run, calls = _guard(tmp_path, password)
+    assert run.returncode == 1
+    assert "REFUSING" in run.stderr
+    assert calls == []
+
+
+def test_a_dev_grafana_sets_its_admin_password_on_every_start(tmp_path):
+    """Grafana applies GF_SECURITY_ADMIN_PASSWORD only when it creates its database: a
+    volume first started with admin/admin, or before a rotation, keeps the old password
+    unless the entrypoint sets it each start."""
+    password = "S3cret pw with spaces*"
+    run, calls = _guard(tmp_path, password)
+    assert calls == [
+        f"cli --homepath /usr/share/grafana admin reset-admin-password {password}"
+    ]
+    assert "REFUSING" not in run.stderr
+    assert password not in run.stdout + run.stderr
+
+
+def test_a_dev_grafana_does_not_start_when_its_password_cannot_be_set(tmp_path):
+    run, calls = _guard(tmp_path, "S3cret-pw", cli_exit=1)
+    assert run.returncode == 1
+    assert "REFUSING" in run.stderr
+    assert len(calls) == 1
 
 
 def test_releases_build_both_architectures_whatever_the_shell_exports() -> None:
