@@ -50,6 +50,8 @@ compose*.yaml
 compose*.yml
 Dockerfile*
 Makefile
+# The gitignored per-host settings (the registry host, an internal name): never sent to a build.
+**/Makefile.local
 
 # OS / editor
 **/.DS_Store
