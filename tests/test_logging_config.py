@@ -8,6 +8,7 @@ fix, control-character safety for remote-derived values) and the entrypoint's wi
 import json
 import logging
 
+import httpx
 import pytest
 
 from app.core.logging_config import configure_logging, log_context
@@ -325,3 +326,101 @@ def test_a_value_holding_no_validation_error_is_written_as_passed(capsys, value)
 
     (line,) = _lines(capsys)
     assert line["message"] == f"value {value}"
+
+
+def _status_error_from_a_live_client() -> httpx.HTTPStatusError:
+    """A 503 the way the collector meets one: a real client, a real response, raise_for_status."""
+
+    def answer_503(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"status": "down"})
+
+    with httpx.Client(transport=httpx.MockTransport(answer_503)) as client:
+        response = client.get(
+            "https://api.sense.com/apiservice/api/v1/app/monitors/1/status"
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as err:
+            return err
+    raise AssertionError("raise_for_status raised nothing")
+
+
+def test_an_http_status_error_keeps_its_status_and_url(capsys):
+    """client.py logs `HTTP error: %s` with the HTTPStatusError itself; its request and
+    response refer to each other, and that cycle is no validation error."""
+    configure_logging(service="s", version="v")
+    api_logger.error("HTTP error: %s", _status_error_from_a_live_client())
+
+    # the client logs its own request line too; this is the collector's
+    (line,) = [x for x in _lines(capsys) if x["logger"] == "api"]
+    assert "503" in line["message"], line["message"]
+    assert "/monitors/1/status" in line["message"], line["message"]
+    assert "withheld" not in line["message"]
+
+
+class _Peer:
+    def __init__(self) -> None:
+        self.peer = self
+
+
+class _ErrorWithState(Exception):
+    def __init__(self, text: str) -> None:
+        super().__init__(text)
+        self.state = _Peer()
+
+
+def test_an_error_holding_a_reference_cycle_keeps_its_text(capsys):
+    configure_logging(service="s", version="v")
+    api_logger.error(
+        "Error in API worker %s: %s", 1, _ErrorWithState("device 42 timed out")
+    )
+
+    (line,) = _lines(capsys)
+    assert line["message"] == "Error in API worker 1: device 42 timed out"
+
+
+def test_the_traceback_of_a_cyclic_error_keeps_its_message(capsys):
+    configure_logging(service="s", version="v")
+    try:
+        raise _status_error_from_a_live_client()
+    except httpx.HTTPStatusError:
+        storage_logger.exception("write failed")
+
+    (line,) = [x for x in _lines(capsys) if x["logger"] == "storage"]
+    assert "503" in line["exception"], line["exception"]
+    assert "withheld" not in line["exception"]
+
+
+def test_a_dict_view_is_searched_like_the_dict(capsys):
+    """`.values()` renders what it views, so a validation error in one is withheld; a view of
+    plain values is written as passed."""
+    configure_logging(service="s", version="v")
+    logger.warning("views %s %s", {"e": ValidationError()}.values(), {"a": 1}.items())
+
+    (line,) = _lines(capsys)
+    assert SECRET not in json.dumps(line)
+    assert "('a', 1)" in line["message"]
+
+
+def test_a_validation_error_nested_past_the_depth_bound_is_withheld(capsys):
+    configure_logging(service="s", version="v")
+    nested: list[object] = [ValidationError()]
+    for _ in range(20):
+        nested = [nested]
+    logger.warning("deep %s", nested)
+
+    (line,) = _lines(capsys)
+    assert SECRET not in json.dumps(line)
+    assert "nested past" in line["message"]
+
+
+def test_a_call_larger_than_the_search_is_walked_and_withheld_safely(capsys):
+    """Past the search's budget an argument is walked as one that holds input, and so is every
+    argument after it: a validation error there is withheld, never written."""
+    configure_logging(service="s", version="v")
+    crowd = [_Peer() for _ in range(25_000)]
+    logger.warning("big %s then %s", crowd, ValidationError())
+
+    (line,) = _lines(capsys)
+    assert SECRET not in json.dumps(line)
+    assert "too much to look through" in line["message"]

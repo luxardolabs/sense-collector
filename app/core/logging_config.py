@@ -1,4 +1,4 @@
-# luxarch:logging asset v11 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging`.
+# luxarch:logging asset v12 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging`.
 """The fleet's ONE logging setup: standard-library `logging`, one JSON line per record on stdout.
 
 Why the standard library (sources in `luxarch --playbook logging`): every log platform the fleet might
@@ -76,7 +76,7 @@ A pydantic or FastAPI validation error's text quotes the value that failed, a su
 included, so no line carries it: a traceback whose exception chain (cause, context, exception group,
 or an exception's own arguments) holds one keeps its frames under a message naming the exception type,
 and one in a `%` argument, an `extra=` field or a `log_context` field, at any depth of a list, tuple,
-set or dict (16 levels; a container nested deeper is written as its type), is written as its type. An
+set or dict, is written as its type. An
 entry of its `errors()` (a dict carrying `type`, `loc`, `msg` and `input`) is written without its
 `input`, wherever it is passed, and as its `type` and `loc` alone when its message is the validator's
 own text (`value_error`, `assertion_error`, a custom error type), which may quote the value. An
@@ -86,8 +86,15 @@ its type. Text the application builds itself (`f"failed: {err}"`, `str(err)`,
 `err.json()`) is already a string when the log call is made and is written as it is: log
 `err.errors(include_input=False)` instead. A custom error type named like one of pydantic's own keeps
 its message; an object whose text comes from state outside its instance dict and slots is written
-as it renders; and an argument whose object graph runs past 10,000 containers and objects is written
-as its type.
+as it renders. Each argument and field of a log call is first searched, without recursion (20,000
+values for the whole call), for a validation error or an `errors()` entry: one that holds none is
+written as passed, so an ordinary error with a live, cyclic object graph (an HTTP client's status
+error, a database client's API error) keeps its text, beside a validation error too. One that holds
+one, or that the search could not clear (a batch of more than 20,000 values), is walked: a dict's
+`keys()`, `values()` and `items()` views as the dict, and a container nested past 16 levels, or an
+argument whose graph runs past 10,000 containers and objects, is written as its type. An answer the
+walk gave while an object was still being answered further up (an error that names its row, a row
+that keeps its error) is not reused, so each is judged whole.
 
 Emitted, not shared: `luxarch --emit logging`. Drop it in at app/core/logging_config.py. Nothing
 imports luxarch at runtime. Do not hand-edit: re-emit to update; repo.emitted_assets_current reds a
@@ -104,7 +111,15 @@ import os
 import re
 import sys
 from collections import deque
-from collections.abc import Callable, Iterable, Iterator, Mapping
+from collections.abc import (
+    Callable,
+    ItemsView,
+    Iterable,
+    Iterator,
+    KeysView,
+    Mapping,
+    ValuesView,
+)
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -406,13 +421,24 @@ _OPAQUE = (
 _MAX_NODES = 10_000
 
 
-class _Walk:
-    """One look through a value: the objects on the current path (a cycle), the ones answered, and
-    how many more it may walk."""
+_CLEAR = sys.maxsize  # no answer below a value leaned on an ancestor's
 
-    def __init__(self) -> None:
-        self.path: set[int] = set()
+
+class _Walk:
+    """One look through the values of one log call: which of its arguments or fields hold a
+    validation error at all (one search each, before any walk), the objects on the current path and
+    where (a cycle), the ones answered, and how many more it may walk."""
+
+    def __init__(self, *roots: object) -> None:
+        self.holds = _found_in(roots)
+        self.at: dict[int, int] = {}  # id -> its place on the current path
+        self.low = (
+            _CLEAR  # the highest ancestor a cycle below the current value reached
+        )
         self.done: dict[int, object] = {}
+        self.kept: list[
+            object
+        ] = []  # copies the walk made, alive so their ids are never reused
         self.left = _MAX_NODES
 
 
@@ -450,12 +476,8 @@ def _quotes_input(exc: BaseException, walk: _Walk, depth: int) -> bool:
     """Whether `exc` is a pydantic or FastAPI validation error (classes named by package, so this
     module imports neither), or anything in its cause / context chain, its exception group or its
     arguments is one or holds one, or an entry of one's `errors()`."""
-    for cls in type(exc).__mro__:
-        if (
-            cls.__module__.partition(".")[0] in _QUOTING_PACKAGES
-            and cls.__name__ in _QUOTING_CLASSES
-        ):
-            return True
+    if _is_validation_error(exc):
+        return True
     members = getattr(exc, "exceptions", None)
     inner = (
         [m for m in members if isinstance(m, BaseException)]
@@ -472,6 +494,93 @@ def _quotes_input(exc: BaseException, walk: _Walk, depth: int) -> bool:
     return _holds_input(_attributes(exc), walk, depth + 1)
 
 
+def _is_validation_error(exc: BaseException) -> bool:
+    """A pydantic or FastAPI validation error, by its class alone (named by package, so this module
+    imports neither)."""
+    return any(
+        cls.__module__.partition(".")[0] in _QUOTING_PACKAGES
+        and cls.__name__ in _QUOTING_CLASSES
+        for cls in type(exc).__mro__
+    )
+
+
+# How many values the one search of a log call looks at before it stops, finding nothing.
+_MAX_SEARCHED = 20_000
+
+
+def _below(value: object) -> list[object]:
+    """The values the search looks into next: what the walk would reach from `value`."""
+    if isinstance(value, BaseException):
+        members = getattr(value, "exceptions", None)
+        return [
+            value.__cause__,
+            value.__context__,
+            *(members if isinstance(members, tuple) else ()),
+            *(value.args if isinstance(value.args, tuple) else (value.args,)),
+            *_attributes(value),
+        ]
+    if isinstance(value, Mapping):
+        return [*value.keys(), *value.values()]
+    if isinstance(value, (*_CONTAINERS, KeysView, ValuesView, ItemsView)):
+        return list(value)
+    if isinstance(value, _SCALAR_BASES | _OPAQUE):
+        return []
+    return _attributes(value)
+
+
+def _found_in(roots: tuple[object, ...]) -> list[bool]:
+    """For each argument or field of one log call, whether it is or holds a validation error or an
+    `errors()` entry: an iterative search of each (no recursion, no depth bound), in order, each
+    value looked at once per argument. Only an argument that holds one is walked and withheld, so an
+    ordinary error whose live response graph is cyclic or large (an HTTP client's status error, a
+    database client's API error) is written as passed, beside a validation error too. The searches
+    of one call share `_MAX_SEARCHED` values: an argument not cleared within it, or holding a value
+    the search cannot read, is walked, as one that holds input is."""
+    holds: list[bool] = []
+    searched = 0
+    for root in roots:
+        if searched >= _MAX_SEARCHED:
+            holds.append(
+                True
+            )  # not cleared within the budget: the bounded walk decides
+            continue
+        found, used = _search(root, _MAX_SEARCHED - searched)
+        searched += used
+        holds.append(found)
+    return holds
+
+
+def _search(root: object, budget: int) -> tuple[bool, int]:
+    """Whether `root` is or holds a validation error or an `errors()` entry, and how many values the
+    search looked at. Not cleared within `budget` values counts as found."""
+    seen: dict[
+        int, object
+    ] = {}  # holding each value, so no id is reused while it searches
+    todo = [root]
+    while todo:
+        if len(seen) >= budget:
+            return True, len(seen)
+        item = todo.pop()
+        if (
+            item is None
+            or isinstance(item, str | bytes | int | float)
+            or id(item) in seen
+        ):
+            continue
+        seen[id(item)] = item
+        try:
+            if isinstance(item, BaseException) and _is_validation_error(item):
+                return True, len(seen)
+            if isinstance(item, Mapping) and _ERROR_ENTRY.issubset(item.keys()):
+                return True, len(seen)
+            below = _below(item)
+            if not _all_scalar(below):  # rows of plain values hold nothing to find
+                todo.extend(reversed(below))
+        except _VALUE_ERRORS:
+            return True, len(seen)  # a value it cannot read is not one it has cleared
+    return False, len(seen)
+
+
 def _withheld(value: object, walk: _Walk, depth: int) -> object:
     """`value` itself when it holds no validation error, else a copy without one: such an error is
     written as its type, an `errors()` entry without its `input`."""
@@ -480,24 +589,45 @@ def _withheld(value: object, walk: _Walk, depth: int) -> object:
     key = id(value)
     if key in walk.done:
         return walk.done[key]
-    if key in walk.path:
-        # a cycle: the value is being answered further up
+    if key in walk.at:
+        # a cycle: the value is being answered further up. What is answered below it until then
+        # leans on that answer, so it is not kept (`walk.low`).
+        walk.low = min(walk.low, walk.at[key])
         return value if isinstance(value, BaseException) else "[...]"
     if walk.left <= 0:
         return f"<{type(value).__qualname__}: too much to look through, withheld>"
     walk.left -= 1
-    walk.path.add(key)
+    place = len(walk.at)
+    walk.at[key] = place
+    outer = walk.low
+    walk.low = _CLEAR
     try:
         out = _withheld_new(value, walk, depth)
     except _VALUE_ERRORS:
         out = f"<{type(value).__qualname__}: unreadable, withheld>"
     finally:
-        walk.path.discard(key)
-    walk.done[key] = out
+        del walk.at[key]
+        inner = walk.low
+        # kept only when no cycle below it reached past it: then the answer is its own
+        if inner >= place:
+            walk.done[key] = out
+            inner = _CLEAR
+        walk.low = min(outer, inner)
     return out
 
 
+def _root(value: object, walk: _Walk, place: int, depth: int) -> object:
+    """An argument or field of the log call: walked only when its search found a validation error."""
+    return _withheld(value, walk, depth) if walk.holds[place] else value
+
+
 def _withheld_new(value: object, walk: _Walk, depth: int) -> object:
+    if isinstance(value, KeysView | ValuesView | ItemsView):
+        # `.keys()`, `.values()`, `.items()` render what they view
+        items = list(value)
+        walk.kept.append(items)
+        hidden = _withheld(items, walk, depth)
+        return value if hidden is items else hidden
     if isinstance(value, BaseException):
         if _quotes_input(value, walk, depth):
             return f"<{type(value).__qualname__}: input withheld>"
@@ -538,15 +668,15 @@ def _withheld_new(value: object, walk: _Walk, depth: int) -> object:
 
 
 def _hide_input(value: object) -> object:
-    return _withheld(value, _Walk(), 0)
+    return _root(value, _Walk(value), 0, 0)
 
 
 def _hidden_fields(fields: dict[str, Any]) -> dict[str, Any]:
     """The caller's fields, each through `_withheld`: a field the JSON line writes with `str()`."""
     if _all_scalar(fields.values()):
         return fields
-    walk = _Walk()
-    return {k: _withheld(v, walk, 1) for k, v in fields.items()}
+    walk = _Walk(*fields.values())
+    return {k: _root(v, walk, i, 1) for i, (k, v) in enumerate(fields.items())}
 
 
 def _withhold_input(exc_info: _SysExcInfo) -> _SysExcInfo:
@@ -578,16 +708,16 @@ class _Withholding(logging.Formatter):
             not args or (type(args) is tuple and _all_scalar(args))
         ):
             return record.getMessage()
-        walk = _Walk()
-        safe_msg = _withheld(msg, walk, 0)
+        walk = _Walk(msg, *args) if isinstance(args, tuple) else _Walk(msg, args)
+        safe_msg = _root(msg, walk, 0, 0)
         safe_args = args
         if isinstance(args, tuple):
-            hidden = tuple(_withheld(a, walk, 1) for a in args)
+            hidden = tuple(_root(a, walk, i, 1) for i, a in enumerate(args, start=1))
             if any(new is not old for new, old in zip(hidden, args, strict=True)):
                 safe_args = hidden
         elif isinstance(args, Mapping):
             # the one mapping argument of `log("%(e)s", {...})` is itself what `%s` would print
-            hidden_map = _withheld(args, walk, 0)
+            hidden_map = _root(args, walk, 1, 0)
             if isinstance(hidden_map, Mapping):
                 safe_args = hidden_map
             else:

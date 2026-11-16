@@ -120,6 +120,15 @@
             "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/release-docs-read-guides.py\""
           }
         ]
+      },
+      {
+        "matcher": "mcp__luxpm__luxpm_create_issue|mcp__luxpm__luxpm_update_issue",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/escalation-remedy-tried.py\""
+          }
+        ]
       }
     ],
     "PostToolUse": [

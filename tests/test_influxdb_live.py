@@ -6,15 +6,20 @@ These tests write through the collector's own storage layer and read the points 
 Flux, so line protocol, precision, tags and auth are proven against the server, not a mock.
 """
 
+import json
+import logging
 import os
 import time
 import uuid
 from datetime import UTC, datetime
 
 import pytest
+from influxdb_client.client.exceptions import InfluxDBError
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 
+from app.core.logging_config import configure_logging
 from app.storage.influxdb import InfluxDBStorage
+from app.utils.logging import storage_logger
 
 ENV_KEYS = ("url", "token", "org", "bucket")
 
@@ -156,3 +161,36 @@ async def test_integral_json_numbers_do_not_conflict_with_float_fields(
     assert second[("sense_devices", None, "watts")] == 0.0
     assert second[("sense_devices", None, "sd_watts")] == 2.0
     assert storage.write_stats["failed"] == 0
+
+
+@pytest.mark.asyncio
+async def test_a_refused_write_is_logged_with_the_servers_reason(
+    influx_params: dict[str, str],
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A field-type conflict (422) logged the way the storage layer logs a write error keeps
+    the server's reason: the client's ApiException holds a cyclic response graph, which is
+    no validation error."""
+    root = logging.getLogger()
+    monkeypatch.setattr(root, "handlers", root.handlers[:])
+    monkeypatch.setattr(logging.Logger, "makeRecord", logging.Logger.makeRecord)
+    configure_logging(service="s", version="v")
+    measurement = f"conflict_{uuid.uuid4().hex[:10]}"
+    async with InfluxDBClientAsync(
+        url=influx_params["url"], token=influx_params["token"], org=influx_params["org"]
+    ) as client:
+        write = client.write_api()
+        await write.write(bucket=influx_params["bucket"], record=f"{measurement} f=1i")
+        with pytest.raises(InfluxDBError) as refused:
+            await write.write(
+                bucket=influx_params["bucket"], record=f'{measurement} f="s"'
+            )
+    assert "conflict" in str(refused.value)
+
+    storage_logger.error("InfluxDB write failed: %s", refused.value)
+
+    lines = [json.loads(x) for x in capsys.readouterr().out.splitlines() if x]
+    (line,) = [x for x in lines if x["logger"] == "storage"]
+    assert "conflict" in line["message"], line["message"]
+    assert "withheld" not in line["message"]
