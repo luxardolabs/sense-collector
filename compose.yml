@@ -20,8 +20,9 @@ name: sense-collector
 # Credentials live in a gitignored `.env.<stack>` per stack (.env.dev for dev-tyle, .env.dev-bb,
 # .env.prod-tyle, .env.prod-bb); .env.demo and .env.e2e are committed and hold no secrets.
 # The dev stacks run on the dev host (DEV_HOST in the Makefile) and publish no host port: each
-# dev Grafana joins the dev host's `dev-edge` network under its container name, and the edge
-# serves it by its dev name on the fleet domain (dev-sense-collector, dev-sense-collector-bb).
+# dev Grafana holds a pinned address on the dev host's `dev-edge` network (tyle 172.30.0.13,
+# bb 172.30.0.14), the address the edge routes its dev name to (dev-sense-collector,
+# dev-sense-collector-bb); the edge has no Docker DNS, so a Grafana on any other address is a 502.
 # Only the demo Grafana publishes a host port, on 127.0.0.1 unless the env file sets GRAFANA_BIND.
 # InfluxDB is reached by SERVICE NAME on the compose network, so it never contends for a port
 # with a sibling fleet stack.
@@ -107,7 +108,10 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_tyle_grafana_data:/var/lib/grafana
-    networks: [default, dev-edge]
+    networks:
+      default: {}
+      dev-edge:
+        ipv4_address: 172.30.0.13
     depends_on:
       sense_dev_tyle_influxdb:
         condition: service_healthy
@@ -149,7 +153,10 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/shared-local:/var/lib/grafana/dashboards:ro
       - sense_dev_bb_grafana_data:/var/lib/grafana
-    networks: [default, dev-edge]
+    networks:
+      default: {}
+      dev-edge:
+        ipv4_address: 172.30.0.14
     depends_on:
       sense_dev_bb_influxdb:
         condition: service_healthy

@@ -374,9 +374,9 @@ build-local: ## Build the runtime image from CURRENT source as a local tag (no p
 # GHCR). The dev environment it deploys is BOTH monitors' stacks, dev-tyle and dev-bb: one build,
 # pinned once in `.env.dev` (`dev-pin` writes its TAG=), whose SENSE_IMAGE both collectors run.
 # Each collector keeps its own credentials (env_file .env.dev / .env.dev-bb). Both stacks run on
-# the dev host and publish no host port: each Grafana is on the dev host's `dev-edge` network under
-# its container name, reached by its dev name on the fleet domain, dev-sense-collector (tyle) and
-# dev-sense-collector-bb (bb). DEV_HOST is an ssh alias every coding machine
+# the dev host and publish no host port: each Grafana holds a pinned address on the dev host's
+# `dev-edge` network (compose.yml), the one the edge routes its dev name to, dev-sense-collector
+# (tyle) and dev-sense-collector-bb (bb). DEV_HOST is an ssh alias every coding machine
 # resolves (FLEET-BUILD-DEPLOY-STANDARD, "The dev host"). Re-emit with
 # `luxarch --emit image-block --update Makefile`; never hand-edit.
 DEV_PROFILES := dev-tyle dev-bb

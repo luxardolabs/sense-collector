@@ -96,13 +96,22 @@ def test_every_dev_target_resolves_the_stacks_as_dev_deploy_does() -> None:
 
 
 def test_each_dev_grafana_is_served_by_name_on_the_edge_not_a_port() -> None:
-    """The edge hands each dev name to http://<container_name>:3000 on `dev-edge`; a
-    published port would bypass it, and a Grafana off `dev-edge` cannot be reached."""
+    """The edge routes each dev name to a pinned address on `dev-edge` (it has no Docker DNS):
+    dev-sense-collector to 172.30.0.13:3000, dev-sense-collector-bb to 172.30.0.14:3000. A
+    Grafana on any other address answers 502 there, and a published port would bypass it."""
     compose = (REPO / "compose.yml").read_text()
-    for stack in ("sense_dev_tyle_grafana", "sense_dev_bb_grafana"):
+    for stack, address in (
+        ("sense_dev_tyle_grafana", "172.30.0.13"),
+        ("sense_dev_bb_grafana", "172.30.0.14"),
+    ):
         service = _service(compose, stack)
         assert "ports:" not in service, stack
-        assert "networks: [default, dev-edge]" in service, stack
+        assert re.search(
+            rf"^    networks:\n      default: \{{\}}\n      dev-edge:\n"
+            rf"        ipv4_address: {re.escape(address)}$",
+            service,
+            re.M,
+        ), stack
         assert f"container_name: {stack}" in service, stack
     assert re.search(r"^networks:\n  dev-edge:\n    external: true$", compose, re.M)
 
