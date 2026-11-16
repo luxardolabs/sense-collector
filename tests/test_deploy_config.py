@@ -339,3 +339,30 @@ def test_each_stack_binds_its_output_folder_through_its_own_variable() -> None:
     defaults = [default for _, default in binds]
     assert len(set(names)) == len(names), names
     assert len(set(defaults)) == len(defaults), defaults
+
+
+def test_every_make_target_the_run_stacks_table_names_exists() -> None:
+    """CLAUDE.md's run-stacks table is how an operator starts each stack; a target it names
+    that the Makefile lacks fails at the moment someone deploys."""
+    table = (
+        (REPO / "CLAUDE.md").read_text().split("## The run stacks")[1].split("\n## ")[0]
+    )
+    named = set(re.findall(r"`make ([a-z][a-z0-9-]*)`", table))
+    assert named, "the run-stacks table names no make target"
+    defined = set(
+        re.findall(r"^([a-z][a-z0-9-]*):", (REPO / "Makefile").read_text(), re.M)
+    )
+    assert named <= defined, sorted(named - defined)
+
+
+def test_the_prod_bb_targets_drive_the_prod_bb_stack() -> None:
+    makefile = (REPO / "Makefile").read_text()
+    for target, verb in (
+        ("prod-bb-up", "up -d"),
+        ("prod-bb-down", "down"),
+        ("prod-bb-logs", "logs -f"),
+        ("prod-bb-ps", "ps"),
+    ):
+        recipe = re.search(rf"^{target}:.*\n((?:\t.*\n)+)", makefile, re.M)
+        assert recipe, target
+        assert f"$(PROD_BB_DC) {verb}" in recipe[1], (target, recipe[1])

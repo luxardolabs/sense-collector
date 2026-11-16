@@ -287,6 +287,7 @@ PROD_SSH  := ssh -o BatchMode=yes $(PROD_USER)@$(PROD_NODE)
         up down restart logs ps shell bb-up bb-down bb-logs \
         dev-up dev-down dev-clean dev-logs dev-ps dev-shell \
         prod-up prod-down prod-restart prod-logs prod-ps \
+        prod-bb-up prod-bb-down prod-bb-logs prod-bb-ps \
         demo-up demo-down demo-clean demo-logs demo-ps \
         check-prod-node prod-init prod-sync prod-deploy prod-status prod-logs-remote prod-health prod-rollback \
         poetry-lock poetry-update poetry-install \
@@ -2391,6 +2392,21 @@ prod-logs: ## Follow prod logs
 
 prod-ps: ## Prod container status
 	$(PROD_TYLE_DC) ps
+
+##@ Prod — the second monitor's stack (pulls the SENSE_IMAGE pinned in .env.prod-bb)
+
+prod-bb-up: ## Pull the pinned image + start the prod-bb stack
+	$(PROD_BB_DC) pull
+	$(PROD_BB_DC) up -d
+
+prod-bb-down: ## Stop the prod-bb stack
+	$(PROD_BB_DC) down
+
+prod-bb-logs: ## Follow prod-bb logs
+	$(PROD_BB_DC) logs -f
+
+prod-bb-ps: ## prod-bb container status
+	$(PROD_BB_DC) ps
 
 ##@ Prod — remote deploy (set PROD_NODE=<host>)
 
