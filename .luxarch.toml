@@ -34,10 +34,10 @@ exempt_reason = "deliberate non-adoption, not non-applicability: no opentelemetr
 [agents]
 push = "agent"
 
-# How the dev stacks are reached on the dev host (FLEET-BUILD-DEPLOY-STANDARD, "The dev host").
-# There is no nginx: the edge hands each dev name straight to that stack's Grafana at its pinned
-# `dev-edge` address (compose.yml: tyle 172.30.0.13, bb 172.30.0.14; port 3000). The tyle Grafana
-# is the declared service; the bb Grafana joins the same network the same way, under its own dev name.
+# How the dev stacks run on the dev host (FLEET-BUILD-DEPLOY-STANDARD, "Moving a stack to the dev host").
+# The collector serves no HTTP, so nothing is the front: the deploy is proven by the collectors'
+# health (SMOKE_CONTAINERS in the Makefile). Each stack's Grafana is an ops UI, not the front: it
+# sits on `dev-edge` at its own pinned address (compose.yml: tyle 172.30.0.13, bb 172.30.0.14;
+# port 3000) under its own dev name.
 [dev_host]
-front = "app"
-service = "sense_dev_tyle_grafana"
+front = "none"

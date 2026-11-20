@@ -1,4 +1,4 @@
-# luxarch:logging-contract asset v3 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging-contract`.
+# luxarch:logging-contract asset v4 - DO NOT edit this marker line; it is how repo.emitted_assets_current knows your copy is current. Re-emit with `luxarch --emit logging-contract`.
 """The contract of the logging module's trace-id source, asked of your copy of the module.
 
 Save as `tests/test_logging_contract.py` and set the one EDIT THIS line. `configure_logging(trace_ids=)`
@@ -26,7 +26,13 @@ smoke test misses, each against a change to the module that would otherwise go u
 - an entry of a validation error's `errors()` is written without its `input`, wherever it is passed,
   and an entry whose message is the validator's own (`value_error`, `assertion_error`, a custom type)
   as its `type` and `loc` only;
-- an argument, field, object or exception that holds no validation error is written as passed.
+- an argument, field, object or exception that holds no validation error is written as passed;
+- a value that raises when it is read is written as its type, and the line is still written.
+
+The validation cases raise pydantic's own errors where the repo has pydantic. Without it, they raise a
+stand-in that carries pydantic_core's class name and package and gives pydantic's `errors()` entries,
+so every case runs in every repo. A validation error from pydantic's v1 API and FastAPI's
+`ValidationException` are stand-ins in every repo.
 
 Edit nothing else. A failure here is the module's contract broken, not a test to adapt.
 """
@@ -38,7 +44,7 @@ import dataclasses
 import importlib
 import json
 import logging
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import AbstractContextManager
 from typing import Annotated, Any, Protocol, runtime_checkable
 
@@ -275,17 +281,72 @@ def test_configuring_again_without_a_source_stops_writing_ids(rig: _Rig) -> None
     assert _has_no_ids(record)
 
 
+_QUOTED = "swordfish-for-the-contract"
+
+
+def _pydantic() -> Any:
+    """pydantic and pydantic_core when the repo has them, else None: the stand-in below is used."""
+    try:
+        return importlib.import_module("pydantic"), importlib.import_module(
+            "pydantic_core"
+        )
+    except ImportError:
+        return None
+
+
+def _stand_in(
+    title: str,
+    entry: dict[str, object],
+    where: tuple[str, str] = ("pydantic_core._pydantic_core", "ValidationError"),
+) -> Exception:
+    """What these tests raise in a repo without pydantic: a validation error the way pydantic
+    builds one, as far as the module reads it. The module knows one by its class's name and package,
+    so each is an instance of a class made here with pydantic_core's (`where`), directly over
+    `ValueError` as pydantic's is. Its text and repr quote the value it refused, and its `errors()`
+    gives pydantic's entries (`type`, `loc`, `msg`, `input`, and `ctx` where pydantic has one). Like
+    pydantic's, the instance has no arguments and no attributes of its own: its title and entries
+    are its class's, so the module can withhold it only by knowing its class."""
+    module, name = where
+
+    def errors(self: Exception) -> list[dict[str, object]]:
+        return [dict(entry)]
+
+    def text(self: Exception) -> str:
+        given = f", input_value={entry['input']!r}" if "input" in entry else ""
+        return f"1 validation error for {title}\n  {entry['msg']} [type={entry['type']}{given}]"
+
+    namespace = {
+        "__module__": module,
+        "errors": errors,
+        "__str__": text,
+        "__repr__": text,
+    }
+    refused: Exception = type(name, (ValueError,), namespace)()
+    return refused
+
+
+def _stand_in_refusal() -> Exception:
+    message = "Input should be a valid integer, unable to parse string as an integer"
+    entry: dict[str, object] = {
+        "type": "int_parsing",
+        "loc": (),
+        "msg": message,
+        "input": _QUOTED,
+    }
+    return _stand_in("int", entry)
+
+
 def _validation_error() -> Exception:
-    pydantic = pytest.importorskip("pydantic")
+    found = _pydantic()
+    if found is None:
+        return _stand_in_refusal()
+    pydantic, _ = found
     try:
         pydantic.TypeAdapter(int).validate_python(_QUOTED)
     except pydantic.ValidationError as err:
-        found: Exception = err
-        return found
+        refused: Exception = err
+        return refused
     raise AssertionError("pydantic accepted the value")
-
-
-_QUOTED = "swordfish-for-the-contract"
 
 
 @runtime_checkable
@@ -300,10 +361,36 @@ def _errors_of(err: Exception) -> list[dict[str, object]]:
     return err.errors()
 
 
+def _stand_in_quoting(kind: str) -> Exception:
+    said = f"{_QUOTED!r} is not an address"
+    entry: dict[str, object] = {"loc": (), "input": _QUOTED}
+    if kind == "assert":
+        entry |= {
+            "type": "assertion_error",
+            "msg": f"Assertion failed, {said}",
+            "ctx": {"error": AssertionError(said)},
+        }
+    elif kind == "custom":
+        entry |= {
+            "type": "not_an_address",
+            "msg": f"{_QUOTED} is not an address",
+            "ctx": {"value": _QUOTED},
+        }
+    else:
+        entry |= {
+            "type": "value_error",
+            "msg": f"Value error, {said}",
+            "ctx": {"error": ValueError(said)},
+        }
+    return _stand_in("function-after[refuse(), str]", entry)
+
+
 def _quoting(kind: str) -> Exception:
     """A validation error from a validator whose own message quotes the value it refused."""
-    pydantic = pytest.importorskip("pydantic")
-    pydantic_core = pytest.importorskip("pydantic_core")
+    found = _pydantic()
+    if found is None:
+        return _stand_in_quoting(kind)
+    pydantic, pydantic_core = found
 
     def refuse(value: str) -> str:
         if kind == "assert":
@@ -318,8 +405,8 @@ def _quoting(kind: str) -> Exception:
     try:
         adapter.validate_python(_QUOTED)
     except pydantic.ValidationError as err:
-        found: Exception = err
-        return found
+        refused: Exception = err
+        return refused
     raise AssertionError("pydantic accepted the value")
 
 
@@ -380,9 +467,7 @@ def test_a_validation_errors_input_never_reaches_a_traceback_line(
     rig: _Rig, kind: str, text: bool
 ) -> None:
     rig.configure(None, text=text)
-    err = _chained(
-        kind
-    )  # outside the `try`: without pydantic its skip must reach pytest
+    err = _chained(kind)
     try:
         raise err
     except BaseException:
@@ -772,3 +857,82 @@ def test_a_client_error_beside_a_validation_error_keeps_its_text(
     (line,) = rig.lines()
     assert _QUOTED not in line
     assert "503 for /api/sync" in line
+
+
+def test_a_validation_error_after_a_batch_past_the_search_is_withheld(
+    rig: _Rig,
+) -> None:
+    """A batch that spends the call's search leaves the arguments after it uncleared: each is
+    walked, so a validation error after the batch is withheld too."""
+    rig.configure(None)
+    errors = _errors_of(_validation_error())
+    rows = [{"device": n, "reading": float(n)} for n in range(60_000)]
+    rig.log.warning("rejected %s then %s", rows, errors)
+    rig.log.warning("rejected %s", [*rows, *errors])
+    for line in rig.lines():
+        assert _QUOTED not in line
+
+
+# The other classes the module knows as validation errors: pydantic's v1 API, which pydantic 2
+# still ships, and FastAPI's base of `RequestValidationError`.
+_OTHER_PACKAGES = {
+    "pydantic v1": ("pydantic.v1.error_wrappers", "ValidationError"),
+    "fastapi": ("fastapi.exceptions", "ValidationException"),
+}
+
+
+@pytest.mark.parametrize("where", list(_OTHER_PACKAGES))
+@pytest.mark.parametrize("text", [False, True], ids=["json", "text"])
+def test_a_validation_error_from_another_package_is_written_as_its_type(
+    rig: _Rig, where: str, text: bool
+) -> None:
+    rig.configure(None, text=text)
+    entry: dict[str, object] = {
+        "type": "value_error",
+        "loc": ("password",),
+        "msg": f"{_QUOTED} is too weak",
+    }
+    if where == "fastapi":
+        entry["input"] = _QUOTED  # pydantic v2's entries, as FastAPI hands them on
+    err = _stand_in("Signup", entry, _OTHER_PACKAGES[where])
+    rig.log.warning("refused: %s", err)
+    try:
+        raise err
+    except ValueError:
+        rig.log.exception("signup failed")
+    for line in rig.lines():
+        assert _QUOTED not in line
+
+
+class _Unreadable(Mapping[str, object]):
+    """A mapping whose store is gone (a closed shelf, a detached lazy collection): reading raises."""
+
+    def __getitem__(self, key: str) -> object:
+        raise LookupError("store closed")
+
+    def __iter__(self) -> Iterator[str]:
+        raise LookupError("store closed")
+
+    def __len__(self) -> int:
+        return 1
+
+
+@pytest.mark.parametrize("text", [False, True], ids=["json", "text"])
+def test_a_value_that_raises_when_read_is_written_as_its_type(
+    rig: _Rig, text: bool
+) -> None:
+    rig.configure(None, text=text)
+    rig.log.warning("state: %s", _Unreadable())
+    rig.log.warning("%(state)s", _Unreadable())
+    for line in rig.lines():
+        assert "<_Unreadable: unreadable, withheld>" in line
+
+
+def test_functions_classes_and_numbers_beside_a_validation_error_are_written_as_passed(
+    rig: _Rig,
+) -> None:
+    rig.configure(None)
+    rig.log.warning("refused: %s", [len, int, 2j, _validation_error()])
+    message = json.loads(rig.lines()[0])["message"]
+    assert _QUOTED not in message
+    assert "[<built-in function len>, <class 'int'>, 2j, " in message
